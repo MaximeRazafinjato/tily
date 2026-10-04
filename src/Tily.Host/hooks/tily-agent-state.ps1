@@ -20,19 +20,80 @@ function ConvertFrom-BashPath([string]$path) {
     return $path -replace '/', '\'
 }
 
-function Resolve-HtmlOpenTarget([string]$command, [string]$workingDirectory) {
-    $match = [regex]::Match($command, '^\s*start(?:\s+(?:""|''''))?\s+(?:"(?<path>[^"]+)"|''(?<path>[^'']+)''|(?<path>[^\s"''&|;<>`$]+))\s*$', 'IgnoreCase')
-    if (-not $match.Success -or $match.Groups['path'].Value -notmatch '\.html?$') { return $null }
-    try {
-        $target = ConvertFrom-BashPath $match.Groups['path'].Value
-        if (-not [System.IO.Path]::IsPathRooted($target)) {
-            if ([string]::IsNullOrWhiteSpace($workingDirectory)) { return $null }
-            $target = [System.IO.Path]::Combine((ConvertFrom-BashPath $workingDirectory), $target)
+$shellToken = [regex]::new(@'
+\G(?:(?<heredoc>(?<!<)<<(?<indented>-)?\s*(?:'(?<delimiter>[^']+)'|"(?<delimiter>[^"]+)"|\\?(?<delimiter>[A-Za-z0-9_]+)))|(?<comment>(?<![^\s;&|(])#[^\n]*)|(?<separator>&&|\|\||\|&|;;?|\n|(?<![<>])&(?!>)|(?<!>)\|)|'[^']*'|"(?:[^"\\]|\\.)*"|\\.|[^'"\\<#&|;\n]+|.)
+'@, 'Singleline')
+$shellPath = '(?:"(?<path>[^"]+)"|''(?<path>[^'']+)''|(?<path>[^\s"''&|;<>`$-][^\s"''&|;<>`$]*))'
+
+function Skip-HeredocBodies([string]$command, [int]$index, $heredocs) {
+    while ($heredocs.Count -gt 0) {
+        $heredoc = $heredocs.Dequeue()
+        do {
+            $end = $command.IndexOf("`n", $index)
+            $line = if ($end -lt 0) { $command.Substring($index) } else { $command.Substring($index, $end - $index) }
+            $index = if ($end -lt 0) { $command.Length } else { $end + 1 }
+            if ($heredoc.Indented) { $line = $line.TrimStart("`t") }
+        } until ($line.TrimEnd("`r") -eq $heredoc.Delimiter -or $end -lt 0)
+    }
+    return $index
+}
+
+function Split-ShellCommand([string]$command) {
+    $segments = [System.Collections.Generic.List[string]]::new()
+    $segment = [System.Text.StringBuilder]::new()
+    $heredocs = [System.Collections.Generic.Queue[object]]::new()
+    $index = 0
+    while ($index -lt $command.Length) {
+        $token = $shellToken.Match($command, $index)
+        $index += $token.Length
+        if ($token.Groups['separator'].Success) {
+            $segments.Add($segment.ToString())
+            [void]$segment.Clear()
+            if ($token.Value -eq "`n") { $index = Skip-HeredocBodies $command $index $heredocs }
+            continue
         }
-        $target = [System.IO.Path]::GetFullPath($target)
+        if ($token.Groups['heredoc'].Success) { $heredocs.Enqueue([pscustomobject]@{ Delimiter = $token.Groups['delimiter'].Value; Indented = $token.Groups['indented'].Success }) }
+        if (-not $token.Groups['comment'].Success) { [void]$segment.Append($token.Value) }
+    }
+    $segments.Add($segment.ToString())
+    return $segments
+}
+
+function Resolve-ShellPath([string]$path, [string]$directory) {
+    try {
+        $resolved = ConvertFrom-BashPath $path
+        if (-not [System.IO.Path]::IsPathRooted($resolved)) {
+            if ([string]::IsNullOrWhiteSpace($directory)) { return $null }
+            $resolved = [System.IO.Path]::Combine((ConvertFrom-BashPath $directory), $resolved)
+        }
+        return [System.IO.Path]::GetFullPath($resolved)
     } catch { return $null }
-    if (-not (Test-Path -LiteralPath $target -PathType Leaf)) { return $null }
-    return $target
+}
+
+function Resolve-ChangedDirectory([string]$segment, [string]$directory) {
+    if ($segment -eq 'cd') { return $HOME }
+    $match = [regex]::Match($segment, "^cd\s+$shellPath$")
+    if (-not $match.Success) { return $null }
+    return Resolve-ShellPath $match.Groups['path'].Value $directory
+}
+
+function Find-HtmlOpening([string]$command, [string]$workingDirectory) {
+    $segments = @(Split-ShellCommand $command | ForEach-Object { $_.Trim() } | Where-Object { $_ })
+    $directory = $workingDirectory
+    foreach ($segment in $segments) {
+        $match = [regex]::Match($segment, "^start(?:\s+(?:`"`"|''))?\s+$shellPath$", 'IgnoreCase')
+        if ($match.Success -and $match.Groups['path'].Value -match '\.html?$') {
+            $target = Resolve-ShellPath $match.Groups['path'].Value $directory
+            return [pscustomobject]@{
+                Path = $match.Groups['path'].Value
+                Target = $target
+                Exists = $target -and (Test-Path -LiteralPath $target -PathType Leaf)
+                Alone = $segments.Count -eq 1
+            }
+        }
+        if ($segment -match '^cd(?:\s|$)') { $directory = Resolve-ChangedDirectory $segment $directory }
+    }
+    return $null
 }
 
 function Submit-PreviewRequest([string]$path) {
@@ -53,10 +114,15 @@ function Write-HookOutput($output) {
 }
 
 if ($eventName -eq 'PreToolUse' -and $hook.tool_name -eq 'Bash') {
-    $target = Resolve-HtmlOpenTarget ([string]$hook.tool_input.command) ([string]$hook.cwd)
-    if (-not $target) { exit 0 }
-    try { Submit-PreviewRequest $target } catch { exit 0 }
-    $reason = "Tily a ouvert $target dans son aperçu HTML, à côté du terminal : l’utilisateur le relit dans Tily, inutile de l’ouvrir autrement."
+    $opening = Find-HtmlOpening ([string]$hook.tool_input.command) ([string]$hook.cwd)
+    if (-not $opening -or ($opening.Alone -and -not $opening.Exists)) { exit 0 }
+    if ($opening.Exists) { try { Submit-PreviewRequest $opening.Target } catch { exit 0 } }
+    $reason = if ($opening.Alone) { "Tily a ouvert $($opening.Target) dans son aperçu HTML, à côté du terminal : l’utilisateur le relit dans Tily, inutile de l’ouvrir autrement." }
+    elseif ($opening.Exists) { "Tily a ouvert $($opening.Target) dans son aperçu HTML, à côté du terminal ; relance le reste de la commande sans ce ``start``." }
+    else {
+        $page = if ($opening.Target) { $opening.Target } else { $opening.Path }
+        "Tily ouvre les pages HTML dans son aperçu, mais $page est introuvable avant la commande : relance le reste de la commande sans ce ``start``, puis lance ``start """" ""$page""`` seul pour que Tily l’ouvre."
+    }
     Write-HookOutput @{ hookSpecificOutput = @{ hookEventName = 'PreToolUse'; permissionDecision = 'deny'; permissionDecisionReason = $reason } }
     exit 0
 }
