@@ -536,6 +536,8 @@ Le texte restauré est accompagné d’un séparateur explicite, par exemple « 
 
 **Convention proposée.** Chaque session vit dans `%LOCALAPPDATA%\Tily\sessions\<identifiant>\` : disposition et avant-dernier enregistrement, texte des panes, journal de la barre de statut. Une fenêtre la réserve par un verrou de fichier, libéré même si elle s’arrête brutalement. La session d’une version antérieure, restée à la racine du dossier de données, devient la première session, sans perte. Une nouvelle fenêtre reprend de la dernière session enregistrée les favoris de la palette, la largeur des panneaux et la disposition du graphe Git. Les états d’agents et les demandes d’aperçu restent dans le dossier commun, chacun au nom de son pane : une fenêtre ne lit et ne supprime que ceux de ses panes, et ces dossiers, comme celui des téléchargements de mise à jour, ne sont purgés qu’au démarrage à froid, quand aucune autre fenêtre n’est ouverte.
 
+**Convention proposée.** Préférences : chaque fenêtre surveille les fichiers de réglages et applique, au plus 300 ms après, ceux qu’une autre fenêtre enregistre (taille du texte comprise), en l’annonçant dans la barre de statut (« Réglages modifiés dans une autre fenêtre de Tily : appliqués ici. »). Un écran Paramètres ouvert sans modification se met à jour ; modifié, il garde la saisie, et « Enregistrer » n’écrit que les sections changées depuis son ouverture.
+
 ## 14. Configuration exportable
 
 **Retenu.** La configuration doit être sauvegardable, exportable et versionnable au format **JSON**. L’import doit permettre de retrouver les préférences sauvegardées.

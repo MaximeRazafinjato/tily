@@ -17,7 +17,7 @@ interface SettingsDialogProps {
   pickedPath: PickedPath | null
   imported: ImportedPreferences | null
   onClose: () => void
-  onSave: (settings: Settings) => void
+  onSave: (settings: Settings, base: Settings) => void
   onPick: (field: string, target: PickTarget) => void
   onExport: () => void
   onImport: () => void
@@ -73,9 +73,12 @@ const BROWSE = SETTINGS_BROWSE
 
 const comparable = (settings: Settings): Settings => ({ ...settings, shells: Object.fromEntries(Object.entries(settings.shells).filter(([, path]) => path.trim().length > 0)) })
 
+const edited = (draft: Settings | null, base: Settings | null): boolean => Boolean(draft && base && JSON.stringify(comparable(draft)) !== JSON.stringify(comparable(base)))
+
 export function SettingsDialog({ snapshot, pickedPath, imported, onClose, onSave, onPick, onExport, onImport, onInstallHooks, onRemoveHooks, onTestNotification }: SettingsDialogProps) {
   const version = useHostStore((state) => state.version)
   const [draft, setDraft] = useState<Settings | null>(null)
+  const [base, setBase] = useState<Settings | null>(null)
   const [seenSnapshot, setSeenSnapshot] = useState<SettingsSnapshot | null>(null)
   const [seenPick, setSeenPick] = useState<PickedPath | null>(pickedPath)
   const [seenImport, setSeenImport] = useState<ImportedPreferences | null>(imported)
@@ -87,10 +90,11 @@ export function SettingsDialog({ snapshot, pickedPath, imported, onClose, onSave
   const numberInputsRef = useRef<Partial<Record<keyof PersistenceSettings, HTMLInputElement | null>>>({})
   if (snapshot !== seenSnapshot) {
     setSeenSnapshot(snapshot)
-    setDraft(snapshot ? structuredClone(snapshot.settings) : null)
-    setImportSource(null)
-    setImportWarnings([])
-    setNumberTexts({})
+    if (importSource === null && !edited(draft, base)) {
+      setDraft(snapshot ? structuredClone(snapshot.settings) : null)
+      setBase(snapshot?.settings ?? null)
+      setNumberTexts({})
+    }
   }
   if (imported !== seenImport) {
     setSeenImport(imported)
@@ -120,7 +124,7 @@ export function SettingsDialog({ snapshot, pickedPath, imported, onClose, onSave
     }
   }, [loaded])
 
-  const unsaved = Boolean(draft && snapshot && (importSource !== null || JSON.stringify(comparable(draft)) !== JSON.stringify(comparable(snapshot.settings))))
+  const unsaved = Boolean(draft && snapshot && (importSource !== null || edited(draft, base)))
   if (closeHeld && !unsaved) {
     setCloseHeld(false)
   }
@@ -145,7 +149,7 @@ export function SettingsDialog({ snapshot, pickedPath, imported, onClose, onSave
     if (invalidNumber) {
       numberInputsRef.current[invalidNumber.key]?.focus()
     } else if (draft) {
-      onSave(draft)
+      onSave(draft, base ?? draft)
     }
   }
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {

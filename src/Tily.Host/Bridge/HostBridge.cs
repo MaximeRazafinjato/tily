@@ -47,6 +47,7 @@ public sealed class HostBridge : IDisposable
     private readonly UpdateFeed _updates;
     private readonly StatusLogFeed _statusLog;
     private readonly McpFeed _mcp;
+    private readonly PreferencesWatcher _preferences;
     private SettingsModel _settings;
     private ShellPathsModel _shellPaths = ShellPathsModel.Empty;
     private PersistenceSettingsModel _persistence = PersistenceSettingsModel.Default;
@@ -86,6 +87,7 @@ public sealed class HostBridge : IDisposable
         _worktrees = new WorktreeFeed(Post, () => _settings, RememberWorktreeFolder, _git.RefreshSoon, PostBackgroundError, dataDirectory);
         _updates = new UpdateFeed(Post, ApplicationVersion, dataDirectory);
         _mcp = new McpFeed(pipeName, McpEndpoint.PipeName(dataDirectory), _terminals.Has, Post, PostBackgroundError);
+        _preferences = new PreferencesWatcher(dataDirectory, () => _dispatcher.TryEnqueue(ReloadSettings));
         ApplySettings(_settings);
         _terminals.OutputReceived += HandleOutput;
         _terminals.CurrentDirectoryChanged += HandleCurrentDirectoryChanged;
@@ -396,7 +398,27 @@ public sealed class HostBridge : IDisposable
         _updates.Configure(settings.Updates.AutoCheck);
     }
 
-    private void PostSettings(bool saved)
+    private void ReloadSettings()
+    {
+        SettingsModel loaded;
+        try
+        {
+            loaded = _settingsService.Load();
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            _preferences.RetrySoon();
+            return;
+        }
+
+        if (!SettingsService.SameValues(loaded, _settings))
+        {
+            ApplySettings(loaded);
+            PostSettings(false, true);
+        }
+    }
+
+    private void PostSettings(bool saved, bool external = false)
     {
         var snapshot = _settingsService.Snapshot(_settings);
         Post(new
@@ -411,7 +433,8 @@ public sealed class HostBridge : IDisposable
             agents = _agents.Describe(),
             mcp = _mcp.Describe(),
             notifications = _notifier.Describe(),
-            saved
+            saved,
+            external
         });
     }
 
@@ -424,13 +447,13 @@ public sealed class HostBridge : IDisposable
     private void SaveSettings(BridgeCommandModel command)
     {
         var settings = command.Settings?.Deserialize<SettingsModel>(JsonOptions) ?? throw new InvalidOperationException("Réglages manquants.");
-        var result = _settingsService.Save(settings);
+        var result = _settingsService.Save(settings, command.BaseSettings?.Deserialize<SettingsModel>(JsonOptions));
         if (!result.IsValid)
         {
             throw new InvalidOperationException($"Réglages refusés : {result.Error}");
         }
 
-        ApplySettings(settings);
+        ApplySettings(_settingsService.Load());
         PostSettings(true);
     }
 
@@ -697,6 +720,7 @@ public sealed class HostBridge : IDisposable
         _preview.Dispose();
         _previewRequests.Dispose();
         _mcp.Dispose();
+        _preferences.Dispose();
         _git.Dispose();
         foreach (var buffer in _buffers.Values)
         {

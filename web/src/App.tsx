@@ -71,13 +71,17 @@ export default function App() {
       }),
       bridge.on('settings.result', (message) => {
         applySettings({ settings: message.settings, shellSettings: message.shellSettings, files: message.files, warnings: message.warnings, agents: message.agents, mcp: message.mcp, notifications: message.notifications }, message.shells, message.persistence)
-        if (!message.saved) {
+        if (!message.saved && !message.external) {
           return
         }
         terminalRegistry.configure(message.persistence.linesPerPane)
         terminalRegistry.setFontSize(message.settings.appearance.fontSize)
         stopAutosave?.()
         stopAutosave = startTextAutosave(message.persistence.textIntervalSeconds)
+        if (message.external) {
+          setStatus('Réglages modifiés dans une autre fenêtre de Tily : appliqués ici.')
+          return
+        }
         useUiStore.getState().closeSettings()
         const warnings = message.warnings.join(' ')
         setStatus(warnings.length > 0 ? `Réglages enregistrés. ${warnings}` : 'Réglages enregistrés et appliqués.', warnings.length > 0 ? StatusLevel.Warning : StatusLevel.Info)

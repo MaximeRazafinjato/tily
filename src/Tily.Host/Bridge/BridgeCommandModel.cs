@@ -79,6 +79,7 @@ public sealed class BridgeCommandModel
     public JsonElement? Session { get; init; }
     public JsonElement? Text { get; init; }
     public JsonElement? Settings { get; init; }
+    public JsonElement? BaseSettings { get; init; }
     public JsonElement? Notifications { get; init; }
     public JsonElement? Result { get; init; }
 }

@@ -4,6 +4,9 @@ namespace Tily.Core.Session;
 
 public static class AtomicFile
 {
+    private const int ReplaceAttempts = 5;
+    private static readonly TimeSpan ReplaceDelay = TimeSpan.FromMilliseconds(20);
+
     public static void Write(string filePath, string content)
     {
         var temporaryPath = filePath + ".tmp";
@@ -14,6 +17,17 @@ public static class AtomicFile
             stream.Flush(true);
         }
 
-        File.Move(temporaryPath, filePath, true);
+        for (var attempt = 1; ; attempt++)
+        {
+            try
+            {
+                File.Move(temporaryPath, filePath, true);
+                return;
+            }
+            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException && attempt < ReplaceAttempts)
+            {
+                Thread.Sleep(ReplaceDelay * attempt);
+            }
+        }
     }
 }

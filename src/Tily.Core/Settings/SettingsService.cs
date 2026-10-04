@@ -88,7 +88,7 @@ public sealed class SettingsService
             : ValidationResultModel.Fail($"Le dossier des worktrees de {relative.Project} doit être un chemin absolu : {relative.Folder}");
     }
 
-    public ValidationResultModel Save(SettingsModel settings)
+    public ValidationResultModel Save(SettingsModel settings, SettingsModel? baseline = null)
     {
         var result = Validate(settings);
         if (!result.IsValid)
@@ -96,27 +96,53 @@ public sealed class SettingsService
             return result;
         }
 
-        settings.Shells = settings.Shells.Where(pair => !string.IsNullOrWhiteSpace(pair.Value)).ToDictionary(pair => pair.Key, pair => pair.Value.Trim());
-        settings.Editor = settings.Editor.Trim();
-        settings.Persistence = settings.Persistence.Clamped();
-        settings.ProjectsRoot = settings.ProjectsRoot.Trim();
-        settings.Notifications = settings.Notifications.Normalized();
+        Normalize(settings);
+        if (baseline is not null)
+        {
+            Normalize(baseline);
+        }
+
+        foreach (var section in Sections().Where(section => baseline is null || !SameValue(section.Value(settings), section.Value(baseline))))
+        {
+            section.Write(settings);
+        }
+
+        return result;
+    }
+
+    public static bool SameValues(SettingsModel first, SettingsModel second) => SameValue(first, second);
+
+    private static void Normalize(SettingsModel settings)
+    {
+        settings.Shells = (settings.Shells ?? []).Where(pair => !string.IsNullOrWhiteSpace(pair.Value)).ToDictionary(pair => pair.Key, pair => pair.Value.Trim());
+        settings.Editor = (settings.Editor ?? string.Empty).Trim();
+        settings.Persistence = (settings.Persistence ?? PersistenceSettingsModel.Default).Clamped();
+        settings.ProjectsRoot = (settings.ProjectsRoot ?? string.Empty).Trim();
+        settings.Notifications = (settings.Notifications ?? NotificationSettingsModel.Default).Normalized();
         settings.Worktrees = (settings.Worktrees ?? WorktreeSettingsModel.Default).Normalized();
         settings.WorktreeFolders = NormalizedFolders(settings.WorktreeFolders ?? []);
         settings.Git ??= GitSettingsModel.Default;
         settings.Updates ??= UpdateSettingsModel.Default;
         settings.Appearance = (settings.Appearance ?? AppearanceSettingsModel.Default).Clamped();
-        _shells.Save(settings.Shells);
-        _editor.Save(new EditorSettingsModel(settings.Editor));
-        _persistence.Save(settings.Persistence);
-        _projects.Save(new ProjectsSettingsModel(settings.ProjectsRoot, settings.Worktrees));
-        _worktreeProjects.SaveFolders(settings.WorktreeFolders);
-        _notifications.Save(settings.Notifications);
-        _git.Save(settings.Git);
-        _updates.Save(settings.Updates);
-        _appearance.Save(settings.Appearance);
-        return result;
     }
+
+    private IEnumerable<SettingsSectionModel> Sections() =>
+    [
+        new(settings => new SortedDictionary<string, string>(settings.Shells, StringComparer.Ordinal), settings => _shells.Save(settings.Shells)),
+        new(settings => settings.Editor, settings => _editor.Save(new EditorSettingsModel(settings.Editor))),
+        new(settings => settings.Persistence, settings => _persistence.Save(settings.Persistence)),
+        new(settings => new ProjectsSettingsModel(settings.ProjectsRoot, settings.Worktrees), settings => _projects.Save(new ProjectsSettingsModel(settings.ProjectsRoot, settings.Worktrees))),
+        new(settings => settings.WorktreeFolders, settings => _worktreeProjects.SaveFolders(settings.WorktreeFolders)),
+        new(settings => settings.Notifications, settings => _notifications.Save(settings.Notifications)),
+        new(settings => settings.Git, settings => _git.Save(settings.Git)),
+        new(settings => settings.Updates, settings => _updates.Save(settings.Updates)),
+        new(settings => settings.Appearance, settings => _appearance.Save(settings.Appearance))
+    ];
+
+    private static bool SameValue(object first, object second) =>
+        JsonSerializer.Serialize(first, SessionRepository.JsonOptions) == JsonSerializer.Serialize(second, SessionRepository.JsonOptions);
+
+    private sealed record SettingsSectionModel(Func<SettingsModel, object> Value, Action<SettingsModel> Write);
 
     public AppearanceSettingsModel SaveAppearance(AppearanceSettingsModel appearance)
     {
@@ -127,7 +153,7 @@ public sealed class SettingsService
 
     public void RememberWorktreeFolder(SettingsModel settings, string project, string folder)
     {
-        var others = settings.WorktreeFolders.Where(entry => !WorktreeTarget.SamePath(entry.Project, project));
+        var others = _worktreeProjects.Folders().Where(entry => !WorktreeTarget.SamePath(entry.Project, project));
         var remembered = WorktreeTarget.SamePath(folder, settings.Worktrees.FolderFor(settings.ProjectsRoot)) ? others : others.Append(new WorktreeProjectFolderModel(project, folder));
         var folders = NormalizedFolders(remembered.ToList());
         _worktreeProjects.SaveFolders(folders);

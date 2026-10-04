@@ -295,7 +295,7 @@ export function AppShell({ session }: AppShellProps) {
     closeSettings()
     focusActivePane()
   }
-  const handleSaveSettings = (settings: Settings) => bridge.send({ type: 'settings.save', settings })
+  const handleSaveSettings = (settings: Settings, baseSettings: Settings) => bridge.send({ type: 'settings.save', settings, baseSettings })
   const handleCancelClose = () => {
     cancelClose()
     focusActivePane()

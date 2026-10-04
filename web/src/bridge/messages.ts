@@ -172,7 +172,7 @@ export type HostToWebMessage =
   | { type: 'session.saved' }
   | { type: 'session.saveFailed'; message: string }
   | ({ type: 'dialog.picked' } & PickedPath)
-  | ({ type: 'settings.result'; shells: ShellProfile[]; persistence: PersistenceSettings; saved: boolean } & SettingsSnapshot)
+  | ({ type: 'settings.result'; shells: ShellProfile[]; persistence: PersistenceSettings; saved: boolean; external: boolean } & SettingsSnapshot)
   | { type: 'settings.exported'; path: string }
   | ({ type: 'settings.imported' } & ImportedPreferences)
   | { type: 'terminal.output'; pane: string; data: string }
@@ -206,7 +206,7 @@ export type WebToHostMessage =
   | { type: 'session.save'; session: Session }
   | { type: 'text.save'; text: Record<string, string>; keep: string[] }
   | { type: 'settings.get' }
-  | { type: 'settings.save'; settings: Settings }
+  | { type: 'settings.save'; settings: Settings; baseSettings: Settings }
   | { type: 'appearance.fontSize'; fontSize: number }
   | { type: 'settings.export' }
   | { type: 'settings.import' }
