@@ -7,5 +7,6 @@
     Title="Tily">
     <Grid Background="#17191B">
         <controls:WebView2 x:Name="View" />
+        <Canvas x:Name="BrowserLayer" />
     </Grid>
 </Window>

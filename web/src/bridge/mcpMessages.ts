@@ -14,6 +14,13 @@ export enum McpTool {
   Worktrees = 'worktrees',
   CreateWorktree = 'createWorktree',
   RemoveWorktree = 'removeWorktree',
+  BrowserOpen = 'browserOpen',
+  BrowserNavigate = 'browserNavigate',
+  BrowserReload = 'browserReload',
+  BrowserResize = 'browserResize',
+  BrowserConsole = 'browserConsole',
+  BrowserNetwork = 'browserNetwork',
+  BrowserScreenshot = 'browserScreenshot',
 }
 
 export interface McpServerInfo {

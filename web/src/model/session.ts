@@ -1,3 +1,5 @@
+import { BrowserViewport, pageName, PaneKind } from './browser'
+
 export enum SplitAxis {
   Horizontal = 'x',
   Vertical = 'y',
@@ -8,6 +10,9 @@ export interface Pane {
   path: string
   shell: string
   owner?: string
+  kind?: PaneKind
+  url?: string
+  viewport?: BrowserViewport
 }
 
 export interface SplitLeaf {
@@ -152,9 +157,15 @@ export const folderName = (path: string): string => {
 
 export const createPane = (path: string, shell: string): Pane => ({ id: newId(), path, shell })
 
+export const isBrowserPane = (pane: Pane): boolean => pane.kind === PaneKind.Browser
+
+export const createBrowserPane = (path: string, shell: string, url: string, viewport = BrowserViewport.Desktop): Pane => ({ ...createPane(path, shell), kind: PaneKind.Browser, url, viewport })
+
+export const paneName = (pane: Pane): string => (isBrowserPane(pane) ? pageName(pane.url) : folderName(pane.path) || pane.shell)
+
 export const tabNameFor = (tab: Tab, paneId: string, path: string): string => (!tab.manual && tab.active === paneId ? folderName(path) || tab.name : tab.name)
 
-export const tabOfPane = (pane: Pane): Tab => ({ id: newId(), name: folderName(pane.path) || pane.shell, manual: false, active: pane.id, tree: { pane } })
+export const tabOfPane = (pane: Pane): Tab => ({ id: newId(), name: paneName(pane), manual: false, active: pane.id, tree: { pane } })
 
 export const createTab = (path: string, shell: string): Tab => tabOfPane(createPane(path, shell))
 
@@ -164,6 +175,8 @@ export const createWorkspace = (name: string, path: string, shell: string): Work
 }
 
 export const createOwnedPane = (path: string, shell: string, owner: string): Pane => ({ ...createPane(path, shell), owner })
+
+export const createOwnedBrowserPane = (path: string, shell: string, url: string, viewport: BrowserViewport, owner: string): Pane => ({ ...createBrowserPane(path, shell, url, viewport), owner })
 
 export const createOwnedTab = (path: string, shell: string, owner: string): Tab => ({ ...tabOfPane(createOwnedPane(path, shell, owner)), owner })
 
@@ -299,6 +312,8 @@ export const restoredSessionLabel = (session: Session): string => {
 export const paneCountLabel = (count: number): string => (count === 1 ? '1 pane' : `${count} panes`)
 
 export const activePane = (tab: Tab): Pane => panesOf(tab.tree).find((pane) => pane.id === tab.active) ?? panesOf(tab.tree)[0]
+
+export const findPane = (session: Session, paneId: string): Pane | undefined => allPanes(session).find((pane) => pane.id === paneId)
 
 export const allPanes = (session: Session): Pane[] =>
   session.workspaces.flatMap((workspace) => workspace.tabs.flatMap((tab) => panesOf(tab.tree)))

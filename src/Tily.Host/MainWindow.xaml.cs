@@ -42,7 +42,7 @@ public sealed partial class MainWindow : Window
 
         AppWindow.SetIcon(Path.Combine(AppContext.BaseDirectory, "Assets", "Tily.ico"));
         ApplyDarkTitleBar();
-        _bridge = new HostBridge(DispatcherQueue, App.DataDirectory, session, _handle, ForceClose, SetTitle);
+        _bridge = new HostBridge(DispatcherQueue, App.DataDirectory, session, _handle, ForceClose, SetTitle, BrowserLayer, FocusInterface);
         View.AllowDrop = true;
         Closed += HandleClosed;
         Activated += HandleActivated;
@@ -70,6 +70,8 @@ public sealed partial class MainWindow : Window
     }
 
     private void SetTitle(string title) => Title = title;
+
+    private void FocusInterface() => View.Focus(FocusState.Programmatic);
 
     private void ApplyDarkTitleBar()
     {

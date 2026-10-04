@@ -2,6 +2,9 @@ import { useEffect } from 'react'
 import { clearSeenCommandNotices } from './terminal/commandNotices'
 import { startAttentionNotifier } from './agents/attentionNotifier'
 import { bridge } from './bridge/bridge'
+import { receiveBrowserFailure, receiveBrowserFocused, receiveBrowserState, receiveNewBrowserPane } from './browser/browserActions'
+import { receiveBrowserKey } from './browser/browserKeys'
+import { disposeMissingBrowsers, startBrowserLayer } from './browser/browserLayer'
 import { dispatchReply } from './bridge/requestListeners'
 import { WorktreeOperation } from './bridge/worktreeMessages'
 import { AppShell } from './components/AppShell'
@@ -46,6 +49,7 @@ export default function App() {
     const stopExternalDrops = startExternalDrops()
     const stopStatusLog = startStatusLog()
     const stopDeferredPreviews = startDeferredPreviews()
+    const stopBrowserLayer = startBrowserLayer()
     const { markFailed, markExited, markPathMissing, markAlive } = usePaneStore.getState()
     const subscriptions = [
       bridge.on('app.hello', (message) => {
@@ -169,6 +173,12 @@ export default function App() {
       bridge.on('statusLog.added', (message) => receiveStatusLogEntry(message.entry)),
       bridge.on('statusLog.cleared', receiveStatusLogCleared),
       bridge.on('mcp.request', (message) => void receiveMcpRequest(message)),
+      bridge.on('browser.state', (message) => receiveBrowserState(message.state)),
+      bridge.on('browser.newPane', (message) => receiveNewBrowserPane(message.pane, message.url)),
+      bridge.on('browser.focused', (message) => receiveBrowserFocused(message.pane)),
+      bridge.on('browser.key', (message) => receiveBrowserKey(message.key)),
+      bridge.on('browser.failed', (message) => receiveBrowserFailure(message.pane, message.message)),
+      bridge.on('browser.reply', (message) => dispatchReply(message.type, message.request, message)),
       bridge.on('terminal.exit', (message) => {
         terminalRegistry.markExited(message.pane, message.code)
         markExited(message.pane, message.code)
@@ -190,6 +200,7 @@ export default function App() {
       stopExternalDrops()
       stopStatusLog()
       stopDeferredPreviews()
+      stopBrowserLayer()
       stopAutosave?.()
       subscriptions.forEach((unsubscribe) => unsubscribe())
     }
@@ -201,7 +212,9 @@ export default function App() {
       if (!state.session || state.session === previous.session) {
         return
       }
-      const removed = terminalRegistry.disposeMissing(new Set(allPanes(state.session).map((pane) => pane.id)))
+      const livePaneIds = new Set(allPanes(state.session).map((pane) => pane.id))
+      const removed = terminalRegistry.disposeMissing(livePaneIds)
+      disposeMissingBrowsers(livePaneIds)
       clearSeenCommandNotices()
       clearTimeout(timer)
       timer = setTimeout(() => {

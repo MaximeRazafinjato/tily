@@ -2,6 +2,7 @@ import { Fragment, useCallback, useEffect, useRef, useState, type KeyboardEvent,
 import { useShallow } from 'zustand/react/shallow'
 import type { ShellProfile } from '../bridge/messages'
 import { tabAgents } from '../agents/agentSummary'
+import { BrowserPlacement, openBrowser } from '../browser/browserActions'
 import { activePane, DEFAULT_SHELL, paneCountLabel, panesOf, type Workspace } from '../model/session'
 import { useAgentStore } from '../store/agentStore'
 import { useUiStore } from '../store/uiStore'
@@ -133,6 +134,10 @@ export function TabBar({ workspace, shells, renamingTabId, panelOpen, onTogglePa
     setMenuOpen(false)
     onNew(shellId)
   }
+  const handleNewBrowser = () => {
+    setMenuOpen(false)
+    openBrowser(BrowserPlacement.Tab)
+  }
   const tabMenuPosition = tabMenu ? workspace.tabs.findIndex((tab) => tab.id === tabMenu.tabId) : -1
   const tabMenuActions: TabMenuActions = { rename: onStartRename, shift: onShift, duplicate: onDuplicate, close: onClose, closeOthers: onCloseOthers, closeToRight: closeTabsToRightKeepingText }
   const handleRunTabMenu = useCallback(() => {
@@ -242,14 +247,14 @@ export function TabBar({ workspace, shells, renamingTabId, panelOpen, onTogglePa
           aria-haspopup="menu"
           aria-expanded={menuOpen}
           className="cursor-pointer rounded px-2 py-1 text-base hover:bg-tily-green-hover"
-          data-tip="Nouvel onglet PowerShell (Ctrl + Maj + T ; clic droit : choisir le shell ; double-clic dans l’espace vide de la barre : nouvel onglet)"
+          data-tip="Nouvel onglet PowerShell (Ctrl + Maj + T ; clic droit : choisir le shell ou un navigateur ; double-clic dans l’espace vide de la barre : nouvel onglet)"
           onClick={handleNewDefault}
           onContextMenu={handleContextMenu}
           onKeyDown={handleAddKeyDown}
         >
           +
         </button>
-        {menuOpen && <ShellMenu shells={shells} onSelect={handleSelectShell} onClose={handleCloseMenu} />}
+        {menuOpen && <ShellMenu shells={shells} onSelect={handleSelectShell} onBrowser={handleNewBrowser} onClose={handleCloseMenu} />}
       </div>
       <button
         type="button"

@@ -1,4 +1,4 @@
-import { panesOf, type Pane, type Session, type Tab, type Workspace } from '../model/session'
+import { isBrowserPane, panesOf, type Pane, type Session, type Tab, type Workspace } from '../model/session'
 import { useSessionStore } from '../store/sessionStore'
 import { terminalRegistry, type TerminalHandle } from '../terminal/terminalRegistry'
 
@@ -25,7 +25,7 @@ export const requireSession = (): Session => {
   return session
 }
 
-const placesOf = (session: Session): PanePlace[] =>
+export const placesOf = (session: Session): PanePlace[] =>
   session.workspaces.flatMap((workspace) => workspace.tabs.flatMap((tab) => panesOf(tab.tree).map((pane) => ({ workspace, tab, pane }))))
 
 export const locationOf = (target: { workspace: Workspace; tab: Tab }): string => `${target.workspace.name} › ${target.tab.name}`
@@ -52,6 +52,9 @@ export const requirePlace = (paneId: string | undefined): PanePlace => {
 
 export const requireStartedPane = (paneId: string | undefined): McpPaneTarget => {
   const place = requirePlace(paneId)
+  if (isBrowserPane(place.pane)) {
+    throw new Error(`Le pane ${place.pane.id} (${locationOf(place)}) est un navigateur, pas un terminal : lisez sa console et son réseau avec tily_browser_console et tily_browser_network.`)
+  }
   const handle = terminalRegistry.get(place.pane.id)
   if (!handle?.started) {
     throw new Error(`Le pane ${place.pane.id} (${locationOf(place)}) n’a pas démarré : il n’a jamais été affiché depuis le lancement de Tily, son shell ne tourne pas. Affichez-le avec tily_focus.`)

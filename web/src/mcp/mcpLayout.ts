@@ -1,5 +1,7 @@
+import type { BrowserState } from '../bridge/browserMessages'
 import type { PaneAgent } from '../bridge/messages'
-import { panesOf, type Session } from '../model/session'
+import { BrowserViewport } from '../model/browser'
+import { isBrowserPane, panesOf, type Pane, type Session } from '../model/session'
 
 interface McpPaneAgent {
   name: string
@@ -12,7 +14,15 @@ interface McpOwnership {
   mine?: true
 }
 
-interface McpPaneLayout extends McpOwnership {
+interface McpBrowserLayout {
+  kind?: 'browser'
+  url?: string
+  title?: string
+  viewport?: BrowserViewport
+  errors?: number
+}
+
+interface McpPaneLayout extends McpOwnership, McpBrowserLayout {
   id: string
   path: string
   shell: string
@@ -49,9 +59,12 @@ export interface McpLayout {
 
 const agentOf = (agent: PaneAgent | undefined): McpPaneAgent | undefined => (agent ? { name: agent.agent, state: agent.state, message: agent.message } : undefined)
 
+const browserOf = (pane: Pane, state: BrowserState | undefined): McpBrowserLayout =>
+  isBrowserPane(pane) ? { kind: 'browser', url: state?.url || pane.url, title: state?.title || undefined, viewport: pane.viewport ?? BrowserViewport.Desktop, errors: state?.errors } : {}
+
 const ownershipOf = (owner: string | undefined, callerPane: string | undefined): McpOwnership => (owner ? { owner, mine: owner === callerPane ? true : undefined } : {})
 
-export const layoutOf = (session: Session, agents: Record<string, PaneAgent>, callerPane: string | undefined, started: (paneId: string) => boolean): McpLayout => {
+export const layoutOf = (session: Session, agents: Record<string, PaneAgent>, browsers: Record<string, BrowserState>, callerPane: string | undefined, started: (paneId: string) => boolean): McpLayout => {
   let caller: McpCaller | null = null
   const workspaces = session.workspaces.map((workspace) => ({
     id: workspace.id,
@@ -75,6 +88,7 @@ export const layoutOf = (session: Session, agents: Record<string, PaneAgent>, ca
           started: started(pane.id),
           caller: isCaller ? (true as const) : undefined,
           ...ownershipOf(pane.owner, callerPane),
+          ...browserOf(pane, browsers[pane.id]),
           agent: agentOf(agents[pane.id]),
         }
       }),

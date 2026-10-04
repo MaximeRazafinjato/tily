@@ -1,5 +1,6 @@
 import type { Terminal } from '@xterm/xterm'
 import { longestWaitingFirst, waitingPanes } from '../agents/agentSummary'
+import { focusBrowser, isBrowserStarted } from '../browser/browserLayer'
 import { activeTab, activeWorkspace, RightPanelView } from '../model/session'
 import { useAgentStore } from '../store/agentStore'
 import { useGitStore } from '../store/gitStore'
@@ -170,7 +171,9 @@ const overlayDefaultOf = (paneId: string): HTMLElement | null =>
 
 export const focusPane = (paneId: string): void => {
   const overlayDefault = overlayDefaultOf(paneId)
-  if (overlayDefault) {
+  if (isBrowserStarted(paneId)) {
+    focusBrowser(paneId)
+  } else if (overlayDefault) {
     overlayDefault.focus()
   } else {
     terminalRegistry.get(paneId)?.terminal.focus()

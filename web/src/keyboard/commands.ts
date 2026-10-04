@@ -32,6 +32,7 @@ export enum Command {
   MovePaneToNewTab = 'movePaneToNewTab',
   JoinWaitingAgent = 'joinWaitingAgent',
   CreateWorktree = 'createWorktree',
+  OpenBrowser = 'openBrowser',
 }
 
 export const LEADER_KEYS: Record<string, Command> = {
@@ -54,6 +55,7 @@ export const LEADER_KEYS: Record<string, Command> = {
   '!': Command.MovePaneToNewTab,
   z: Command.RestoreTab,
   a: Command.JoinWaitingAgent,
+  u: Command.OpenBrowser,
   ArrowRight: Command.FocusPaneRight,
   ArrowDown: Command.FocusPaneDown,
   ArrowLeft: Command.FocusPaneLeft,

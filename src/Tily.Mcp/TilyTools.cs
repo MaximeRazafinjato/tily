@@ -18,7 +18,9 @@ internal static class TilyTools
         + "Le pane d’où vous êtes lancé est marqué « caller » dans tily_layout. "
         + "Pour une erreur, un log ou la sortie d’un serveur, lisez le pane (tily_read_pane, tily_commands) plutôt que de demander un copier-coller à l’utilisateur ; "
         + "pour attendre qu’un serveur soit prêt ou qu’une commande se termine, utilisez tily_wait_for plutôt qu’un sleep. "
-        + "Pour lancer un serveur ou une commande longue, ouvrez-lui un onglet ou un split (tily_new_tab, tily_split avec command) plutôt que de bloquer votre propre terminal.";
+        + "Pour lancer un serveur ou une commande longue, ouvrez-lui un onglet ou un split (tily_new_tab, tily_split avec command) plutôt que de bloquer votre propre terminal. "
+        + "Pour vérifier une application web, ouvrez-la dans un pane navigateur de Tily (tily_browser_open) et lisez vous-même sa console, son réseau et ses captures "
+        + "(tily_browser_console, tily_browser_network, tily_browser_screenshot) plutôt que de demander à l’utilisateur.";
 
     private const string LayoutDescription =
         "Disposition complète de Tily : workspaces, onglets et panes, avec pour chaque pane son identifiant, son dossier, sa branche Git, son shell, "
@@ -54,7 +56,8 @@ internal static class TilyTools
         McpServerTool.Create((Func<string?, bool, int, CancellationToken, Task<CallToolResult>>)CommandsAsync, ReadOnly("tily_commands", "Commandes terminées", CommandsDescription)),
         McpServerTool.Create((Func<string, string?, bool, int, CancellationToken, Task<CallToolResult>>)WaitForAsync, ReadOnly("tily_wait_for", "Attendre dans un pane", WaitForDescription)),
         .. TilyActions.Tools(),
-        .. TilyWorktreeTools.Tools()
+        .. TilyWorktreeTools.Tools(),
+        .. TilyBrowserTools.Tools()
     ];
 
     private static McpServerToolCreateOptions ReadOnly(string name, string title, string description) => new()

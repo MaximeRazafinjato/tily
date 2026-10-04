@@ -1,4 +1,5 @@
 import { bridge } from '../bridge/bridge'
+import { BrowserPlacement, openBrowser } from '../browser/browserActions'
 import { useHostStore } from '../store/hostStore'
 import { activePane, activeTab, activeWorkspace, DEFAULT_SHELL, RightPanelView, SplitAxis, type Workspace } from '../model/session'
 import { Direction } from '../components/paneNavigation'
@@ -255,6 +256,24 @@ export const runCommand = (command: Command): void => {
     case Command.CreateWorktree:
       startWorktreeCreation()
       break
+    case Command.OpenBrowser:
+      openBrowser(BrowserPlacement.Beside)
+      break
+  }
+}
+
+export const handleForwardedKey = (event: KeyboardEvent): void => {
+  if (isCloseWindow(event)) {
+    requestApplicationClose()
+    return
+  }
+  if (isLeaderChord(event)) {
+    enterLeader()
+    return
+  }
+  const command = directCommand(event)
+  if (command) {
+    runCommand(command)
   }
 }
 

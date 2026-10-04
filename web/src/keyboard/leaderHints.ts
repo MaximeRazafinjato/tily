@@ -10,6 +10,7 @@ export const LEADER_HINTS: LeaderHint[] = [
   { keys: 'W', label: 'workspace' },
   { keys: 'F', label: 'projet' },
   { keys: 'N', label: 'worktree' },
+  { keys: 'U', label: 'navigateur' },
   { keys: 'E', label: 'fichiers' },
   { keys: 'G', label: 'git' },
   { keys: 'O', label: 'notes' },

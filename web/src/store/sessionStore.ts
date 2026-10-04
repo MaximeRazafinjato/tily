@@ -1,5 +1,7 @@
 import { current, produce } from 'immer'
 import { create } from 'zustand'
+import type { BrowserViewport } from '../model/browser'
+import { insertPaneBesideIn, setBrowserPageIn, setPaneViewportIn } from './browserPanes'
 import { movePaneInto, movePaneOut } from './paneMoves'
 import {
   activePane,
@@ -18,7 +20,6 @@ import {
   EXPLORER_MAX,
   EXPLORER_MIN,
   findWorkspace,
-  folderName,
   mergedNote,
   NOTE_MAX_CHARS,
   panesOf,
@@ -28,12 +29,15 @@ import {
   swapPanes,
   splitLeaf,
   updatePane,
+  paneName,
+  tabOfPane,
   RightPanelView,
   SIDEBAR_MAX,
   SIDEBAR_MIN,
   SplitAxis,
   type ClosedTab,
   type GitGraphLayout,
+  type Pane,
   type Session,
   type SplitPath,
   type Tab,
@@ -73,6 +77,10 @@ interface SessionState {
   closeTab: (tabId: string) => void
   restoreTab: (position?: number) => { tab: Tab; paneIds: Record<string, string> } | null
   splitPane: (axis: SplitAxis) => void
+  insertPaneBeside: (paneId: string, axis: SplitAxis, pane: Pane) => void
+  newTabWithPane: (pane: Pane) => void
+  setBrowserPage: (paneId: string, url: string, title: string) => void
+  setPaneViewport: (paneId: string, viewport: BrowserViewport) => void
   setSplitRatio: (tabId: string, path: SplitPath, ratio: number) => void
   equalizeSplits: (tabId: string) => void
   swapActivePane: (targetPaneId: string) => void
@@ -290,7 +298,7 @@ export const useSessionStore = create<SessionState>()((set, get) => ({
         const tab = draft.workspaces.flatMap((workspace) => workspace.tabs).find((candidate) => candidate.id === tabId)
         if (tab) {
           tab.manual = false
-          tab.name = folderName(activePane(tab).path) || tab.name
+          tab.name = paneName(activePane(tab)) || tab.name
         }
       }),
     })),
@@ -433,6 +441,21 @@ export const useSessionStore = create<SessionState>()((set, get) => ({
         tab.active = fresh.id
       }),
     })),
+
+  insertPaneBeside: (paneId, axis, pane) => set((state) => ({ session: mutateSession(state.session, (draft) => insertPaneBesideIn(draft, paneId, axis, pane)) })),
+
+  newTabWithPane: (pane) =>
+    set((state) => ({
+      session: mutateWorkspace(state.session, (workspace) => {
+        const tab = tabOfPane(pane)
+        workspace.tabs.push(tab)
+        workspace.active = tab.id
+      }),
+    })),
+
+  setBrowserPage: (paneId, url, title) => set((state) => ({ session: mutateSession(state.session, (draft) => setBrowserPageIn(draft, paneId, url, title)) })),
+
+  setPaneViewport: (paneId, viewport) => set((state) => ({ session: mutateSession(state.session, (draft) => setPaneViewportIn(draft, paneId, viewport)) })),
 
   setSplitRatio: (tabId, path, ratio) =>
     set((state) => ({

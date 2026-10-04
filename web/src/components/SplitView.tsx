@@ -1,6 +1,7 @@
 import { useRef } from 'react'
 import type { ShellProfile } from '../bridge/messages'
-import { isLeaf, SplitAxis, SplitSide, type SplitNode, type SplitPath } from '../model/session'
+import { isBrowserPane, isLeaf, SplitAxis, SplitSide, type SplitNode, type SplitPath } from '../model/session'
+import { BrowserPaneView } from './BrowserPaneView'
 import { PaneView } from './PaneView'
 import { SplitResizer } from './SplitResizer'
 
@@ -27,6 +28,9 @@ const ROOT_PATH: SplitPath = []
 
 export function SplitView({ node, path = ROOT_PATH, zoomed = false, onToggleZoom, activePaneId, onFocus, onClose, onSplit, onResize, shells, onRestart, onRestartIn, onChangeShell, onDismissState }: SplitViewProps) {
   const containerRef = useRef<HTMLDivElement>(null)
+  if (isLeaf(node) && isBrowserPane(node.pane)) {
+    return <BrowserPaneView pane={node.pane} active={node.pane.id === activePaneId} zoomed={zoomed} onToggleZoom={onToggleZoom} onFocus={onFocus} onClose={onClose} onSplit={onSplit} />
+  }
   if (isLeaf(node)) {
     return <PaneView pane={node.pane} active={node.pane.id === activePaneId} zoomed={zoomed} onToggleZoom={onToggleZoom} onFocus={onFocus} onClose={onClose} onSplit={onSplit} shells={shells} onRestart={onRestart} onRestartIn={onRestartIn} onChangeShell={onChangeShell} onDismissState={onDismissState} />
   }

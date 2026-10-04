@@ -1,6 +1,7 @@
 import { longestWaitingFirst, waitedFor, waitingPanes } from '../agents/agentSummary'
 import { bridge } from '../bridge/bridge'
 import type { GitContext, ShellProfile } from '../bridge/messages'
+import { BrowserPlacement, openBrowser } from '../browser/browserActions'
 import { Command, revealWorkspacePanel, runCommand } from '../keyboard/shortcuts'
 import { DEFAULT_FONT_SIZE, MAX_FONT_SIZE, MIN_FONT_SIZE } from '../model/appearance'
 import { activePane, activeTab, activeWorkspace, distinctWorkspaceName, FAVORITES_MAX, folderName, isLeaf, panesOf, RightPanelView, type Pane, type Session, type Tab, type Workspace } from '../model/session'
@@ -71,6 +72,9 @@ const commandItems = (session: Session, shells: ShellProfile[]): PaletteItem[] =
     ...shells.map((shell) => command(`new-tab-${shell.id}`, `Nouvel onglet${SEPARATOR}${shell.name}`, () => store.newTab(shell.id))),
     command('split-x', 'Split côte à côte', () => runCommand(Command.SplitSideBySide), 'Ctrl + Maj + D'),
     command('split-y', 'Split haut / bas', () => runCommand(Command.SplitTopBottom), 'Ctrl + Maj + H'),
+    command('browser-beside', 'Navigateur côte à côte', () => runCommand(Command.OpenBrowser), 'Leader puis U'),
+    command('browser-below', 'Navigateur en dessous', () => openBrowser(BrowserPlacement.Below)),
+    command('browser-tab', 'Navigateur dans un nouvel onglet', () => openBrowser(BrowserPlacement.Tab)),
     command('close-pane', 'Fermer le pane actif', () => runCommand(Command.ClosePane), 'Ctrl + Maj + X'),
     command('toggle-zoom', 'Agrandir / réduire le pane actif', () => runCommand(Command.TogglePaneZoom), 'Ctrl + Maj + M'),
     command('join-waiting', 'Rejoindre l’agent en attente suivant', () => runCommand(Command.JoinWaitingAgent), 'Ctrl + Maj + A'),

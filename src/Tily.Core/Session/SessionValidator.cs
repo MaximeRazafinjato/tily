@@ -1,3 +1,5 @@
+using Tily.Core.Browser;
+
 namespace Tily.Core.Session;
 
 public sealed record ValidationResultModel(bool IsValid, string? Error)
@@ -146,6 +148,7 @@ public static class SessionValidator
         {
             var pane = node.Pane!;
             pane.Owner = ValidOwner(pane.Owner);
+            NormalizeBrowser(pane);
             return string.IsNullOrEmpty(pane.Id) || pane.Path is null || string.IsNullOrEmpty(pane.Shell)
                 ? ValidationResultModel.Fail("Pane invalide.")
                 : ValidationResultModel.Ok();
@@ -162,4 +165,18 @@ public static class SessionValidator
 
     private static string? ValidOwner(string? owner) =>
         string.IsNullOrWhiteSpace(owner) || owner.Length > SessionLimits.MaxOwnerLength ? null : owner;
+
+    private static void NormalizeBrowser(PaneModel pane)
+    {
+        if (pane.Kind != SessionLimits.BrowserPaneKind)
+        {
+            pane.Kind = null;
+            pane.Url = null;
+            pane.Viewport = null;
+            return;
+        }
+
+        pane.Url = pane.Url is { Length: <= BrowserAddress.MaxLength } url && BrowserAddress.IsAllowed(url) ? url : BrowserAddress.Blank;
+        pane.Viewport = pane.Viewport is BrowserViewports.Desktop or BrowserViewports.Mobile ? pane.Viewport : null;
+    }
 }

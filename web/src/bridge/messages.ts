@@ -1,4 +1,5 @@
 import type { Session } from '../model/session'
+import type { BrowserHostMessage, BrowserWebMessage } from './browserMessages'
 import type { GitChangeKind, GitHostMessage, GitSettings, GitWebMessage } from './gitMessages'
 import type { McpHostMessage, McpServerInfo, McpWebMessage } from './mcpMessages'
 import type { PreviewHostMessage, PreviewKind, PreviewWebMessage } from './previewMessages'
@@ -200,6 +201,7 @@ export type HostToWebMessage =
   | UpdateHostMessage
   | StatusLogHostMessage
   | McpHostMessage
+  | BrowserHostMessage
 
 export type WebToHostMessage =
   | { type: 'app.ready' }
@@ -249,6 +251,7 @@ export type WebToHostMessage =
   | UpdateWebMessage
   | StatusLogWebMessage
   | McpWebMessage
+  | BrowserWebMessage
 
 export type HostMessageType = HostToWebMessage['type']
 export type HostMessageOf<T extends HostMessageType> = Extract<HostToWebMessage, { type: T }>

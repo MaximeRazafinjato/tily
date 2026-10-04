@@ -77,6 +77,9 @@ public sealed class PaneModel
     public string Path { get; set; } = string.Empty;
     public string Shell { get; set; } = string.Empty;
     public string? Owner { get; set; }
+    public string? Kind { get; set; }
+    public string? Url { get; set; }
+    public string? Viewport { get; set; }
 }
 
 public static class SessionLimits
@@ -107,5 +110,6 @@ public static class SessionLimits
     public const int MaxFavoriteLength = 100;
     public const int MaxNoteChars = 100_000;
     public const int MaxOwnerLength = 64;
+    public const string BrowserPaneKind = "browser";
     public static readonly string[] Panels = ["files", "git", "notes"];
 }
