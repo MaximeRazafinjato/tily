@@ -38,6 +38,7 @@
 - **Glisser-déposer** : déposer un fichier ou un dossier de l’Explorateur Windows, ou une ligne de l’arbre des fichiers de Tily, sur un terminal y insère son chemin.
 - **Mises à jour intégrées** : Tily signale une nouvelle version dans son en-tête, affiche ses nouveautés et l’installe en un clic avant de redémarrer.
 - **Session retrouvée** : workspaces, onglets, splits et texte des terminaux sont restaurés à la réouverture, avec l’avant-dernier enregistrement en secours si la session a été abîmée (coupure de courant) ; les préférences s’exportent et s’importent.
+- **Plusieurs fenêtres** : « Nouvelle fenêtre » dans la palette, ou un nouveau lancement de Tily, ouvre une fenêtre indépendante avec ses propres workspaces, par exemple une par écran ou une par client ; à la réouverture, toutes les fenêtres reviennent, chacune avec sa session, sur son écran et à sa place. Les préférences sont communes et un réglage changé dans une fenêtre s’applique aussitôt aux autres ; Claude Code ne pilote que la fenêtre de son terminal, et une mise à jour ferme puis relance toutes les fenêtres, après l’accord de chacune.
 
 ## Aperçu
 
