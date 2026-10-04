@@ -15,7 +15,7 @@ internal static class TilyActions
         "Avec command, l’onglet est affiché et la commande y est lancée dès l’invite ; avec focus, il est affiché sans commande. "
         + "Sinon, il est créé sans changer ce que regarde l’utilisateur et son shell ne démarre qu’à son premier affichage (tily_focus). ";
 
-    private const string OpenWorkspaceDescription = "Ouvre un nouveau workspace dans Tily, avec un onglet dans le dossier donné. " + Display + Ownership;
+    private const string OpenWorkspaceDescription = "Ouvre un nouveau workspace dans votre fenêtre de Tily, avec un onglet dans le dossier donné. " + Display + Ownership;
 
     private const string NewTabDescription =
         "Ouvre un onglet dans un workspace (par défaut, celui d’où vous êtes lancé), dans un dossier "

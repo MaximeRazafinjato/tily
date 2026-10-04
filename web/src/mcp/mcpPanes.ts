@@ -57,7 +57,7 @@ export const requireStartedPane = (paneId: string | undefined): McpPaneTarget =>
   }
   const handle = terminalRegistry.get(place.pane.id)
   if (!handle?.started) {
-    throw new Error(`Le pane ${place.pane.id} (${locationOf(place)}) n’a pas démarré : il n’a jamais été affiché depuis le lancement de Tily, son shell ne tourne pas. Affichez-le avec tily_focus.`)
+    throw new Error(`Le pane ${place.pane.id} (${locationOf(place)}) n’a pas démarré : il n’a jamais été affiché depuis l’ouverture de la fenêtre, son shell ne tourne pas. Affichez-le avec tily_focus.`)
   }
   return { ...place, handle }
 }

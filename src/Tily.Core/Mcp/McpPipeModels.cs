@@ -17,7 +17,7 @@ public sealed record McpPipeResponseModel(JsonElement? Result, string? Error)
 public static class McpPipe
 {
     public const string NotInTily = "Les outils Tily ne fonctionnent que dans un terminal Tily : lancez Claude Code depuis un pane de Tily.";
-    public const string NotRunning = "Tily ne répond pas : l’instance qui a ouvert ce terminal est fermée, ou le serveur MCP est désactivé dans Paramètres (section « Serveur MCP »).";
+    public const string NotRunning = "Tily ne répond pas : la fenêtre de Tily qui a ouvert ce terminal est fermée, ou le serveur MCP est désactivé dans Paramètres (section « Serveur MCP »).";
     public const string OtherWindow = "Ce terminal appartient à une autre fenêtre de Tily, que le serveur MCP déclaré ne sait pas joindre : dans Paramètres, section « Serveur MCP », activez-le pour cette copie de Tily, puis relancez Claude Code.";
     public const string Unreadable = "Requête MCP illisible.";
     public const string NoAnswer = "Tily a fermé la connexion sans répondre.";

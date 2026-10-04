@@ -49,7 +49,7 @@ const browserPlace = (paneId: string | undefined, caller: string | undefined): P
   if (target) {
     return target
   }
-  throw new Error(browsers.length === 0 ? 'Aucun pane navigateur dans Tily : ouvrez-en un avec tily_browser_open.' : 'Plusieurs panes navigateur : indiquez pane (identifiants dans tily_layout, kind: "browser").')
+  throw new Error(browsers.length === 0 ? 'Aucun pane navigateur dans cette fenêtre de Tily : ouvrez-en un avec tily_browser_open.' : 'Plusieurs panes navigateur : indiquez pane (identifiants dans tily_layout, kind: "browser").')
 }
 
 const waitForStart = async (paneId: string): Promise<void> => {
@@ -65,7 +65,7 @@ const waitForStart = async (paneId: string): Promise<void> => {
 const startedBrowser = async (values: McpArguments, caller: string | undefined): Promise<PanePlace> => {
   const place = browserPlace(textArgument(values, 'pane'), caller)
   if (!isBrowserStarted(place.pane.id)) {
-    throw new Error(`Le pane navigateur ${place.pane.id} (${locationOf(place)}) n’a pas démarré : il n’a jamais été affiché depuis le lancement de Tily. Affichez-le avec tily_focus.`)
+    throw new Error(`Le pane navigateur ${place.pane.id} (${locationOf(place)}) n’a pas démarré : il n’a jamais été affiché depuis l’ouverture de la fenêtre. Affichez-le avec tily_focus.`)
   }
   await waitForStart(place.pane.id)
   return place

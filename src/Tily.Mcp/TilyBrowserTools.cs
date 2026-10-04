@@ -11,32 +11,32 @@ namespace Tily.Mcp;
 internal static class TilyBrowserTools
 {
     private const string Target =
-        "Sans pane, l’outil vise votre dernier pane navigateur, sinon le seul pane navigateur de votre onglet ou de Tily ; "
-        + "les panes navigateur portent kind: \"browser\" dans tily_layout.";
+        "Sans pane, l’outil vise votre dernier pane navigateur, sinon le seul pane navigateur de votre onglet ou de votre fenêtre de Tily ; "
+        + "les panes navigateur portent kind: \"browser\" dans tily_layout. Les navigateurs des autres fenêtres de Tily ne sont pas accessibles.";
 
     private const string OpenDescription =
-        "Ouvre dans Tily un pane navigateur, à côté de votre pane (right), en dessous (down) ou dans un nouvel onglet (tab), et y charge une adresse "
+        "Ouvre dans votre fenêtre de Tily un pane navigateur, à côté de votre pane (right), en dessous (down) ou dans un nouvel onglet (tab), et y charge une adresse "
         + "(localhost:5173 s’ouvre en http). Son onglet est affiché pour que l’utilisateur voie la page ; le focus clavier ne change pas sans focus. "
         + "Le pane vous appartient. Rend le résultat du chargement (statut HTTP, titre, nombre d’erreurs). "
-        + "Si vous avez déjà un pane navigateur, préférez tily_browser_navigate. Les cookies et sessions de connexion sont gardés d’un lancement à l’autre.";
+        + "Si vous avez déjà un pane navigateur, préférez tily_browser_navigate. Les cookies et sessions de connexion sont gardés d’un lancement à l’autre et partagés par toutes les fenêtres de Tily.";
 
-    private const string NavigateDescription = "Charge une adresse dans un pane navigateur de Tily et attend la fin du chargement (30 s au plus) : statut HTTP, titre, erreurs. " + Target;
+    private const string NavigateDescription = "Charge une adresse dans un pane navigateur de votre fenêtre de Tily et attend la fin du chargement (30 s au plus) : statut HTTP, titre, erreurs. " + Target;
 
-    private const string ReloadDescription = "Recharge la page d’un pane navigateur de Tily et attend la fin du chargement : statut HTTP, titre, erreurs. " + Target;
+    private const string ReloadDescription = "Recharge la page d’un pane navigateur de votre fenêtre de Tily et attend la fin du chargement : statut HTTP, titre, erreurs. " + Target;
 
     private const string ResizeDescription = "Affiche la page d’un pane navigateur en largeur mobile (colonne de 390 px, émulation mobile) ou desktop (largeur du pane). " + Target;
 
     private const string ConsoleDescription =
-        "Console d’un pane navigateur de Tily, collectée en continu : journaux, avertissements, erreurs, exceptions et rejets de promesse non gérés, "
+        "Console d’un pane navigateur de votre fenêtre de Tily, collectée en continu : journaux, avertissements, erreurs, exceptions et rejets de promesse non gérés, "
         + "avec l’adresse et la ligne d’origine, du plus ancien au plus récent. level donne le niveau minimal ; sinceLoad ne garde que le chargement en cours "
         + "(utile après tily_browser_reload). " + Target;
 
     private const string NetworkDescription =
-        "Requêtes réseau terminées d’un pane navigateur de Tily : méthode, adresse, type, statut, durée, échec, et corps des réponses en erreur (2 000 caractères au plus). "
+        "Requêtes réseau terminées d’un pane navigateur de votre fenêtre de Tily : méthode, adresse, type, statut, durée, échec, et corps des réponses en erreur (2 000 caractères au plus). "
         + "failedOnly ne garde que les statuts ≥ 400 et les échecs. " + Target;
 
     private const string ScreenshotDescription =
-        "Capture PNG de la page d’un pane navigateur de Tily, rendue en viewport desktop (1440 × 900) ou mobile (390 × 844, échelle 2) quelle que soit la taille du pane, "
+        "Capture PNG de la page d’un pane navigateur de votre fenêtre de Tily, rendue en viewport desktop (1440 × 900) ou mobile (390 × 844, échelle 2) quelle que soit la taille du pane, "
         + "même si son onglet n’est pas affiché. fullPage capture toute la hauteur (16 000 px au plus). path enregistre aussi le PNG (chemin relatif à votre dossier). " + Target;
 
     private const string PaneDescription = "Identifiant du pane navigateur, donné par tily_layout.";

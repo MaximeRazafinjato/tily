@@ -18,7 +18,7 @@ const REPLY_TIMEOUT_MS = 15_000
 const CONSENT_TIMEOUT_MS = 120_000
 const OPERATION_TIMEOUT_MS = 590_000
 const MAX_OUTPUT_CHARS = 4000
-const BUSY = 'Une création ou une suppression de worktree est déjà en cours dans Tily : réessayez quand elle sera terminée.'
+const BUSY = 'Une création ou une suppression de worktree est déjà en cours dans cette fenêtre de Tily : réessayez quand elle sera terminée.'
 
 type Listed = HostMessageOf<'worktrees.listed'>
 type Created = HostMessageOf<'worktrees.created'>

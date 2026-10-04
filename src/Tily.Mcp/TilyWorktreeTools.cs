@@ -9,7 +9,7 @@ internal static class TilyWorktreeTools
 {
     private const string ListDescription =
         "Worktrees Git du dépôt d’un dossier (par défaut, votre dossier courant) : chemin, branche, dépôt principal ou non, verrouillé, "
-        + "et les panes de Tily ouverts dans chacun.";
+        + "et les panes de votre fenêtre de Tily ouverts dans chacun.";
 
     private const string CreateDescription =
         "Crée un worktree comme Tily et comme la fonction wtr : nouvelle branche (mode new, depuis base ou la base réglée), branche locale (local) ou distante (remote) ; "
