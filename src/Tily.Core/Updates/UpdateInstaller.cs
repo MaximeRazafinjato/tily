@@ -14,10 +14,10 @@ public static class UpdateInstaller
             .Where(folder => folder.Length > 0)
             .Any(folder => Path.GetFullPath(appDirectory).StartsWith(Path.TrimEndingDirectorySeparator(Path.GetFullPath(folder)) + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase));
 
-    public static string Arguments(bool allUsers, int processId) =>
-        string.Join(' ', "/SILENT", "/NORESTART", allUsers ? "/ALLUSERS" : "/CURRENTUSER", "/RELAUNCH=1", $"/WAITPID={processId}");
+    public static string Arguments(bool allUsers, IEnumerable<int> processIds) =>
+        string.Join(' ', "/SILENT", "/NORESTART", allUsers ? "/ALLUSERS" : "/CURRENTUSER", "/RELAUNCH=1", $"/WAITPID={string.Join(',', processIds.Distinct())}");
 
-    public static void Start(string installerPath, string appDirectory, int processId)
+    public static void Start(string installerPath, string appDirectory, IEnumerable<int> processIds)
     {
         if (!File.Exists(installerPath))
         {
@@ -26,7 +26,7 @@ public static class UpdateInstaller
 
         Process.Start(new ProcessStartInfo(installerPath)
         {
-            Arguments = Arguments(IsAllUsers(appDirectory), processId),
+            Arguments = Arguments(IsAllUsers(appDirectory), processIds),
             UseShellExecute = true,
             WorkingDirectory = Path.GetDirectoryName(installerPath) ?? string.Empty
         });

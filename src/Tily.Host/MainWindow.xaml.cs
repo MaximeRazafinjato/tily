@@ -1,3 +1,4 @@
+using Tily.Core.Session;
 using Tily.Host.Bridge;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
@@ -16,21 +17,32 @@ public sealed partial class MainWindow : Window
     private static readonly Color Muted = Color.FromArgb(255, 0x84, 0x8B, 0x87);
     private static readonly Color Hover = Color.FromArgb(255, 0x24, 0x28, 0x2A);
     private readonly HostBridge _bridge;
+    private readonly SessionStore _store;
+    private readonly SessionClaim _session;
+    private readonly nint _handle;
     private readonly string _startUrl = ResolveStartUrl();
     private bool _closeConfirmed;
 
-    public MainWindow()
+    public MainWindow(SessionStore store, SessionClaim session)
     {
+        _store = store;
+        _session = session;
         InitializeComponent();
-        AppWindow.Resize(new SizeInt32(1480, 900));
-        if (AppWindow.Presenter is OverlappedPresenter presenter)
+        _handle = WinRT.Interop.WindowNative.GetWindowHandle(this);
+        var placement = WindowPlacementKeeper.Restore(_handle, session.Directory);
+        if (placement is null)
+        {
+            AppWindow.Resize(new SizeInt32(1480, 900));
+        }
+
+        if ((placement?.Maximized ?? true) && AppWindow.Presenter is OverlappedPresenter presenter)
         {
             presenter.Maximize();
         }
 
         AppWindow.SetIcon(Path.Combine(AppContext.BaseDirectory, "Assets", "Tily.ico"));
         ApplyDarkTitleBar();
-        _bridge = new HostBridge(DispatcherQueue, App.DataDirectory, WinRT.Interop.WindowNative.GetWindowHandle(this), ForceClose, SetTitle);
+        _bridge = new HostBridge(DispatcherQueue, App.DataDirectory, session, _handle, ForceClose, SetTitle);
         View.AllowDrop = true;
         Closed += HandleClosed;
         Activated += HandleActivated;
@@ -126,6 +138,8 @@ public sealed partial class MainWindow : Window
             return;
         }
 
+        WindowPlacementKeeper.Remember(_handle, _session.Directory);
         _bridge.Dispose();
+        _store.Release(_session);
     }
 }

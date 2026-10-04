@@ -5,6 +5,7 @@ namespace Tily.Core.StatusLog;
 
 public sealed class StatusLogRepository
 {
+    public const string FileName = "status-log.json";
     public const int MaxEntries = 500;
     public const int MaxTextLength = 2000;
 
@@ -21,7 +22,7 @@ public sealed class StatusLogRepository
     public StatusLogRepository(string directory)
     {
         Directory.CreateDirectory(directory);
-        FilePath = Path.Combine(directory, "status-log.json");
+        FilePath = Path.Combine(directory, FileName);
     }
 
     public string FilePath { get; }

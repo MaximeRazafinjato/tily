@@ -12,9 +12,17 @@ public sealed class UpdateInstallerTests : IDisposable
     [InlineData(false, "/SILENT /NORESTART /CURRENTUSER /RELAUNCH=1 /WAITPID=4242")]
     public void Arguments_WhenInstallModeKnown_ThenKeepsItAndAsksForRelaunch(bool allUsers, string expected)
     {
-        var arguments = UpdateInstaller.Arguments(allUsers, 4242);
+        var arguments = UpdateInstaller.Arguments(allUsers, [4242]);
 
         Assert.Equal(expected, arguments);
+    }
+
+    [Fact]
+    public void Arguments_WhenSeveralWindowsClose_ThenWaitsForEveryProcessOnce()
+    {
+        var arguments = UpdateInstaller.Arguments(false, [4242, 5150, 4242]);
+
+        Assert.EndsWith("/WAITPID=4242,5150", arguments);
     }
 
     [Fact]

@@ -27,7 +27,6 @@ public sealed class AgentStateFeed : IDisposable
         _terminals = terminals;
         _post = post;
         _states = new AgentStateRepository(dataDirectory);
-        _states.Clear();
         Directory.CreateDirectory(_states.Directory);
         _monitor = new AgentMonitor(_states, new ClaudeSessionRegistry(ClaudeSessionRegistry.DefaultDirectory()));
         Hooks = new ClaudeHooksInstaller(ScriptPath);

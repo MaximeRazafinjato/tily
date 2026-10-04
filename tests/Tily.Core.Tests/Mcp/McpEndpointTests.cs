@@ -67,4 +67,37 @@ public sealed class McpEndpointTests
 
         Assert.Equal(@"C:\Temp\tily-dev", directory);
     }
+
+    [Fact]
+    public void InstancePipeName_WhenTwoWindowsShareTheDataFolder_ThenNamesDiffer()
+    {
+        var first = McpEndpoint.InstancePipeName(@"C:\Temp\tily-dev", "2900f708077a49ca9ce94df5c379068d");
+
+        var second = McpEndpoint.InstancePipeName(@"C:\Temp\tily-dev", "431949d1ff21481680f58fb4fbcdc05c");
+
+        Assert.NotEqual(first, second);
+        Assert.StartsWith(McpEndpoint.PipeName(@"C:\Temp\tily-dev") + "-", first);
+    }
+
+    [Fact]
+    public void Pipe_WhenTheWindowAnnouncedItsPipe_ThenUsesIt()
+    {
+        var announced = McpEndpoint.InstancePipeName(@"C:\Temp\tily-dev", "2900f708077a49ca9ce94df5c379068d");
+
+        var pipe = McpEndpoint.Pipe($" {announced} ", @"C:\Autre\Tily");
+
+        Assert.Equal(announced, pipe);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData(@"\\.\pipe\autre")]
+    [InlineData("tily-mcp-tropcourt")]
+    public void Pipe_WhenNothingValidAnnounced_ThenFallsBackToTheDataFolderPipe(string? announced)
+    {
+        var pipe = McpEndpoint.Pipe(announced, @"C:\Temp\tily-dev");
+
+        Assert.Equal(McpEndpoint.PipeName(@"C:\Temp\tily-dev"), pipe);
+    }
 }

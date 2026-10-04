@@ -1,5 +1,7 @@
 using Tily.Core.Agents;
 using Tily.Core.Mcp;
+using Tily.Core.Session;
+using Tily.Core.Updates;
 using Microsoft.UI.Xaml;
 
 namespace Tily.Host;
@@ -20,15 +22,47 @@ public partial class App : Application
 
     protected override void OnLaunched(LaunchActivatedEventArgs args)
     {
-        if (Environment.GetCommandLineArgs().Contains(RemoveClaudeHooksArgument, StringComparer.OrdinalIgnoreCase))
+        var arguments = Environment.GetCommandLineArgs();
+        if (arguments.Contains(RemoveClaudeHooksArgument, StringComparer.OrdinalIgnoreCase))
         {
             RemoveClaudeHooks();
             Exit();
             return;
         }
 
-        _window = new MainWindow();
+        var store = new SessionStore(DataDirectory);
+        var startup = InstanceStartup.Resolve(store, arguments, ClearTransientFiles);
+        if (startup.Claim is null)
+        {
+            Exit();
+            return;
+        }
+
+        _window = new MainWindow(store, startup.Claim);
         _window.Activate();
+        foreach (var session in startup.Others)
+        {
+            RestoreWindow(session);
+        }
+    }
+
+    private static void RestoreWindow(string session)
+    {
+        try
+        {
+            WindowLauncher.Restore(session);
+        }
+        catch (Exception exception) when (exception is System.ComponentModel.Win32Exception or InvalidOperationException)
+        {
+        }
+    }
+
+    private static void ClearTransientFiles()
+    {
+        new AgentStateRepository(DataDirectory).Clear();
+        new PreviewRequestRepository(DataDirectory).Clear();
+        UpdateClient.Clean(UpdateClient.DownloadDirectory(DataDirectory));
+        new RestartCoordination(DataDirectory).Clear();
     }
 
     private static string ResolveDataDirectory()

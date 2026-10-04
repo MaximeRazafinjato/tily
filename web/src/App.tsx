@@ -26,7 +26,7 @@ import { WORKTREE_FOLDER_FIELD, WORKTREE_REPOSITORY_FIELD } from './worktree/wor
 import { PROJECT_REPOSITORY_FIELD, receiveProjectRepositories, receiveProjectRepositoryPicked, receiveProjectRepositoryRemembered } from './project/projectOpenActions'
 import { receiveWorktreeCreated, receiveWorktreeDone, receiveWorktreeFailed, receiveWorktreePlan, receiveWorktreeProgress, receiveWorktreeFolderPicked, receiveWorktreeRepositoryPicked, receiveWorktreeSources } from './worktree/worktreeReceivers'
 import { terminalRegistry } from './terminal/terminalRegistry'
-import { receiveUpdateRestart, receiveUpdateState } from './update/updateActions'
+import { receiveRestartRequest, receiveUpdateNotice, receiveUpdateRestart, receiveUpdateState } from './update/updateActions'
 import { receiveStatusLogCleared, receiveStatusLogEntry, startStatusLog } from './statusLog/statusLogActions'
 import { useStatusLogStore } from './store/statusLogStore'
 import { forgetRemovedText, markTextSaveFailed, primeSessionText, startTextAutosave } from './terminal/textPersistence'
@@ -71,13 +71,17 @@ export default function App() {
       }),
       bridge.on('settings.result', (message) => {
         applySettings({ settings: message.settings, shellSettings: message.shellSettings, files: message.files, warnings: message.warnings, agents: message.agents, mcp: message.mcp, notifications: message.notifications }, message.shells, message.persistence)
-        if (!message.saved) {
+        if (!message.saved && !message.external) {
           return
         }
         terminalRegistry.configure(message.persistence.linesPerPane)
         terminalRegistry.setFontSize(message.settings.appearance.fontSize)
         stopAutosave?.()
         stopAutosave = startTextAutosave(message.persistence.textIntervalSeconds)
+        if (message.external) {
+          setStatus('Réglages modifiés dans une autre fenêtre de Tily : appliqués ici.')
+          return
+        }
         useUiStore.getState().closeSettings()
         const warnings = message.warnings.join(' ')
         setStatus(warnings.length > 0 ? `Réglages enregistrés. ${warnings}` : 'Réglages enregistrés et appliqués.', warnings.length > 0 ? StatusLevel.Warning : StatusLevel.Info)
@@ -160,6 +164,8 @@ export default function App() {
       }),
       bridge.on('update.state', (message) => receiveUpdateState(message)),
       bridge.on('update.restart', receiveUpdateRestart),
+      bridge.on('update.confirmRestart', (message) => receiveRestartRequest(message.id, message.version)),
+      bridge.on('update.notice', (message) => receiveUpdateNotice(message.message, message.warning)),
       bridge.on('statusLog.added', (message) => receiveStatusLogEntry(message.entry)),
       bridge.on('statusLog.cleared', receiveStatusLogCleared),
       bridge.on('mcp.request', (message) => void receiveMcpRequest(message)),

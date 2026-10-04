@@ -1,14 +1,14 @@
-using System.Security.Cryptography;
-using System.Text;
+using System.Text.RegularExpressions;
+using Tily.Core.Session;
 
 namespace Tily.Core.Mcp;
 
-public static class McpEndpoint
+public static partial class McpEndpoint
 {
     public const string DataDirectoryVariable = "TILY_DATA_DIR";
     public const string PaneVariable = "TILY_PANE_ID";
+    public const string PipeVariable = "TILY_MCP_PIPE";
     private const string PipePrefix = "tily-mcp-";
-    private const int HashChars = 24;
 
     public static string DataDirectory(string? overridden, string localApplicationData) =>
         string.IsNullOrWhiteSpace(overridden)
@@ -22,10 +22,15 @@ public static class McpEndpoint
     public static string DataDirectoryFromEnvironment() =>
         DataDirectory(Environment.GetEnvironmentVariable(DataDirectoryVariable), Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData));
 
-    public static string PipeName(string dataDirectory)
-    {
-        var normalized = Path.TrimEndingDirectorySeparator(Path.GetFullPath(dataDirectory)).ToUpperInvariant();
-        var hash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(normalized)));
-        return PipePrefix + hash[..HashChars].ToLowerInvariant();
-    }
+    public static string PipeName(string dataDirectory) => PipePrefix + DataDirectoryFingerprint.Of(dataDirectory);
+
+    public static string InstancePipeName(string dataDirectory, string sessionId) => $"{PipeName(dataDirectory)}-{sessionId}";
+
+    public static string Pipe(string? announced, string dataDirectory) =>
+        announced is not null && InstancePipe().IsMatch(announced.Trim()) ? announced.Trim() : PipeName(dataDirectory);
+
+    public static string PipeFromEnvironment() => Pipe(Environment.GetEnvironmentVariable(PipeVariable), DataDirectoryFromEnvironment());
+
+    [GeneratedRegex("^tily-mcp-[0-9a-f]{24}-[0-9a-f]{32}$")]
+    private static partial Regex InstancePipe();
 }

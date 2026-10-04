@@ -16,50 +16,72 @@ public sealed class PreviewRequestRepositoryTests : IDisposable
     }
 
     [Fact]
-    public void TakeAll_WhenHtmlRequested_ThenReturnsItAndDeletesTheFile()
+    public void TakeOwned_WhenHtmlRequested_ThenReturnsItAndDeletesTheFile()
     {
         var page = Page("relecture été.html");
-        Request("a.json", "pane-1", page);
+        Request("pane1-a.json", "pane1", page);
 
-        var requests = _repository.TakeAll();
+        var requests = _repository.TakeOwned(_ => true);
 
-        Assert.Equal(new PreviewRequestModel("pane-1", page), Assert.Single(requests));
+        Assert.Equal(new PreviewRequestModel("pane1", page), Assert.Single(requests));
         Assert.Empty(Directory.EnumerateFiles(_repository.Directory));
     }
 
     [Fact]
-    public void TakeAll_WhenFileIsNotHtmlOrMissing_ThenIgnoresAndDeletesIt()
+    public void TakeOwned_WhenFileIsNotHtmlOrMissing_ThenIgnoresAndDeletesIt()
     {
-        Request("texte.json", "pane-1", Page("notes.txt"));
-        Request("absent.json", "pane-1", Path.Combine(_directory, "absent.html"));
-        Request("relatif.json", "pane-1", "plan.html");
-        File.WriteAllText(Path.Combine(_repository.Directory, "illisible.json"), "{ oops");
+        Request("pane1-texte.json", "pane1", Page("notes.txt"));
+        Request("pane1-absent.json", "pane1", Path.Combine(_directory, "absent.html"));
+        Request("pane1-relatif.json", "pane1", "plan.html");
+        File.WriteAllText(Path.Combine(_repository.Directory, "pane1-illisible.json"), "{ oops");
 
-        var requests = _repository.TakeAll();
+        var requests = _repository.TakeOwned(_ => true);
 
         Assert.Empty(requests);
         Assert.Empty(Directory.EnumerateFiles(_repository.Directory));
     }
 
     [Fact]
-    public void TakeAll_WhenRequestStillBeingWritten_ThenLeavesTemporaryFile()
+    public void TakeOwned_WhenRequestStillBeingWritten_ThenLeavesTemporaryFile()
     {
-        File.WriteAllText(Path.Combine(_repository.Directory, "pane-1-abc.tmp"), "{");
+        File.WriteAllText(Path.Combine(_repository.Directory, "pane1-abc.tmp"), "{");
 
-        var requests = _repository.TakeAll();
+        var requests = _repository.TakeOwned(_ => true);
 
         Assert.Empty(requests);
         Assert.Single(Directory.EnumerateFiles(_repository.Directory));
     }
 
     [Fact]
+    public void TakeOwned_WhenPaneBelongsToAnotherInstance_ThenLeavesTheRequestUntouched()
+    {
+        Request("autre-pane-0f3a.json", "autre-pane", Page("plan.html"));
+
+        var requests = _repository.TakeOwned(pane => pane == "mon-pane");
+
+        Assert.Empty(requests);
+        Assert.Single(Directory.EnumerateFiles(_repository.Directory));
+    }
+
+    [Fact]
+    public void TakeOwned_WhenContentNamesAnotherPane_ThenDropsTheRequest()
+    {
+        Request("mon-pane-0f3a.json", "autre-pane", Page("plan.html"));
+
+        var requests = _repository.TakeOwned(pane => pane == "mon-pane");
+
+        Assert.Empty(requests);
+        Assert.Empty(Directory.EnumerateFiles(_repository.Directory));
+    }
+
+    [Fact]
     public void Clear_WhenRequestsLeftFromPreviousRun_ThenDeletesThem()
     {
-        Request("ancien.json", "pane-1", Page("plan.html"));
+        Request("pane1-ancien.json", "pane1", Page("plan.html"));
 
         _repository.Clear();
 
-        Assert.Empty(_repository.TakeAll());
+        Assert.Empty(_repository.TakeOwned(_ => true));
     }
 
     private string Page(string name)
