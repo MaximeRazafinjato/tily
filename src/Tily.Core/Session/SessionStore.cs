@@ -9,7 +9,7 @@ public sealed class SessionStore
     public const string LockFileName = "instance.lock";
     private const int IdLength = 32;
     private static readonly TimeSpan GateTimeout = TimeSpan.FromSeconds(15);
-    private static readonly string[] LegacyFiles = [SessionRepository.FileName, SessionRepository.PreviousFileName, PaneTextRepository.LegacyFileName, StatusLogRepository.FileName];
+    private static readonly string[] LegacyCompanions = [SessionRepository.PreviousFileName, PaneTextRepository.LegacyFileName, StatusLogRepository.FileName];
 
     private readonly string _dataDirectory;
 
@@ -119,23 +119,33 @@ public sealed class SessionStore
 
     public void MigrateLegacy()
     {
-        var files = LegacyFiles.Select(name => Path.Combine(_dataDirectory, name)).Where(File.Exists).ToList();
-        var text = Path.Combine(_dataDirectory, PaneTextRepository.DirectoryName);
-        if (files.Count == 0 && !Directory.Exists(text))
+        var session = Path.Combine(_dataDirectory, SessionRepository.FileName);
+        if (!File.Exists(session))
         {
             return;
         }
 
         var target = DirectoryOf(SessionFactory.NewId());
         Directory.CreateDirectory(target);
-        foreach (var file in files)
+        try
         {
-            MoveQuietly(() => File.Move(file, Path.Combine(target, Path.GetFileName(file))));
+            File.Move(session, Path.Combine(target, SessionRepository.FileName));
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            Quietly(() => Directory.Delete(target));
+            return;
         }
 
+        foreach (var file in LegacyCompanions.Select(name => Path.Combine(_dataDirectory, name)).Where(File.Exists))
+        {
+            Quietly(() => File.Move(file, Path.Combine(target, Path.GetFileName(file))));
+        }
+
+        var text = Path.Combine(_dataDirectory, PaneTextRepository.DirectoryName);
         if (Directory.Exists(text))
         {
-            MoveQuietly(() => Directory.Move(text, Path.Combine(target, PaneTextRepository.DirectoryName)));
+            Quietly(() => Directory.Move(text, Path.Combine(target, PaneTextRepository.DirectoryName)));
         }
     }
 
@@ -166,11 +176,11 @@ public sealed class SessionStore
         return File.Exists(file) ? File.GetLastWriteTimeUtc(file) : directory.LastWriteTimeUtc;
     }
 
-    private static void MoveQuietly(Action move)
+    private static void Quietly(Action action)
     {
         try
         {
-            move();
+            action();
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {

@@ -33,6 +33,51 @@ public sealed class SessionStoreTests : IDisposable
     }
 
     [Fact]
+    public void MigrateLegacy_WhenSessionFileLocked_ThenMovesNothingAndLosesNothing()
+    {
+        var text = LegacyLayout();
+        using (new FileStream(Path.Combine(_directory, SessionRepository.FileName), FileMode.Open, FileAccess.Read, FileShare.None))
+        {
+            _store.MigrateLegacy();
+        }
+
+        Assert.Empty(_store.Ids());
+        Assert.False(Directory.Exists(_store.Root) && Directory.EnumerateDirectories(_store.Root).Any());
+        Assert.True(File.Exists(Path.Combine(_directory, SessionRepository.FileName)));
+        Assert.True(File.Exists(text));
+        Assert.True(File.Exists(Path.Combine(_directory, StatusLogRepository.FileName)));
+    }
+
+    [Fact]
+    public void MigrateLegacy_WhenRetriedAfterALock_ThenMovesEverythingIntoOneSession()
+    {
+        LegacyLayout();
+        using (new FileStream(Path.Combine(_directory, SessionRepository.FileName), FileMode.Open, FileAccess.Read, FileShare.None))
+        {
+            _store.MigrateLegacy();
+        }
+
+        _store.MigrateLegacy();
+
+        var session = _store.DirectoryOf(Assert.Single(_store.Ids()));
+        Assert.True(File.Exists(Path.Combine(session, SessionRepository.FileName)));
+        Assert.True(File.Exists(Path.Combine(session, PaneTextRepository.DirectoryName, "pane1.txt")));
+        Assert.True(File.Exists(Path.Combine(session, StatusLogRepository.FileName)));
+    }
+
+    [Fact]
+    public void MigrateLegacy_WhenOnlyTextLeftAtRoot_ThenLeavesItInPlace()
+    {
+        Directory.CreateDirectory(Path.Combine(_directory, PaneTextRepository.DirectoryName));
+        File.WriteAllText(Path.Combine(_directory, PaneTextRepository.DirectoryName, "pane1.txt"), "texte");
+
+        _store.MigrateLegacy();
+
+        Assert.Empty(_store.Ids());
+        Assert.True(File.Exists(Path.Combine(_directory, PaneTextRepository.DirectoryName, "pane1.txt")));
+    }
+
+    [Fact]
     public void MigrateLegacy_WhenNothingAtRoot_ThenCreatesNoSession()
     {
         _store.MigrateLegacy();
@@ -150,6 +195,16 @@ public sealed class SessionStoreTests : IDisposable
         var latest = _store.Latest(own);
 
         Assert.Equal(["palette.terminal"], latest!.Favorites);
+    }
+
+    private string LegacyLayout()
+    {
+        new SessionRepository(_directory).Save(SessionFactory.Initial());
+        var text = Path.Combine(_directory, PaneTextRepository.DirectoryName, "pane1.txt");
+        Directory.CreateDirectory(Path.GetDirectoryName(text)!);
+        File.WriteAllText(text, "texte");
+        File.WriteAllText(Path.Combine(_directory, StatusLogRepository.FileName), "{}");
+        return text;
     }
 
     private string Saved(SessionModel session)
