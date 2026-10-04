@@ -89,8 +89,10 @@ public sealed class AgentStateHookScriptTests : IDisposable
     [Theory]
     [InlineData("start \"\" \"rapport.pdf\"")]
     [InlineData("start \"\" \"absent.html\"")]
-    [InlineData("mkdir -p out && start \"\" \"plan.html\"")]
-    public void Run_WhenCommandIsNotASingleHtmlOpening_ThenLetsItRun(string command)
+    [InlineData("echo \"start plan.html\"")]
+    [InlineData("git status # ; start plan.html")]
+    [InlineData("cat > notes.md <<'EOF'\nstart plan.html\nEOF")]
+    public void Run_WhenCommandOpensNoPageToPreview_ThenLetsItRun(string command)
     {
         Page("plan.html");
         Page("rapport.pdf");
@@ -100,16 +102,56 @@ public sealed class AgentStateHookScriptTests : IDisposable
         Assert.Equal((string.Empty, 0), (output, RequestedPaths().Count));
     }
 
+    [Fact]
+    public void Run_WhenCompoundCommandStartsHtmlAfterCd_ThenPreviewsItFromThatFolder()
+    {
+        var page = Page(Path.Combine("Projet Terminal", "b.html"));
+
+        var output = Execute(StartPayload("cd \"Projet Terminal\" && git check-ignore -q x ; start \"\" \"b.html\"", _directory));
+
+        Assert.Equal(page, RequestedPaths().Single());
+        Assert.EndsWith("relance le reste de la commande sans ce `start`.", Reason(output));
+    }
+
+    [Theory]
+    [InlineData("git status ; start \"\" \"{page}\"")]
+    [InlineData("start \"\" \"plan.html\" && echo ok")]
+    [InlineData("echo ok 2>&1 || start plan.html")]
+    [InlineData("cat > notes.md <<-EOF\n\tstart rapport.html\n\tEOF\nstart plan.html")]
+    public void Run_WhenCompoundCommandStartsExistingHtml_ThenPreviewsItAndDeniesCommand(string command)
+    {
+        var page = Page("plan.html");
+
+        var output = Execute(StartPayload(command.Replace("{page}", page.Replace('\\', '/')), _directory));
+
+        Assert.Equal(page, RequestedPaths().Single());
+        Assert.Equal("deny", JsonNode.Parse(output)!["hookSpecificOutput"]!["permissionDecision"]!.GetValue<string>());
+    }
+
+    [Fact]
+    public void Run_WhenCompoundCommandStartsHtmlNotYetGenerated_ThenDeniesWithStandaloneStartToRun()
+    {
+        var page = Path.Combine(_directory, "rapport.html");
+
+        var output = Execute(StartPayload("node build.js && start \"\" \"rapport.html\"", _directory));
+
+        Assert.Empty(RequestedPaths());
+        Assert.Contains($"puis lance `start \"\" \"{page}\"` seul", Reason(output));
+    }
+
     private string Page(string name)
     {
-        Directory.CreateDirectory(_directory);
         var path = Path.Combine(_directory, name);
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
         File.WriteAllText(path, "<h1>Plan</h1>");
         return path;
     }
 
     private static string StartPayload(string command, string workingDirectory) =>
         JsonSerializer.Serialize(new { hook_event_name = "PreToolUse", tool_name = "Bash", cwd = workingDirectory, tool_input = new { command } });
+
+    private static string Reason(string output) =>
+        JsonNode.Parse(output)!["hookSpecificOutput"]!["permissionDecisionReason"]!.GetValue<string>();
 
     private List<string> RequestedPaths()
     {
