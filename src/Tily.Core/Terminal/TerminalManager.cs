@@ -112,6 +112,8 @@ public sealed class TerminalManager : IDisposable
         return new PaneProbeModel(session.PaneId, session.StartedAtUtc, TerminalSession.NamesOf(processes), processes.Select(process => process.Id).ToList());
     }
 
+    public bool Has(string paneId) => _sessions.ContainsKey(paneId);
+
     public TerminalSession Require(string paneId) =>
         _sessions.TryGetValue(paneId, out var session) ? session : throw new InvalidOperationException($"Aucun terminal pour le pane {paneId}.");
 

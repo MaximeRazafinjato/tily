@@ -1,3 +1,4 @@
+using Tily.Core.Session;
 using Tily.Host.Bridge;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
@@ -16,11 +17,15 @@ public sealed partial class MainWindow : Window
     private static readonly Color Muted = Color.FromArgb(255, 0x84, 0x8B, 0x87);
     private static readonly Color Hover = Color.FromArgb(255, 0x24, 0x28, 0x2A);
     private readonly HostBridge _bridge;
+    private readonly SessionStore _store;
+    private readonly SessionClaim _session;
     private readonly string _startUrl = ResolveStartUrl();
     private bool _closeConfirmed;
 
-    public MainWindow()
+    public MainWindow(SessionStore store, SessionClaim session)
     {
+        _store = store;
+        _session = session;
         InitializeComponent();
         AppWindow.Resize(new SizeInt32(1480, 900));
         if (AppWindow.Presenter is OverlappedPresenter presenter)
@@ -30,7 +35,7 @@ public sealed partial class MainWindow : Window
 
         AppWindow.SetIcon(Path.Combine(AppContext.BaseDirectory, "Assets", "Tily.ico"));
         ApplyDarkTitleBar();
-        _bridge = new HostBridge(DispatcherQueue, App.DataDirectory, WinRT.Interop.WindowNative.GetWindowHandle(this), ForceClose, SetTitle);
+        _bridge = new HostBridge(DispatcherQueue, App.DataDirectory, session, WinRT.Interop.WindowNative.GetWindowHandle(this), ForceClose, SetTitle);
         View.AllowDrop = true;
         Closed += HandleClosed;
         Activated += HandleActivated;
@@ -127,5 +132,6 @@ public sealed partial class MainWindow : Window
         }
 
         _bridge.Dispose();
+        _store.Release(_session);
     }
 }

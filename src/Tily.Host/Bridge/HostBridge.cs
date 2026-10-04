@@ -32,6 +32,7 @@ public sealed class HostBridge : IDisposable
     private readonly Action<string> _setTitle;
     private readonly nint _windowHandle;
     private readonly string _dataDirectory;
+    private readonly SessionClaim _session;
     private readonly SessionRepository _sessions;
     private readonly SettingsService _settingsService;
     private readonly TerminalManager _terminals;
@@ -57,27 +58,28 @@ public sealed class HostBridge : IDisposable
     private bool _closing;
     private DispatcherQueueTimer? _closeTimer;
 
-    public HostBridge(DispatcherQueue dispatcher, string dataDirectory, nint windowHandle, Action closeWindow, Action<string> setTitle)
+    public HostBridge(DispatcherQueue dispatcher, string dataDirectory, SessionClaim session, nint windowHandle, Action closeWindow, Action<string> setTitle)
     {
         _dispatcher = dispatcher;
         _windowHandle = windowHandle;
         _closeWindow = closeWindow;
         _setTitle = setTitle;
         _dataDirectory = dataDirectory;
-        _sessions = new SessionRepository(dataDirectory);
+        _session = session;
+        _sessions = new SessionRepository(session.Directory);
         _settingsService = new SettingsService(dataDirectory);
         _settings = _settingsService.Load();
-        _texts = new PaneTextRepository(dataDirectory, _persistence.MaxTextBytes);
+        _texts = new PaneTextRepository(session.Directory, _persistence.MaxTextBytes);
         _terminals = new TerminalManager();
         _writes = new BackgroundQueue(PostBackgroundError);
         _queries = new BackgroundQueue(PostBackgroundError);
-        _statusLog = new StatusLogFeed(dataDirectory, _writes, Post);
+        _statusLog = new StatusLogFeed(session.Directory, _writes, Post);
         _agents = new AgentStateFeed(dataDirectory, _terminals, Post);
         _notifier = new AttentionNotifier(dispatcher, windowHandle, paneId => PostNow(new { type = "agent.join", pane = paneId }));
         _notifier.Register();
         _files = new FileExplorerFeed(windowHandle, () => _settings.Editor, Post, PostBackgroundError);
         _preview = new FilePreviewFeed(() => _settings.Editor, Post, PostBackgroundError);
-        _previewRequests = new PreviewRequestFeed(dataDirectory, Post);
+        _previewRequests = new PreviewRequestFeed(dataDirectory, _terminals.Has, Post);
         _git = new GitFeed(Post, () => _settings.Git.AutoFetch, PostBackgroundError);
         _worktrees = new WorktreeFeed(Post, () => _settings, RememberWorktreeFolder, _git.RefreshSoon, PostBackgroundError, dataDirectory);
         _updates = new UpdateFeed(Post, ApplicationVersion, dataDirectory);
@@ -387,7 +389,7 @@ public sealed class HostBridge : IDisposable
         _settings = settings;
         _shellPaths = SettingsService.ShellPaths(settings);
         _persistence = settings.Persistence;
-        _texts = new PaneTextRepository(_dataDirectory, _persistence.MaxTextBytes);
+        _texts = new PaneTextRepository(_session.Directory, _persistence.MaxTextBytes);
         _terminals.UpdatePaths(_shellPaths);
         _updates.Configure(settings.Updates.AutoCheck);
     }
@@ -433,7 +435,7 @@ public sealed class HostBridge : IDisposable
     private void SendHello()
     {
         var loaded = _sessions.Load();
-        var session = loaded.Session ?? SessionFactory.Initial();
+        var session = loaded.Session ?? SessionFactory.InitialLike(new SessionStore(_dataDirectory).Latest(_session.Id));
         _texts.MoveClosedTabText(session);
         var text = _texts.Load();
         var recovery = string.Join(" ", new[] { loaded.Error, text.Error, _statusLog.LoadError }.Where(error => error is not null));

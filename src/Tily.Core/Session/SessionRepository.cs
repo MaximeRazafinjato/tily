@@ -16,6 +16,7 @@ public sealed class SessionRepository
         DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
     };
 
+    public const string FileName = "session.json";
     public const string PreviousFileName = "session.previous.json";
 
     private readonly string _filePath;
@@ -24,7 +25,7 @@ public sealed class SessionRepository
     public SessionRepository(string directory)
     {
         Directory.CreateDirectory(directory);
-        _filePath = Path.Combine(directory, "session.json");
+        _filePath = Path.Combine(directory, FileName);
         _previousPath = Path.Combine(directory, PreviousFileName);
     }
 

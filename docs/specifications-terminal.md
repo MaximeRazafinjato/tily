@@ -523,6 +523,19 @@ Le texte restauré est accompagné d’un séparateur explicite, par exemple « 
 
 **Décisions prises.** La valeur par défaut est de 10 000 lignes conservées par pane et de 256 Mio pour l’historique global ; ces deux limites sont configurables. Sauvegarder le texte toutes les 30 secondes, fréquence configurable. Conserver cinq onglets fermés restaurables et leur historique après redémarrage. À la fermeture d’un pane, d’un onglet, d’un workspace ou de l’application, utiliser l’arrêt forcé ; demander une confirmation si un serveur, un agent ou un programme est encore actif, puis arrêter tous les processus concernés.
 
+### Plusieurs fenêtres
+
+**Retenu (4 octobre 2026, issue #146).** Plusieurs fenêtres de Tily peuvent être ouvertes en même temps, par exemple une par écran ou une par client, chacune avec ses workspaces, sans se gêner ni perdre leur travail. Décisions :
+
+| Sujet | Décision |
+| --- | --- |
+| Modèle | Un processus par fenêtre, une session par fenêtre, préférences partagées. Un workspace ne passe pas d’une fenêtre à l’autre. |
+| Restauration | Démarrer Tily alors qu’aucune fenêtre n’est ouverte rouvre chaque session enregistrée qui a au moins un workspace, chacune dans sa fenêtre et sur son écran ; lancer Tily quand il tourne déjà ouvre une fenêtre neuve. Une session sans workspace est oubliée. |
+| Agents | La palette, les cartes d’attention et Leader puis A ne concernent que les agents de leur fenêtre ; les autres fenêtres se signalent par leurs notifications (section 12). |
+| Préférences | Un réglage enregistré dans une fenêtre s’applique aussitôt aux autres ; seules les sections modifiées sont écrites, pour qu’une écriture concurrente ne perde rien. |
+
+**Convention proposée.** Chaque session vit dans `%LOCALAPPDATA%\Tily\sessions\<identifiant>\` : disposition et avant-dernier enregistrement, texte des panes, journal de la barre de statut. Une fenêtre la réserve par un verrou de fichier, libéré même si elle s’arrête brutalement. La session d’une version antérieure, restée à la racine du dossier de données, devient la première session, sans perte. Une nouvelle fenêtre reprend de la dernière session enregistrée les favoris de la palette, la largeur des panneaux et la disposition du graphe Git. Les états d’agents et les demandes d’aperçu restent dans le dossier commun, chacun au nom de son pane : une fenêtre ne lit et ne supprime que ceux de ses panes, et ces dossiers, comme celui des téléchargements de mise à jour, ne sont purgés qu’au démarrage à froid, quand aucune autre fenêtre n’est ouverte.
+
 ## 14. Configuration exportable
 
 **Retenu.** La configuration doit être sauvegardable, exportable et versionnable au format **JSON**. L’import doit permettre de retrouver les préférences sauvegardées.
@@ -576,8 +589,8 @@ Les déplacements et changements de présentation agissent sur le modèle et la 
 
 ### Pile technique retenue (validée par le spike T01)
 
-- **Hôte Windows :** application C# sur .NET 10 LTS avec une seule fenêtre WinUI 3 (Windows App SDK). L’hôte ne porte aucune interface métier : il gère la fenêtre, le gestionnaire de processus, les services locaux, les adaptateurs d’agents et la persistance. WinUI 3 non empaqueté est confirmé par le spike T01 (Windows App SDK 2.5.1, publication autonome depuis la ligne de commande) ; le repli WPF n’est plus nécessaire.
-- **Interface :** une WebView2 unique héberge toute l’interface (arborescence, onglets, splits, palette, Leader) et un terminal xterm.js par pane, avec le renderer WebGL et un repli canvas. Les raccourcis sont interceptés dans xterm.js, jamais par des accélérateurs XAML, afin qu’un seul moteur traite le clavier et le focus.
+- **Hôte Windows :** application C# sur .NET 10 LTS avec une seule fenêtre WinUI 3 (Windows App SDK) par processus ; plusieurs fenêtres sont plusieurs processus, une session chacun (section 13, « Plusieurs fenêtres »). L’hôte ne porte aucune interface métier : il gère la fenêtre, le gestionnaire de processus, les services locaux, les adaptateurs d’agents et la persistance. WinUI 3 non empaqueté est confirmé par le spike T01 (Windows App SDK 2.5.1, publication autonome depuis la ligne de commande) ; le repli WPF n’est plus nécessaire.
+- **Interface :** dans chaque fenêtre, une WebView2 unique héberge toute l’interface (arborescence, onglets, splits, palette, Leader) et un terminal xterm.js par pane, avec le renderer WebGL et un repli canvas. Les raccourcis sont interceptés dans xterm.js, jamais par des accélérateurs XAML, afin qu’un seul moteur traite le clavier et le focus.
 - **Pseudo-terminal :** ConPTY, isolé derrière le gestionnaire de processus en C# avec P/Invoke. Chaque pane est rattaché à un Job Object Windows pour garantir l’arrêt de l’arbre de processus. Le spike T01 a comparé la ConPTY intégrée à Windows et une `conpty.dll` embarquée issue d’OpenConsole.
 - **Dossier courant :** ConPTY ne le fournit pas. Tily l’obtient par intégration shell propre (variable d’environnement dédiée et wrapper de prompt non intrusif émettant une séquence OSC), compatible avec Windows PowerShell 5.1 et oh-my-posh, sans imiter WezTerm. Il enveloppe aussi `PSConsoleHostReadLine`, s’il est défini, pour annoncer le début de l’exécution (`OSC 6973;exec`), comme l’intégration shell de VS Code, et annonce la hauteur en lignes de l’invite produite (`OSC 6973;prompt;<lignes>`, séquences d’échappement exclues). Il rend au prompt d’origine le statut `$?` de la dernière commande, qu’il lit avant d’émettre la séquence : un prompt qui affiche l’échec de la commande précédente (oh-my-posh, starship) le montre comme hors de Tily.
 - **Pont hôte / interface :** messages JSON pour les commandes et un canal dédié pour les octets PTY. Mesurer d’abord `PostWebMessage` ; basculer sur un WebSocket local ou un flux binaire si le débit soutenu décroche.
@@ -695,5 +708,6 @@ Ces scénarios définissent les vérifications à effectuer sur l’application 
 14. **Fait (29 septembre 2026) :** mises à jour dans l’application (section 14, recette R37) : signalement, installation au clic, vérification au démarrage puis toutes les 6 heures.
 15. **À décider :** Alt + PgUp et Alt + PgDn (navigation de commande en commande, section 8) sortent de la règle retenue des raccourcis directs (Ctrl + Maj + lettre, Alt + flèche). Garder cette exception, choisir un autre raccourci ou ne garder que la palette. De même, les nouvelles séquences Leader =, ! et Maj + flèche (section 7) et Leader puis chiffre (section 9) n’ont pas de raccourci direct, pas plus que « Ouvrir un fichier du projet… » (section 4), accessible seulement depuis la palette.
 16. **Décidé (30 septembre 2026, issue #118) :** vue Agents du panneau de gauche (section 12, « Vue Agents », recettes R45 à R48). **À vérifier** avant d’implémenter les réponses : que le dialogue de permission reste utilisable dans le terminal pendant que le hook PermissionRequest attend. **Vérifié :** un Échap laisse aujourd’hui l’agent affiché « En cours » ou « En attente », faute de hook (issue #121).
+17. **Décidé (4 octobre 2026, issue #146) :** plusieurs fenêtres en même temps, un processus et une session par fenêtre (section 13, « Plusieurs fenêtres »).
 
 Ces décisions ne bloquent pas la compréhension du produit ; elles évitent de traiter un comportement accidentel comme une exigence validée.

@@ -26,4 +26,19 @@ public static class SessionFactory
         var workspace = Workspace("Général", home, ShellCatalog.DefaultShellId);
         return new SessionModel { Workspaces = new List<WorkspaceModel> { workspace }, Active = workspace.Id };
     }
+
+    public static SessionModel InitialLike(SessionModel? template)
+    {
+        var session = Initial();
+        if (template is null)
+        {
+            return session;
+        }
+
+        session.Favorites = template.Favorites.ToList();
+        session.Sidebar = template.Sidebar;
+        session.ExplorerWidth = template.ExplorerWidth;
+        session.GitGraph = template.GitGraph;
+        return session;
+    }
 }

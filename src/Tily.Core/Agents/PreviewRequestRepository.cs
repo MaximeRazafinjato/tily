@@ -32,7 +32,7 @@ public sealed class PreviewRequestRepository
         }
     }
 
-    public IReadOnlyList<PreviewRequestModel> TakeAll()
+    public IReadOnlyList<PreviewRequestModel> TakeOwned(Func<string, bool> ownsPane)
     {
         if (!System.IO.Directory.Exists(Directory))
         {
@@ -40,31 +40,40 @@ public sealed class PreviewRequestRepository
         }
 
         var requests = new List<PreviewRequestModel>();
-        foreach (var file in new DirectoryInfo(Directory).EnumerateFiles(RequestPattern).OrderBy(file => file.LastWriteTimeUtc).Select(file => file.FullName))
+        foreach (var file in new DirectoryInfo(Directory).EnumerateFiles(RequestPattern).Where(file => ownsPane(PaneOf(file))).OrderBy(file => file.LastWriteTimeUtc).Select(file => file.FullName))
         {
             var request = Read(file);
             TryDelete(file);
-            if (request is not null)
+            if (Valid(request) is { } valid && ownsPane(valid.PaneId))
             {
-                requests.Add(request);
+                requests.Add(valid);
             }
         }
 
         return requests;
     }
 
-    private static PreviewRequestModel? Read(string file)
+    private static string PaneOf(FileInfo file)
     {
-        PreviewRequestFileModel? request;
+        var name = System.IO.Path.GetFileNameWithoutExtension(file.Name);
+        var separator = name.LastIndexOf('-');
+        return separator > 0 ? name[..separator] : name;
+    }
+
+    private static PreviewRequestFileModel? Read(string file)
+    {
         try
         {
-            request = JsonSerializer.Deserialize<PreviewRequestFileModel>(File.ReadAllText(file), SessionRepository.JsonOptions);
+            return JsonSerializer.Deserialize<PreviewRequestFileModel>(File.ReadAllText(file), SessionRepository.JsonOptions);
         }
         catch (Exception exception) when (exception is JsonException or IOException or UnauthorizedAccessException)
         {
             return null;
         }
+    }
 
+    private static PreviewRequestModel? Valid(PreviewRequestFileModel? request)
+    {
         if (string.IsNullOrWhiteSpace(request?.Pane) || request.Path is not { } path || !System.IO.Path.IsPathFullyQualified(path) || !File.Exists(path) || PreviewTypes.KindOf(path) != PreviewKind.Html)
         {
             return null;

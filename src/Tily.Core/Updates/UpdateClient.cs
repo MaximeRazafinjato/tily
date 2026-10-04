@@ -8,6 +8,9 @@ public sealed class UpdateClient(HttpClient http)
 {
     private const int BufferSize = 81920;
     private const string PartialExtension = ".part";
+    private const string DownloadDirectoryName = "updates";
+
+    public static string DownloadDirectory(string dataDirectory) => Path.Combine(dataDirectory, DownloadDirectoryName);
 
     public static HttpClient CreateHttpClient(string currentVersion)
     {

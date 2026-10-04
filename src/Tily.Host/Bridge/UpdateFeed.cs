@@ -41,12 +41,11 @@ public sealed class UpdateFeed : IDisposable
     {
         _post = post;
         _currentVersion = currentVersion;
-        _downloadDirectory = Path.Combine(dataDirectory, "updates");
+        _downloadDirectory = UpdateClient.DownloadDirectory(dataDirectory);
         _installable = UpdateInstaller.IsInstalled(_appDirectory);
         _http = UpdateClient.CreateHttpClient(currentVersion);
         _client = new UpdateClient(_http);
         _timer = new Timer(_ => _ = CheckAsync(false));
-        _ = Task.Run(() => UpdateClient.Clean(_downloadDirectory));
     }
 
     public void Configure(bool autoCheck)
