@@ -435,6 +435,8 @@ Les actions utilisent le **dossier du pane actif**, jamais un hypothétique doss
 
 **Convention proposée.** Leader puis A, Ctrl + Maj + A ou « Rejoindre l’agent en attente suivant » dans la palette rejoint le pane en attente qui suit le pane actif dans l’ordre de la palette, de l’attente la plus ancienne à la plus récente (ordre du panneau à égalité), tous workspaces confondus et en boucle ; répété, il passe d’une attente à l’autre. Sans agent en attente, la barre de statut l’indique.
 
+**Retenu (4 octobre 2026, issue #146).** Avec plusieurs fenêtres de Tily (section 13, « Plusieurs fenêtres »), la palette, les cartes d’attention et Leader puis A ne concernent que les agents de leur fenêtre ; une fenêtre qui n’est pas active signale les siens par ses notifications Windows et le clignotement de la barre des tâches. L’état d’un agent et une demande d’aperçu n’arrivent qu’à la fenêtre qui possède le pane.
+
 **Décision de périmètre.** L’architecture permet des adaptateurs Claude Code et Codex CLI. Claude Code est suivi par ses hooks, que Tily installe depuis les Paramètres ; Codex CLI n’est reconnu que par son processus, et sa détection fiable est reportée à une évolution dédiée. Tant qu’un adaptateur ne peut pas établir un état, afficher « État inconnu » plutôt que d’inférer une activité depuis le seul processus.
 
 ### Vue Agents
