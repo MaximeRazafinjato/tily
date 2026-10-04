@@ -68,12 +68,10 @@ function WaitForSingleObject(Handle: THandle; Milliseconds: Cardinal): Cardinal;
 function CloseHandle(Handle: THandle): Boolean;
   external 'CloseHandle@kernel32.dll stdcall';
 
-procedure WaitForTilyExit;
+procedure WaitForProcessExit(ProcessId: Integer);
 var
-  ProcessId: Integer;
   Handle: THandle;
 begin
-  ProcessId := StrToIntDef(ExpandConstant('{param:waitpid|0}'), 0);
   if ProcessId <= 0 then
     exit;
   Handle := OpenProcess(Synchronize, False, ProcessId);
@@ -81,6 +79,28 @@ begin
     exit;
   WaitForSingleObject(Handle, TilyExitTimeout);
   CloseHandle(Handle);
+end;
+
+procedure WaitForTilyExit;
+var
+  Remaining: string;
+  Separator: Integer;
+begin
+  Remaining := ExpandConstant('{param:waitpid|}');
+  while Remaining <> '' do
+  begin
+    Separator := Pos(',', Remaining);
+    if Separator = 0 then
+    begin
+      WaitForProcessExit(StrToIntDef(Trim(Remaining), 0));
+      Remaining := '';
+    end
+    else
+    begin
+      WaitForProcessExit(StrToIntDef(Trim(Copy(Remaining, 1, Separator - 1)), 0));
+      Remaining := Copy(Remaining, Separator + 1, Length(Remaining));
+    end;
+  end;
 end;
 
 function InitializeSetup: Boolean;

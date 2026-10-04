@@ -25,22 +25,25 @@ public sealed class UpdateFeed : IDisposable
     private readonly HttpClient _http;
     private readonly UpdateClient _client;
     private readonly Timer _timer;
+    private readonly UpdateRestartFeed _restart;
     private bool? _autoCheck;
     private string _status = Idle;
     private UpdateReleaseModel? _release;
     private string? _error;
     private string? _installerPath;
     private string? _pendingInstaller;
+    private IReadOnlyList<int> _waitedProcesses = [];
     private DateTimeOffset? _checkedAt;
     private long _received;
     private long _total;
     private long _lastProgress;
     private CancellationTokenSource? _download;
 
-    public UpdateFeed(Action<object> post, string currentVersion, string dataDirectory)
+    public UpdateFeed(Action<object> post, string currentVersion, string dataDirectory, string session)
     {
         _post = post;
         _currentVersion = currentVersion;
+        _restart = new UpdateRestartFeed(dataDirectory, session, post);
         _downloadDirectory = UpdateClient.DownloadDirectory(dataDirectory);
         _installable = UpdateInstaller.IsInstalled(_appDirectory);
         _http = UpdateClient.CreateHttpClient(currentVersion);
@@ -79,6 +82,9 @@ public sealed class UpdateFeed : IDisposable
                 break;
             case "update.apply":
                 Apply();
+                break;
+            case "update.restartAnswer":
+                _restart.Answer(command);
                 break;
             default:
                 throw new InvalidOperationException($"Commande inconnue : {command.Type}");
@@ -242,9 +248,11 @@ public sealed class UpdateFeed : IDisposable
 
     private void Apply()
     {
+        string installer;
+        string version;
         lock (_gate)
         {
-            if (_status != Ready || _installerPath is null)
+            if (_status != Ready || _installerPath is null || _release is null)
             {
                 throw new InvalidOperationException("Aucune mise à jour téléchargée n’est prête à installer.");
             }
@@ -257,18 +265,30 @@ public sealed class UpdateFeed : IDisposable
                 throw new InvalidOperationException("L’installeur téléchargé a disparu : relancez « Installer et redémarrer » pour le télécharger à nouveau.");
             }
 
-            _pendingInstaller = _installerPath;
+            installer = _installerPath;
+            version = _release.Version;
         }
 
-        _post(new { type = "update.restart" });
+        _restart.Begin(version, processes =>
+        {
+            lock (_gate)
+            {
+                _pendingInstaller = installer;
+                _waitedProcesses = processes;
+            }
+
+            _post(new { type = "update.restart" });
+        }, reason => _post(new { type = "update.notice", message = reason, warning = true }));
     }
 
     public void LaunchPendingInstaller()
     {
         string? installer;
+        IReadOnlyList<int> processes;
         lock (_gate)
         {
             installer = _pendingInstaller;
+            processes = _waitedProcesses;
             _pendingInstaller = null;
         }
 
@@ -279,7 +299,7 @@ public sealed class UpdateFeed : IDisposable
 
         try
         {
-            UpdateInstaller.Start(installer, _appDirectory, Environment.ProcessId);
+            UpdateInstaller.Start(installer, _appDirectory, processes);
         }
         catch (Exception exception) when (exception is UpdateException or System.ComponentModel.Win32Exception or InvalidOperationException)
         {
@@ -290,6 +310,7 @@ public sealed class UpdateFeed : IDisposable
     {
         CancelDownload();
         _timer.Dispose();
+        _restart.Dispose();
         _http.Dispose();
     }
 }

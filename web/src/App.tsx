@@ -26,7 +26,7 @@ import { WORKTREE_FOLDER_FIELD, WORKTREE_REPOSITORY_FIELD } from './worktree/wor
 import { PROJECT_REPOSITORY_FIELD, receiveProjectRepositories, receiveProjectRepositoryPicked, receiveProjectRepositoryRemembered } from './project/projectOpenActions'
 import { receiveWorktreeCreated, receiveWorktreeDone, receiveWorktreeFailed, receiveWorktreePlan, receiveWorktreeProgress, receiveWorktreeFolderPicked, receiveWorktreeRepositoryPicked, receiveWorktreeSources } from './worktree/worktreeReceivers'
 import { terminalRegistry } from './terminal/terminalRegistry'
-import { receiveUpdateRestart, receiveUpdateState } from './update/updateActions'
+import { receiveRestartRequest, receiveUpdateNotice, receiveUpdateRestart, receiveUpdateState } from './update/updateActions'
 import { receiveStatusLogCleared, receiveStatusLogEntry, startStatusLog } from './statusLog/statusLogActions'
 import { useStatusLogStore } from './store/statusLogStore'
 import { forgetRemovedText, markTextSaveFailed, primeSessionText, startTextAutosave } from './terminal/textPersistence'
@@ -164,6 +164,8 @@ export default function App() {
       }),
       bridge.on('update.state', (message) => receiveUpdateState(message)),
       bridge.on('update.restart', receiveUpdateRestart),
+      bridge.on('update.confirmRestart', (message) => receiveRestartRequest(message.id, message.version)),
+      bridge.on('update.notice', (message) => receiveUpdateNotice(message.message, message.warning)),
       bridge.on('statusLog.added', (message) => receiveStatusLogEntry(message.entry)),
       bridge.on('statusLog.cleared', receiveStatusLogCleared),
       bridge.on('mcp.request', (message) => void receiveMcpRequest(message)),

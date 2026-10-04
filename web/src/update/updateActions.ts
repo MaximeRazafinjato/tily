@@ -53,6 +53,16 @@ export const installUpdate = (): void => {
 
 export const receiveUpdateRestart = (): void => closeApplication()
 
+export const receiveRestartRequest = (id: string, version: string): void => {
+  const { session } = useSessionStore.getState()
+  const paneIds = session ? allPanes(session).map((pane) => pane.id) : []
+  const answer = (confirmed: boolean) => () => bridge.send({ type: 'update.restartAnswer', id, confirmed })
+  requestClose(`Installer Tily ${version} et redémarrer ? Une autre fenêtre de Tily le demande.`, paneIds, answer(true), 'Arrêter et installer', answer(false))
+}
+
+export const receiveUpdateNotice = (message: string, warning: boolean): void =>
+  useHostStore.getState().setStatus(message, warning ? StatusLevel.Warning : StatusLevel.Info)
+
 export const cancelUpdateDownload = (): void => {
   installRequested = false
   bridge.send({ type: 'update.cancel' })

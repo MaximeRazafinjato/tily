@@ -62,6 +62,7 @@ public partial class App : Application
         new AgentStateRepository(DataDirectory).Clear();
         new PreviewRequestRepository(DataDirectory).Clear();
         UpdateClient.Clean(UpdateClient.DownloadDirectory(DataDirectory));
+        new RestartCoordination(DataDirectory).Clear();
     }
 
     private static string ResolveDataDirectory()

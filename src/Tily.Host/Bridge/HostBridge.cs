@@ -85,7 +85,7 @@ public sealed class HostBridge : IDisposable
         _previewRequests = new PreviewRequestFeed(dataDirectory, _terminals.Has, Post);
         _git = new GitFeed(Post, () => _settings.Git.AutoFetch, PostBackgroundError);
         _worktrees = new WorktreeFeed(Post, () => _settings, RememberWorktreeFolder, _git.RefreshSoon, PostBackgroundError, dataDirectory);
-        _updates = new UpdateFeed(Post, ApplicationVersion, dataDirectory);
+        _updates = new UpdateFeed(Post, ApplicationVersion, dataDirectory, session.Id);
         _mcp = new McpFeed(pipeName, McpEndpoint.PipeName(dataDirectory), _terminals.Has, Post, PostBackgroundError);
         _preferences = new PreferencesWatcher(dataDirectory, () => _dispatcher.TryEnqueue(ReloadSettings));
         ApplySettings(_settings);
