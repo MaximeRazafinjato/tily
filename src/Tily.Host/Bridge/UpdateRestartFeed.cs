@@ -105,7 +105,7 @@ public sealed class UpdateRestartFeed : IDisposable
 
     private void ShowNewRequests()
     {
-        foreach (var request in _coordination.OpenRequests().Where(request => request.Initiator != _session && _shown.Add(request.Id)))
+        foreach (var request in _coordination.OpenRequests(DateTime.UtcNow - AnswerTimeout).Where(request => request.Initiator != _session && _shown.Add(request.Id)))
         {
             _post(new { type = "update.confirmRestart", id = request.Id, version = request.Version });
         }
@@ -181,6 +181,22 @@ public sealed class UpdateRestartFeed : IDisposable
         lock (_sync)
         {
             _disposed = true;
+            if (_own is { } own)
+            {
+                _own = null;
+                DecideQuietly(own.Id);
+            }
+        }
+    }
+
+    private void DecideQuietly(string id)
+    {
+        try
+        {
+            _coordination.Decide(id, false);
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
         }
     }
 

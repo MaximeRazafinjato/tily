@@ -151,12 +151,15 @@ public sealed class AttentionNotifier : IDisposable
             return;
         }
 
-        try
+        foreach (var paneId in _shown.Keys)
         {
-            ToastNotificationManager.History.RemoveGroup(ToastGroup, ApplicationUserModelId);
-        }
-        catch (Exception exception) when (exception is System.Runtime.InteropServices.COMException or UnauthorizedAccessException)
-        {
+            try
+            {
+                ToastNotificationManager.History.Remove(ToastTag(paneId), ToastGroup, ApplicationUserModelId);
+            }
+            catch (Exception exception) when (exception is System.Runtime.InteropServices.COMException or UnauthorizedAccessException)
+            {
+            }
         }
 
         _shown.Clear();

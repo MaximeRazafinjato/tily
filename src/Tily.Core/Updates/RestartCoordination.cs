@@ -38,8 +38,9 @@ public sealed class RestartCoordination
         return request;
     }
 
-    public IReadOnlyList<RestartRequestModel> OpenRequests() =>
+    public IReadOnlyList<RestartRequestModel> OpenRequests(DateTime writtenSinceUtc) =>
         Files("*" + RequestSuffix)
+            .Where(file => File.GetLastWriteTimeUtc(file) >= writtenSinceUtc)
             .Select(Read<RestartRequestModel>)
             .OfType<RestartRequestModel>()
             .Where(request => SessionStore.IsValidId(request.Id) && !File.Exists(PathOf(request.Id + DecisionSuffix)))

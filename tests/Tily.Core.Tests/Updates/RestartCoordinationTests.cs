@@ -20,9 +20,20 @@ public sealed class RestartCoordinationTests : IDisposable
     {
         var request = _coordination.Request(First, "2.2.0");
 
-        var open = new RestartCoordination(_directory).OpenRequests();
+        var open = new RestartCoordination(_directory).OpenRequests(DateTime.UtcNow.AddMinutes(-2));
 
         Assert.Equal(request, Assert.Single(open));
+    }
+
+    [Fact]
+    public void OpenRequests_WhenRequestOlderThanTheWait_ThenIgnoresIt()
+    {
+        var request = _coordination.Request(First, "2.2.0");
+        File.SetLastWriteTimeUtc(Path.Combine(_coordination.Directory, request.Id + ".request.json"), DateTime.UtcNow.AddMinutes(-10));
+
+        var open = _coordination.OpenRequests(DateTime.UtcNow.AddMinutes(-2));
+
+        Assert.Empty(open);
     }
 
     [Fact]
@@ -42,7 +53,7 @@ public sealed class RestartCoordinationTests : IDisposable
 
         _coordination.Decide(request.Id, false);
 
-        Assert.Empty(_coordination.OpenRequests());
+        Assert.Empty(_coordination.OpenRequests(DateTime.UtcNow.AddMinutes(-2)));
         Assert.False(_coordination.Decision(request.Id)!.Go);
     }
 
