@@ -343,6 +343,9 @@ public sealed class HostBridge : IDisposable
             case "window.close":
                 _closeWindow();
                 break;
+            case "window.new":
+                WindowLauncher.OpenNew();
+                break;
             case "window.closeCancel":
                 CancelClose();
                 break;

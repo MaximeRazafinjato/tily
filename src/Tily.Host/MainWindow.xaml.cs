@@ -19,6 +19,7 @@ public sealed partial class MainWindow : Window
     private readonly HostBridge _bridge;
     private readonly SessionStore _store;
     private readonly SessionClaim _session;
+    private readonly nint _handle;
     private readonly string _startUrl = ResolveStartUrl();
     private bool _closeConfirmed;
 
@@ -27,15 +28,21 @@ public sealed partial class MainWindow : Window
         _store = store;
         _session = session;
         InitializeComponent();
-        AppWindow.Resize(new SizeInt32(1480, 900));
-        if (AppWindow.Presenter is OverlappedPresenter presenter)
+        _handle = WinRT.Interop.WindowNative.GetWindowHandle(this);
+        var placement = WindowPlacementKeeper.Restore(_handle, session.Directory);
+        if (placement is null)
+        {
+            AppWindow.Resize(new SizeInt32(1480, 900));
+        }
+
+        if ((placement?.Maximized ?? true) && AppWindow.Presenter is OverlappedPresenter presenter)
         {
             presenter.Maximize();
         }
 
         AppWindow.SetIcon(Path.Combine(AppContext.BaseDirectory, "Assets", "Tily.ico"));
         ApplyDarkTitleBar();
-        _bridge = new HostBridge(DispatcherQueue, App.DataDirectory, session, WinRT.Interop.WindowNative.GetWindowHandle(this), ForceClose, SetTitle);
+        _bridge = new HostBridge(DispatcherQueue, App.DataDirectory, session, _handle, ForceClose, SetTitle);
         View.AllowDrop = true;
         Closed += HandleClosed;
         Activated += HandleActivated;
@@ -131,6 +138,7 @@ public sealed partial class MainWindow : Window
             return;
         }
 
+        WindowPlacementKeeper.Remember(_handle, _session.Directory);
         _bridge.Dispose();
         _store.Release(_session);
     }

@@ -23,6 +23,44 @@ public static class WindowApi
     [DllImport("user32.dll")]
     public static extern bool SetForegroundWindow(nint windowHandle);
 
+    public const int ShowHide = 0;
+    public const int ShowMinimized = 2;
+    public const int ShowMaximized = 3;
+    public const uint PlacementRestoreToMaximized = 0x0002;
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct NativePoint
+    {
+        public int X;
+        public int Y;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct NativeRect
+    {
+        public int Left;
+        public int Top;
+        public int Right;
+        public int Bottom;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct WindowPlacement
+    {
+        public uint Length;
+        public uint Flags;
+        public uint ShowCommand;
+        public NativePoint MinPosition;
+        public NativePoint MaxPosition;
+        public NativeRect NormalPosition;
+    }
+
+    [DllImport("user32.dll")]
+    public static extern bool GetWindowPlacement(nint windowHandle, ref WindowPlacement placement);
+
+    [DllImport("user32.dll")]
+    public static extern bool SetWindowPlacement(nint windowHandle, ref WindowPlacement placement);
+
     public const int ShowRestore = 9;
 
     [DllImport("user32.dll")]

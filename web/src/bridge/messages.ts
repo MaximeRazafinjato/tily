@@ -240,6 +240,7 @@ export type WebToHostMessage =
   | { type: 'files.rename'; path: string; parent: string; name: string }
   | { type: 'files.delete'; path: string; parent: string }
   | { type: 'window.close' }
+  | { type: 'window.new' }
   | { type: 'window.closeCancel' }
   | { type: 'window.title'; title: string }
   | GitWebMessage

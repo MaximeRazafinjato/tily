@@ -77,6 +77,7 @@ const commandItems = (session: Session, shells: ShellProfile[]): PaletteItem[] =
     command('next-tab', 'Onglet suivant', () => runCommand(Command.NextTab), 'Ctrl + Tab'),
     command('previous-tab', 'Onglet précédent', () => runCommand(Command.PreviousTab), 'Ctrl + Maj + Tab'),
     command('new-workspace', 'Nouveau workspace', () => runCommand(Command.NewWorkspace), 'Ctrl + Maj + W'),
+    command('new-window', 'Nouvelle fenêtre', () => bridge.send({ type: 'window.new' })),
     command('projects', 'Ouvrir un projet', () => runCommand(Command.Projects), 'Leader puis F'),
     command('create-worktree', 'Créer un worktree…', () => runCommand(Command.CreateWorktree), 'Leader puis N'),
     command('open-worktree', 'Ouvrir un worktree…', () => openWorktreePicker(WorktreePickerKind.Open)),

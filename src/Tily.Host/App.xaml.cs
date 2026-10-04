@@ -40,6 +40,21 @@ public partial class App : Application
 
         _window = new MainWindow(store, startup.Claim);
         _window.Activate();
+        foreach (var session in startup.Others)
+        {
+            RestoreWindow(session);
+        }
+    }
+
+    private static void RestoreWindow(string session)
+    {
+        try
+        {
+            WindowLauncher.Restore(session);
+        }
+        catch (Exception exception) when (exception is System.ComponentModel.Win32Exception or InvalidOperationException)
+        {
+        }
     }
 
     private static void ClearTransientFiles()
