@@ -9,11 +9,13 @@ namespace Tily.Core.Terminal;
 public sealed class TerminalManager : IDisposable
 {
     private readonly ConcurrentDictionary<string, TerminalSession> _sessions = new();
+    private readonly IReadOnlyDictionary<string, string> _environment;
     private ShellPathsModel _paths;
 
-    public TerminalManager(ShellPathsModel? paths = null)
+    public TerminalManager(ShellPathsModel? paths = null, IReadOnlyDictionary<string, string>? environment = null)
     {
         _paths = paths ?? ShellPathsModel.Empty;
+        _environment = environment ?? new Dictionary<string, string>();
     }
 
     public void UpdatePaths(ShellPathsModel paths) => _paths = paths;
@@ -33,7 +35,8 @@ public sealed class TerminalManager : IDisposable
             CommandLine = ShellCatalog.CommandLine(profile),
             WorkingDirectory = directory,
             Columns = Math.Max(columns, 20),
-            Rows = Math.Max(rows, 5)
+            Rows = Math.Max(rows, 5),
+            ExtraEnvironment = _environment
         });
         session.OutputReceived += data => OutputReceived?.Invoke(paneId, data);
         session.CurrentDirectoryChanged += path => CurrentDirectoryChanged?.Invoke(paneId, path);

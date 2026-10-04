@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.Json;
 using Tily.Core.Agents;
 using Tily.Core.Context;
+using Tily.Core.Mcp;
 using Tily.Core.Projects;
 using Tily.Core.Session;
 using Tily.Core.Settings;
@@ -70,7 +71,8 @@ public sealed class HostBridge : IDisposable
         _settingsService = new SettingsService(dataDirectory);
         _settings = _settingsService.Load();
         _texts = new PaneTextRepository(session.Directory, _persistence.MaxTextBytes);
-        _terminals = new TerminalManager();
+        var pipeName = McpEndpoint.InstancePipeName(dataDirectory, session.Id);
+        _terminals = new TerminalManager(environment: new Dictionary<string, string> { [McpEndpoint.PipeVariable] = pipeName });
         _writes = new BackgroundQueue(PostBackgroundError);
         _queries = new BackgroundQueue(PostBackgroundError);
         _statusLog = new StatusLogFeed(session.Directory, _writes, Post);
@@ -83,7 +85,7 @@ public sealed class HostBridge : IDisposable
         _git = new GitFeed(Post, () => _settings.Git.AutoFetch, PostBackgroundError);
         _worktrees = new WorktreeFeed(Post, () => _settings, RememberWorktreeFolder, _git.RefreshSoon, PostBackgroundError, dataDirectory);
         _updates = new UpdateFeed(Post, ApplicationVersion, dataDirectory);
-        _mcp = new McpFeed(dataDirectory, Post, PostBackgroundError);
+        _mcp = new McpFeed(pipeName, McpEndpoint.PipeName(dataDirectory), _terminals.Has, Post, PostBackgroundError);
         ApplySettings(_settings);
         _terminals.OutputReceived += HandleOutput;
         _terminals.CurrentDirectoryChanged += HandleCurrentDirectoryChanged;

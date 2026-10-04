@@ -27,7 +27,7 @@ public sealed class McpPipeServer : IDisposable
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
-            throw new InvalidOperationException("Serveur MCP indisponible : une autre instance de Tily utilise déjà le même dossier de données.", exception);
+            throw new InvalidOperationException("Serveur MCP indisponible : une autre fenêtre de Tily utilise déjà ce canal.", exception);
         }
 
         _ = AcceptAsync(first);

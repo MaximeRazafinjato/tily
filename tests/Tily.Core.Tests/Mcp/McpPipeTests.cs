@@ -75,7 +75,7 @@ public sealed class McpPipeTests : IDisposable
 
         var error = Assert.Throws<InvalidOperationException>(second.Start);
 
-        Assert.Contains("une autre instance de Tily", error.Message);
+        Assert.Contains("une autre fenêtre de Tily", error.Message);
     }
 
     private Task<McpPipeResponseModel> SendAsync(string pane, TimeSpan connect) =>

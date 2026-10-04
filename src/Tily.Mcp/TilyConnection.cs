@@ -14,7 +14,7 @@ internal static class TilyConnection
             return Failure(McpPipe.NotInTily);
         }
 
-        var pipe = McpEndpoint.PipeName(McpEndpoint.DataDirectoryFromEnvironment());
+        var pipe = McpEndpoint.PipeFromEnvironment();
         var element = arguments is null ? (JsonElement?)null : JsonSerializer.SerializeToElement(arguments, McpPipe.JsonOptions);
         var response = await McpPipeClient.SendAsync(pipe, new McpPipeRequestModel(tool, pane, element), McpPipeClient.ConnectTimeout, token);
         if (response.Error is { } error)
