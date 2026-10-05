@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Nature du dépôt
 
-Tily est un terminal Windows organisé en **workspaces → onglets → panes** (splits imbriqués). Le dépôt contient les spécifications (`docs/specifications-terminal.md`) et **l'application**, livrée en version 1.0.0 : hôte C# .NET 10 (WinUI 3 + WebView2 unique) dans `src/`, interface React + TypeScript + Vite + Tailwind + Zustand dans `web/`, tests xUnit dans `tests/`, installeur Inno Setup dans `installer/`.
+Tily est un terminal Windows organisé en **workspaces → onglets → panes** (splits imbriqués). Le dépôt contient les spécifications (`docs/specifications-terminal.md`) et **l'application**, livrée en version 1.0.0 : hôte C# .NET 10 (WinUI 3, une fenêtre par processus, une WebView2 pour l'interface plus une par pane navigateur) dans `src/`, interface React + TypeScript + Vite + Tailwind + Zustand dans `web/`, tests xUnit dans `tests/`, installeur Inno Setup dans `installer/`.
 
 Tily (de *mitily*, « guetter » en malgache) s'appelait Dock jusqu'au 30 septembre 2026 : l'historique Git, les issues GitHub et les releases antérieures emploient encore ce nom.
 
@@ -25,7 +25,7 @@ cd web && pnpm dev | pnpm build | pnpm lint
 
 Toujours lancer `pnpm lint`, `pnpm build` (qui exécute `tsc -b`) et `dotnet test` avant de committer.
 
-`TILY_DATA_DIR` remplace le dossier de données `%LOCALAPPDATA%\Tily` (session, préférences, états d'agents, profil WebView2) : l'utiliser pour lancer une instance isolée sans toucher à la session de l'utilisateur.
+`TILY_DATA_DIR` remplace le dossier de données `%LOCALAPPDATA%\Tily` (sessions, préférences, états d'agents, profil WebView2) : l'utiliser pour lancer une instance isolée sans toucher à la session de l'utilisateur. Plusieurs fenêtres lancées sur un même dossier de données partagent le processus navigateur WebView2 : elles doivent avoir le même `WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS`, et un seul `--remote-debugging-port` les expose toutes.
 
 Distribution :
 
@@ -46,9 +46,9 @@ Décisions déjà tranchées à ne pas rouvrir : Leader = Ctrl + Espace (délai 
 
 ## Application (`src/`, `web/`, `tests/`)
 
-- `src/Tily.Core` : terminaux ConPTY et Job Objects (`Terminal`, `Native`), shells et intégration OSC 7 (`Shell`), session et texte des panes (`Session`, `%LOCALAPPDATA%\Tily\session.json`), préférences (`Settings`), sélecteur de projets (`Projects`), actions contextuelles et éditeur (`Context`), explorateur de fichiers (`Files`), vue Git avec annulation (`Git`), worktrees natifs (`Worktrees`), états d'agents et hooks Claude Code (`Agents`), serveur MCP de Tily : named pipe par instance et déclaration dans `~/.claude.json` (`Mcp`), journal console et réseau des panes navigateur lu par le protocole DevTools (`Browser`), mises à jour depuis les releases GitHub (`Updates`). L'hôte valide toute session avant de l'écrire.
-- `src/Tily.Host` : fenêtre WinUI 3 non empaquetée, une WebView2 pour toute l'interface plus une par pane navigateur (profil WebView2 `browser`, `BrowserFeed`), aucun `KeyboardAccelerator`, pont JSON `HostBridge` et flux associés dans `Bridge/` (contrat dans `docs/BACKEND_ARCHITECTURE.md`, types miroir dans `web/src/bridge/messages.ts`), script de hook `hooks/tily-agent-state.ps1`.
-- `src/Tily.Mcp` : `tily-mcp.exe`, serveur MCP stdio lancé par Claude Code dans un pane, qui relaie ses outils à son instance de Tily ; référencé par l'hôte, il est publié à côté de `Tily.exe` et partage son runtime.
+- `src/Tily.Core` : terminaux ConPTY et Job Objects (`Terminal`, `Native`), shells et intégration OSC 7 (`Shell`), sessions et texte des panes, une session par fenêtre (`Session`, `%LOCALAPPDATA%\Tily\sessions\<id>\session.json`, réservée par un verrou, démarrage à froid qui rouvre toutes les fenêtres), préférences partagées par les fenêtres et relues en direct (`Settings`), sélecteur de projets (`Projects`), actions contextuelles et éditeur (`Context`), explorateur de fichiers (`Files`), vue Git avec annulation (`Git`), worktrees natifs (`Worktrees`), états d'agents et hooks Claude Code (`Agents`), serveur MCP de Tily : named pipe par fenêtre, transmis aux shells par `TILY_MCP_PIPE`, et déclaration dans `~/.claude.json` (`Mcp`), journal console et réseau des panes navigateur lu par le protocole DevTools (`Browser`), mises à jour depuis les releases GitHub, qui ferment et relancent toutes les fenêtres après leur accord (`Updates`). L'hôte valide toute session avant de l'écrire.
+- `src/Tily.Host` : une fenêtre WinUI 3 non empaquetée par processus (« Nouvelle fenêtre » lance un autre `Tily.exe`), une WebView2 pour toute l'interface plus une par pane navigateur (profil WebView2 `browser`, `BrowserFeed`), aucun `KeyboardAccelerator`, pont JSON `HostBridge` et flux associés dans `Bridge/` (contrat dans `docs/BACKEND_ARCHITECTURE.md`, types miroir dans `web/src/bridge/messages.ts`), script de hook `hooks/tily-agent-state.ps1`.
+- `src/Tily.Mcp` : `tily-mcp.exe`, serveur MCP stdio lancé par Claude Code dans un pane, qui relaie ses outils à la fenêtre de Tily de ce pane ; référencé par l'hôte, il est publié à côté de `Tily.exe` et partage son runtime.
 - `web/` : modèle pur dans `src/model`, stores Zustand, une instance xterm.js par pane conservée hors React (`terminalRegistry`), raccourcis interceptés dans xterm.js (Leader Ctrl + Espace, Ctrl + P), composants un par fichier, tokens Tailwind `tily-*`. Enums TypeScript autorisés (`erasableSyntaxOnly` désactivé).
 
 ## Environnement local documenté
