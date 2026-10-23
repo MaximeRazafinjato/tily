@@ -5,6 +5,7 @@ import { openPanelView } from '../panel/rightPanel'
 import { useAgentStore } from '../store/agentStore'
 import { useHostStore } from '../store/hostStore'
 import { usePaneStore } from '../store/paneStore'
+import { useTerminalSearchStore } from '../store/terminalSearchStore'
 import { copyPaneBranch, copyPanePath, gitSummary, openPaneFolder, queryContext } from '../terminal/contextActions'
 import { clearPaneScrollback, copyLastCommandOutput, copyPaneSelection, focusPane, hasPaneSelection, pasteIntoPane, selectAllInPane, setPaneTerminalTabbable } from '../terminal/terminalActions'
 import { movePaneToNewTab } from '../terminal/tabLifecycle'
@@ -12,6 +13,7 @@ import { TerminalPane } from '../terminal/TerminalPane'
 import { AgentBadge } from './AgentBadge'
 import { AgentOwnerMark } from './AgentOwnerMark'
 import { PaneOverlay } from './PaneOverlay'
+import { PaneSearchBar } from './PaneSearchBar'
 import { TerminalContextMenu, type TerminalMenuActions, type TerminalMenuRequest } from './TerminalContextMenu'
 
 interface PaneViewProps {
@@ -98,6 +100,7 @@ export const PaneView = memo(function PaneView({ pane, active, zoomed, onToggleZ
   const paneState = usePaneStore((state) => state.states[pane.id])
   const context = useHostStore((state) => state.contexts[pane.id])
   const agent = useAgentStore((state) => state.agents[pane.id])
+  const searching = useTerminalSearchStore((state) => state.paneId === pane.id)
   const [menu, setMenu] = useState<TerminalMenuRequest | null>(null)
 
   useEffect(() => {
@@ -219,6 +222,7 @@ export const PaneView = memo(function PaneView({ pane, active, zoomed, onToggleZ
       </header>
       <div className="relative min-h-0">
         <TerminalPane pane={pane} active={active} onFocus={onFocus} onContextMenu={handleContextMenu} />
+        {searching && !paneState && <PaneSearchBar />}
         {paneState && <PaneOverlay state={paneState} active={active} shells={shells} onRestart={handleRestart} onRestartIn={handleRestartIn} onChangeShell={handleChangeShell} onDismiss={handleDismissState} onClose={handleClose} />}
       </div>
       {menu && <TerminalContextMenu request={menu} canCopy={hasPaneSelection(pane.id)} zoomed={zoomed} actions={menuActions} onDismiss={handleDismissMenu} />}

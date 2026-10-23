@@ -11,6 +11,7 @@ import { closePaneKeepingText, movePaneToNewTab, restoreClosedTab } from '../ter
 import { focusPane, joinNextWaitingPane, scrollPaneToCommand } from '../terminal/terminalActions'
 import { CommandDirection } from '../terminal/commandOutput'
 import { togglePaneZoom } from '../terminal/paneZoom'
+import { openPaneSearch } from '../terminal/paneSearch'
 import { togglePanelView } from '../panel/rightPanel'
 import { RenameOrigin, useUiStore } from '../store/uiStore'
 import { startWorktreeCreation } from '../worktree/worktreeActions'
@@ -258,6 +259,9 @@ export const runCommand = (command: Command): void => {
       break
     case Command.OpenBrowser:
       openBrowser(BrowserPlacement.Beside)
+      break
+    case Command.SearchPane:
+      openPaneSearch(currentPaneId())
       break
   }
 }

@@ -33,6 +33,7 @@ export enum Command {
   JoinWaitingAgent = 'joinWaitingAgent',
   CreateWorktree = 'createWorktree',
   OpenBrowser = 'openBrowser',
+  SearchPane = 'searchPane',
 }
 
 export const LEADER_KEYS: Record<string, Command> = {
@@ -91,6 +92,7 @@ export const DIRECT_LETTER_KEYS: Record<string, Command> = {
   l: Command.ToggleStatusLog,
   b: Command.ToggleSidebar,
   a: Command.JoinWaitingAgent,
+  f: Command.SearchPane,
 }
 
 export const DIRECT_ARROW_KEYS: Record<string, Command> = {

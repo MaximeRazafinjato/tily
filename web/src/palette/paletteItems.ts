@@ -17,6 +17,7 @@ import { useSessionStore } from '../store/sessionStore'
 import { RenameOrigin, useUiStore } from '../store/uiStore'
 import { closeOtherTabsKeepingText, closeTabKeepingText, closeTabsToRightKeepingText, closeWorkspaceKeepingText, duplicateTabKeepingLayout, movePaneToTab, restoreClosedTab, restoreClosedTabAt } from '../terminal/tabLifecycle'
 import { clearPaneScrollback, copyLastCommandOutput, joinPane } from '../terminal/terminalActions'
+import { openGlobalSearch } from '../terminal/globalSearch'
 import { terminalRegistry } from '../terminal/terminalRegistry'
 import { OpenTarget } from '../bridge/messages'
 import { copyPaneBranch, copyPanePath, openPaneFolder } from '../terminal/contextActions'
@@ -97,6 +98,7 @@ const commandItems = (session: Session, shells: ShellProfile[]): PaletteItem[] =
       runCommand(Command.Settings)
       bridge.send({ type: 'settings.import' })
     }),
+    command('search-terminals', 'Rechercher dans tous les terminaux…', openGlobalSearch, 'Alt + Entrée dans la recherche'),
     command('restore-tab', 'Rouvrir le dernier onglet fermé', restoreClosedTab, 'Ctrl + Maj + Z'),
     command('toggle-sidebar', session.sidebarCollapsed ? 'Afficher les workspaces' : 'Masquer les workspaces', () => runCommand(Command.ToggleSidebar), 'Ctrl + Maj + B'),
     command('focus-sidebar', 'Aller au panneau des workspaces', revealWorkspacePanel),
@@ -115,6 +117,7 @@ const commandItems = (session: Session, shells: ShellProfile[]): PaletteItem[] =
       command('copy-path', 'Copier le chemin du pane actif', () => copyPanePath(paneId)),
       command('previous-command', 'Remonter à la commande précédente du pane actif', () => runCommand(Command.PreviousCommand), 'Alt + PgUp'),
       command('next-command', 'Descendre à la commande suivante du pane actif', () => runCommand(Command.NextCommand), 'Alt + PgDn'),
+      command('search-pane', 'Rechercher dans le terminal du pane actif…', () => runCommand(Command.SearchPane), 'Ctrl + Maj + F'),
       command('copy-last-output', 'Copier la sortie de la dernière commande du pane actif', () => copyLastCommandOutput(paneId)),
       command('clear-scrollback', 'Effacer l’historique de défilement du pane actif', () => clearPaneScrollback(paneId)),
       command('open-file', 'Ouvrir un fichier du projet…', openFilePicker),

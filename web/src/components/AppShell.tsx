@@ -22,6 +22,7 @@ import { usePasteStore } from '../store/pasteStore'
 import { worktreeModalOpen } from '../store/worktreeStore'
 import { filePickerOpen } from '../store/filePickerStore'
 import { commitPickerOpen } from '../store/commitPickerStore'
+import { globalSearchOpen } from '../store/terminalSearchStore'
 import { changePaneShell, dismissPaneState, restartPane, restartPaneIn } from '../terminal/paneLifecycle'
 import { closeOtherTabsKeepingText, closePaneKeepingText, closeTabKeepingText, closeWorkspaceKeepingText, duplicateTabKeepingLayout, restoreClosedTab } from '../terminal/tabLifecycle'
 import { focusPane, joinPane } from '../terminal/terminalActions'
@@ -44,6 +45,7 @@ import { HeaderWorkspaces } from './HeaderWorkspaces'
 import { ProjectPickers } from './ProjectPickers'
 import { FilePicker } from './FilePicker'
 import { CommitPicker } from './CommitPicker'
+import { TerminalSearchDialog } from './TerminalSearchDialog'
 import { RightPanel } from './RightPanel'
 import { SettingsDialog } from './SettingsDialog'
 import { SidebarResizer } from './SidebarResizer'
@@ -174,7 +176,7 @@ const handleCancelGit = (): void => {
 
 const confirmationOpen = (): boolean => {
   const { settingsOpen, closeConfirmation } = useUiStore.getState()
-  return settingsOpen || closeConfirmation !== null || useExplorerStore.getState().deleteRequest !== null || useGitStore.getState().confirmation !== null || usePasteStore.getState().request !== null || useMcpConsentStore.getState().queue.length > 0 || worktreeModalOpen() || filePickerOpen() || commitPickerOpen() || usePreviewStore.getState().pendingAction !== null
+  return settingsOpen || closeConfirmation !== null || useExplorerStore.getState().deleteRequest !== null || useGitStore.getState().confirmation !== null || usePasteStore.getState().request !== null || useMcpConsentStore.getState().queue.length > 0 || worktreeModalOpen() || filePickerOpen() || commitPickerOpen() || globalSearchOpen() || usePreviewStore.getState().pendingAction !== null
 }
 
 const modalOpen = (): boolean => {
@@ -396,6 +398,7 @@ export function AppShell({ session }: AppShellProps) {
       <AttentionToasts waiting={waiting} onJoin={handleJoinPane} onDismiss={handleDismissAttention} />
       <FilePicker />
       <CommitPicker />
+      <TerminalSearchDialog />
       {projectPickerOpen && <ProjectPickers />}
       {settingsOpen && <SettingsDialog snapshot={settingsSnapshot} pickedPath={pickedPath} imported={importedPreferences} onClose={handleCloseSettings} onSave={handleSaveSettings} onPick={handlePickPath} onExport={handleExportPreferences} onImport={handleImportPreferences} onInstallHooks={handleInstallHooks} onRemoveHooks={handleRemoveHooks} onTestNotification={handleTestNotification} />}
       {paletteOpen && <CommandPalette session={session} shells={availableShells} onClose={handleClosePalette} onRun={handleRunPaletteItem} onToggleFavorite={toggleFavoriteCommand} />}
