@@ -32,10 +32,11 @@ Distribution :
 ```bash
 scripts/build-installer.cmd            # publication autonome win-x64 puis installer/output/Tily-x.y.z-setup.exe (Inno Setup 6 requis)
 scripts/build-installer.cmd beta 2.3.0-beta.1   # « Tily Beta » (icône bleue, installable à côté) : installer/output/TilyBeta-2.3.0-beta.1-setup.exe
+gh release create v2.3.0-beta.1 installer/output/TilyBeta-2.3.0-beta.1-setup.exe --prerelease --target develop   # publie la bêta, depuis develop
 node scripts/generate-icon.js          # régénère src/Tily.Host/Assets/Tily.ico, Tily.png et leurs variantes TilyBeta
 ```
 
-La version vient de la propriété `Version` de `src/Tily.Host/Tily.Host.csproj` ; chaque version est publiée en release GitHub avec son installeur. La branche `develop` sert aux bêtas, publiées en pré-releases GitHub (`--prerelease`) que seule Tily Beta suit avant le merge dans `main`. Les captures du README sont dans `docs/images/`.
+La version vient de la propriété `Version` de `src/Tily.Host/Tily.Host.csproj` ; chaque version est publiée en release GitHub avec son installeur. La branche `develop` sert aux bêtas, publiées en pré-releases GitHub (`--prerelease`) que seule Tily Beta suit avant le merge dans `main`. Une bêta prend sa version en argument (`x.y.z-beta.n`, incrémenter `n` à chaque bêta) et non dans le `.csproj` ; tag `v<version>` et installeur `TilyBeta-<version>-setup.exe` obligatoires pour la mise à jour intégrée. Les captures du README sont dans `docs/images/`.
 
 Les issues GitHub `[Fxx]` référencent les **numéros de sections** de la spec et les **identifiants de recette `Rxx`** (section 17). Renuméroter une section de la spec impose de revoir ces références.
 
