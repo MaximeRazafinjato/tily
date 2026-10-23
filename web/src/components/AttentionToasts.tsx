@@ -20,7 +20,7 @@ export function AttentionToasts({ waiting, onJoin, onDismiss }: AttentionToastsP
   }
 
   return (
-    <div role="region" aria-live="polite" aria-label="Terminaux en attente" className="pointer-events-none absolute bottom-8 left-3 z-20 flex w-[380px] max-w-[calc(100vw-24px)] flex-col gap-2">
+    <div role="region" aria-live="polite" aria-label="Terminaux en attente" className="pointer-events-none absolute bottom-8 right-3 z-20 flex w-[380px] max-w-[calc(100vw-24px)] flex-col gap-2">
       {longestWaitingFirst(waiting, since, now).map((pane) => {
         const handleJoin = () => onJoin(pane.paneId)
         const handleDismiss = () => onDismiss(pane.paneId)
