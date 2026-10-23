@@ -1,14 +1,27 @@
 ﻿#ifndef AppVersion
   #define AppVersion "2.2.0"
 #endif
-#define AppName "Tily"
+#ifndef Channel
+  #define Channel "stable"
+#endif
+#if Channel == "beta"
+  #define AppName "Tily Beta"
+  #define AppIdGuid "{{60B8F3DD-A70C-4227-834B-F9F38445A016}"
+  #define InstallerName "TilyBeta"
+  #define AppUserModelId "MaximeRazafinjato.Tily.Beta"
+#else
+  #define AppName "Tily"
+  #define AppIdGuid "{{16F57C9A-8C6B-4E4B-8EA7-714760447F62}"
+  #define InstallerName "Tily"
+  #define AppUserModelId "MaximeRazafinjato.Tily"
+#endif
 #define AppPublisher "Maxime Razafinjato"
 #define AppExe "Tily.exe"
 #define SourceDir "..\publish"
 #define WebView2Key "\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}"
 
 [Setup]
-AppId={{16F57C9A-8C6B-4E4B-8EA7-714760447F62}
+AppId={#AppIdGuid}
 AppName={#AppName}
 AppVersion={#AppVersion}
 AppVerName={#AppName} {#AppVersion}
@@ -20,7 +33,7 @@ DisableProgramGroupPage=yes
 UninstallDisplayIcon={app}\{#AppExe}
 UninstallDisplayName={#AppName}
 OutputDir=output
-OutputBaseFilename=Tily-{#AppVersion}-setup
+OutputBaseFilename={#InstallerName}-{#AppVersion}-setup
 Compression=lzma2/max
 SolidCompression=yes
 ArchitecturesAllowed=x64compatible
@@ -47,7 +60,7 @@ Name: "{group}\{#AppName}"; Filename: "{app}\{#AppExe}"
 Name: "{autodesktop}\{#AppName}"; Filename: "{app}\{#AppExe}"; Tasks: desktopicon
 
 [Registry]
-Root: HKCU; Subkey: "Software\Classes\AppUserModelId\MaximeRazafinjato.Tily"; Flags: uninsdeletekey dontcreatekey
+Root: HKCU; Subkey: "Software\Classes\AppUserModelId\{#AppUserModelId}"; Flags: uninsdeletekey dontcreatekey
 
 [Run]
 Filename: "{tmp}\MicrosoftEdgeWebview2Setup.exe"; Parameters: "/silent /install"; StatusMsg: "Installation du runtime WebView2 Evergreen…"; Check: not IsWebView2Installed; Flags: waituntilterminated
@@ -114,9 +127,9 @@ var
 begin
   if CurUninstallStep <> usPostUninstall then
     exit;
-  DataDir := ExpandConstant('{localappdata}\Tily');
+  DataDir := ExpandConstant('{localappdata}\{#AppName}');
   if UninstallSilent or not DirExists(DataDir) then
     exit;
-  if MsgBox('Supprimer aussi vos données Tily (session, texte des terminaux, préférences) ?' + #13#10 + DataDir, mbConfirmation, MB_YESNO or MB_DEFBUTTON2) = IDYES then
+  if MsgBox('Supprimer aussi vos données {#AppName} (session, texte des terminaux, préférences) ?' + #13#10 + DataDir, mbConfirmation, MB_YESNO or MB_DEFBUTTON2) = IDYES then
     DelTree(DataDir, True, True, True);
 end;

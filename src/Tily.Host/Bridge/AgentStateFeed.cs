@@ -50,7 +50,18 @@ public sealed class AgentStateFeed : IDisposable
         return new { script = ScriptPath, stateDirectory = StateDirectory, settingsFile = status.SettingsFile, hooksInstalled = status.Installed };
     }
 
-    public void Start() => _timer = new Timer(_ => Refresh(), null, PollInterval, PollInterval);
+    public void Start()
+    {
+        try
+        {
+            Hooks.RepointIfMissing();
+        }
+        catch (Exception exception) when (exception is InvalidOperationException or IOException or UnauthorizedAccessException)
+        {
+        }
+
+        _timer = new Timer(_ => Refresh(), null, PollInterval, PollInterval);
+    }
 
     public void Forget(string paneId) => _states.Delete(paneId);
 

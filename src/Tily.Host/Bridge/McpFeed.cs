@@ -34,6 +34,7 @@ public sealed class McpFeed : IDisposable
     {
         try
         {
+            Installer.RepointIfMissing();
             Apply(Installer.Status());
         }
         catch (Exception exception) when (exception is InvalidOperationException or IOException or UnauthorizedAccessException)

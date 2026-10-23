@@ -117,6 +117,41 @@ public sealed class ClaudeMcpInstallerTests : IDisposable
         Assert.Contains("est illisible", error.Message);
     }
 
+    [Fact]
+    public void RepointIfMissing_WhenDeclaredCopyDeleted_ThenDeclaresThisCopy()
+    {
+        var executable = CreateExecutable("Tily Beta");
+        Write(Declaration(Path.Combine(_directory, "Supprimé", ClaudeMcpInstaller.ExecutableName)));
+
+        var repointed = new ClaudeMcpInstaller(executable, _file).RepointIfMissing();
+
+        Assert.True(repointed);
+        Assert.Equal(executable, JsonNode.Parse(File.ReadAllText(_file))!["mcpServers"]!["tily"]!["command"]!.GetValue<string>());
+    }
+
+    [Fact]
+    public void RepointIfMissing_WhenDeclaredCopyExists_ThenKeepsIt()
+    {
+        var declared = CreateExecutable("Tily");
+        Write(Declaration(declared));
+
+        var repointed = new ClaudeMcpInstaller(CreateExecutable("Tily Beta"), _file).RepointIfMissing();
+
+        Assert.False(repointed);
+        Assert.Equal(declared, JsonNode.Parse(File.ReadAllText(_file))!["mcpServers"]!["tily"]!["command"]!.GetValue<string>());
+    }
+
+    private static string Declaration(string command) =>
+        new JsonObject { ["mcpServers"] = new JsonObject { ["tily"] = new JsonObject { ["command"] = command } } }.ToJsonString();
+
+    private string CreateExecutable(string folder)
+    {
+        var path = Path.Combine(_directory, folder, ClaudeMcpInstaller.ExecutableName);
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        File.WriteAllText(path, string.Empty);
+        return path;
+    }
+
     private void Write(string content)
     {
         Directory.CreateDirectory(_directory);

@@ -7,10 +7,11 @@ public sealed class ReleaseParserTests
 {
     private const string Digest = "353bdf3f96f05e5a71203e1ab34e6437dd9a99cc67ad558c743cbbbc0bddef99";
 
-    internal static string ReleaseJson(string tag = "v1.4.0", string assetName = "Tily-1.4.0-setup.exe", string? digest = "sha256:" + Digest, string? url = null) =>
+    internal static string ReleaseJson(string tag = "v1.4.0", string assetName = "Tily-1.4.0-setup.exe", string? digest = "sha256:" + Digest, string? url = null, bool prerelease = false) =>
         $$"""
         {
           "tag_name": "{{tag}}",
+          "prerelease": {{(prerelease ? "true" : "false")}},
           "name": "Tily 1.4.0",
           "html_url": "https://github.com/MaximeRazafinjato/tily/releases/tag/{{tag}}",
           "published_at": "2026-09-30T08:00:00Z",
@@ -88,7 +89,47 @@ public sealed class ReleaseParserTests
         Assert.Equal("Réponse de GitHub illisible.", exception.Message);
     }
 
+    [Fact]
+    public void ParseLatestPrerelease_WhenStableAndBetaListed_ThenReadsFirstBetaInstaller()
+    {
+        var json = $"[{ReleaseJson()}, {ReleaseJson("v1.5.0-beta.2", "TilyBeta-1.5.0-beta.2-setup.exe", prerelease: true)}, {ReleaseJson("v1.5.0-beta.1", "TilyBeta-1.5.0-beta.1-setup.exe", prerelease: true)}]";
+
+        var release = ReleaseParser.ParseLatestPrerelease(json, ReleaseChannel.Beta);
+
+        Assert.Equal("1.5.0-beta.2", release.Version);
+        Assert.Equal("TilyBeta-1.5.0-beta.2-setup.exe", release.Installer.Name);
+    }
+
+    [Fact]
+    public void ParseLatestPrerelease_WhenOnlyStableReleases_ThenFailsInFrench()
+    {
+        var json = $"[{ReleaseJson()}]";
+
+        var exception = Assert.Throws<UpdateException>(() => ReleaseParser.ParseLatestPrerelease(json, ReleaseChannel.Beta));
+
+        Assert.Equal("Aucune version de Tily Beta n’est publiée sur GitHub.", exception.Message);
+    }
+
+    [Fact]
+    public void ParseLatestPrerelease_WhenBetaHasOnlyStableInstaller_ThenFailsInFrench()
+    {
+        var json = $"[{ReleaseJson("v1.5.0-beta.1", "Tily-1.5.0-beta.1-setup.exe", prerelease: true)}]";
+
+        var exception = Assert.Throws<UpdateException>(() => ReleaseParser.ParseLatestPrerelease(json, ReleaseChannel.Beta));
+
+        Assert.Equal("La release 1.5.0-beta.1 ne contient pas d’installeur TilyBeta-1.5.0-beta.1-setup.exe.", exception.Message);
+    }
+
+    [Fact]
+    public void ParseLatestPrerelease_WhenAnswerNotAList_ThenFailsInFrench()
+    {
+        var exception = Assert.Throws<UpdateException>(() => ReleaseParser.ParseLatestPrerelease(ReleaseJson(), ReleaseChannel.Beta));
+
+        Assert.Equal("Réponse de GitHub inattendue.", exception.Message);
+    }
+
     [Theory]
+    [InlineData("1.5.0-beta.2", "1.5.0-beta.1", true)]
     [InlineData("1.4.0", "1.3.0", true)]
     [InlineData("1.10.0", "1.9.2", true)]
     [InlineData("1.3.0", "1.3.0", false)]
