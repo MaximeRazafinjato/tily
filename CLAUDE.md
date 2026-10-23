@@ -27,6 +27,8 @@ Toujours lancer `pnpm lint`, `pnpm build` (qui exécute `tsc -b`) et `dotnet tes
 
 `TILY_DATA_DIR` remplace le dossier de données `%LOCALAPPDATA%\Tily` (session, préférences, états d'agents, profil WebView2) : l'utiliser pour lancer une instance isolée sans toucher à la session de l'utilisateur.
 
+Toujours tester une modification dans l'application avant de l'annoncer terminée, en plus du lint, du build et des tests : lancer le build (`src/Tily.Host/bin/Debug/<tfm>/win-x64/Tily.exe`, qui embarque `web/dist`) dans une instance isolée par `TILY_DATA_DIR` avec `WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS=--remote-debugging-port=<port>`, piloter l'interface par le protocole DevTools (`Runtime.evaluate`, `chrome.webview.postMessage` avec `terminal.input` pour écrire dans un pane), vérifier par `Page.captureScreenshot`, puis fermer l'instance et supprimer son dossier de données. Un état d'agent se simule en écrivant `<TILY_DATA_DIR>/agents/<paneId>.json` (`{"agent":"claude","state":"waiting","message":…,"detail":…}`) pendant qu'un processus tourne dans le pane. Si un comportement ne peut pas être reproduit, le dire explicitement.
+
 Distribution :
 
 ```bash
