@@ -44,7 +44,7 @@ Les issues GitHub `[Fxx]` référencent les **numéros de sections** de la spec 
 
 La spécification distingue trois statuts qu'il faut respecter dans toute rédaction : **Retenu** (décision utilisateur), **Convention proposée** (détail d'implémentation non validé), **À décider**. Ne jamais promouvoir une convention proposée en exigence validée ; les décisions restantes sont consignées en section 18 de la spec et dans l'issue GitHub `[D01]` (#22).
 
-Décisions déjà tranchées à ne pas rouvrir : Leader = Ctrl + Espace (délai 5 s), palette = Ctrl + P, shell par défaut = Windows PowerShell 5.1 (pour retrouver le profil existant, `pwsh` n'est pas supposé équivalent), agents suivis = Claude Code (`claude`) et Codex CLI (`codex`), projets = premier niveau du dossier des projets (`C:\Files\Projects` par défaut, réglage `ProjectsRoot`) hors `worktrees`, recherche dans les terminaux **hors périmètre**, F13 retirée.
+Décisions déjà tranchées à ne pas rouvrir : Leader = Ctrl + Espace (délai 5 s), palette = Ctrl + P, shell par défaut = Windows PowerShell 5.1 (pour retrouver le profil existant, `pwsh` n'est pas supposé équivalent), agents suivis = Claude Code (`claude`) et Codex CLI (`codex`), projets = premier niveau du dossier des projets (`C:\Files\Projects` par défaut, réglage `ProjectsRoot`) hors `worktrees`, recherche dans les terminaux réintégrée (Ctrl + Maj + F dans le pane, recherche dans tous les terminaux depuis la palette, issue #160), F13 retirée.
 
 ## Application (`src/`, `web/`, `tests/`)
 
