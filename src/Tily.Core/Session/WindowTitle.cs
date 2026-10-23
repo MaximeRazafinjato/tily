@@ -1,8 +1,10 @@
+using Tily.Core.Updates;
+
 namespace Tily.Core.Session;
 
 public static class WindowTitle
 {
-    public const string ApplicationName = "Tily";
+    public static readonly string ApplicationName = ReleaseChannels.ApplicationName(ReleaseChannels.Current);
     public const int MaxContextLength = 160;
     private const string Separator = " - ";
     private const string Ellipsis = "…";

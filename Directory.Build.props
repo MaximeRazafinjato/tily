@@ -8,4 +8,7 @@
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <SatelliteResourceLanguages>fr;en</SatelliteResourceLanguages>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Channel)' == 'beta'">
+    <DefineConstants>$(DefineConstants);TILY_BETA</DefineConstants>
+  </PropertyGroup>
 </Project>

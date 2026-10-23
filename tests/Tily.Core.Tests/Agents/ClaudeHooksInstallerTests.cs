@@ -140,6 +140,50 @@ public sealed class ClaudeHooksInstallerTests : IDisposable
         Assert.StartsWith($"Le fichier {_file} est illisible", exception.Message);
     }
 
+    [Fact]
+    public void RepointIfMissing_WhenDeclaredScriptDeleted_ThenPointsToThisCopy()
+    {
+        var script = CreateScript("Tily Beta");
+        new ClaudeHooksInstaller(Path.Combine(_directory, "Supprimé", "hooks", "tily-agent-state.ps1"), _file).Install();
+
+        var repointed = new ClaudeHooksInstaller(script, _file).RepointIfMissing();
+
+        Assert.True(repointed);
+        Assert.Equal(script, DeclaredScript());
+    }
+
+    [Fact]
+    public void RepointIfMissing_WhenDeclaredScriptExists_ThenKeepsIt()
+    {
+        var declared = CreateScript("Tily");
+        new ClaudeHooksInstaller(declared, _file).Install();
+
+        var repointed = new ClaudeHooksInstaller(CreateScript("Tily Beta"), _file).RepointIfMissing();
+
+        Assert.False(repointed);
+        Assert.Equal(declared, DeclaredScript());
+    }
+
+    [Fact]
+    public void RepointIfMissing_WhenNoTilyHooks_ThenInstallsNothing()
+    {
+        var repointed = new ClaudeHooksInstaller(CreateScript("Tily"), _file).RepointIfMissing();
+
+        Assert.False(repointed);
+        Assert.False(File.Exists(_file));
+    }
+
+    private string DeclaredScript() =>
+        JsonNode.Parse(File.ReadAllText(_file))!["hooks"]!["Stop"]![0]!["hooks"]![0]!["args"]![4]!.GetValue<string>();
+
+    private string CreateScript(string folder)
+    {
+        var path = Path.Combine(_directory, folder, "hooks", "tily-agent-state.ps1");
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        File.WriteAllText(path, string.Empty);
+        return path;
+    }
+
     public void Dispose()
     {
         if (Directory.Exists(_directory))

@@ -74,6 +74,18 @@ public sealed class ClaudeMcpInstaller
         return true;
     }
 
+    public bool RepointIfMissing()
+    {
+        var entry = EntryOf(Read());
+        if (entry is null || !IsTilyEntry(entry) || File.Exists(TextOf(entry["command"])) || !File.Exists(ExecutablePath))
+        {
+            return false;
+        }
+
+        Install();
+        return true;
+    }
+
     private static JsonObject? EntryOf(JsonObject root) =>
         (root[ServersKey] as JsonObject)?[ServerName] as JsonObject;
 

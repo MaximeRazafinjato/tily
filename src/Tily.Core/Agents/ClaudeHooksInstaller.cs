@@ -18,6 +18,7 @@ public sealed class ClaudeHooksInstaller
         ["PreToolUse"] = [new("AskUserQuestion", null), new("Bash", PreviewCommandCondition)]
     };
     private const int HookTimeoutSeconds = 5;
+    private const string ScriptName = "tily-agent-state.ps1";
     private static readonly JsonDocumentOptions ReadOptions = new() { CommentHandling = JsonCommentHandling.Skip, AllowTrailingCommas = true };
     private static readonly JsonSerializerOptions WriteOptions = new() { WriteIndented = true, Encoder = SessionRepository.JsonOptions.Encoder };
 
@@ -73,6 +74,20 @@ public sealed class ClaudeHooksInstaller
         }
 
         return present;
+    }
+
+    public bool RepointIfMissing()
+    {
+        var scripts = Read()["hooks"] is JsonObject hooks
+            ? hooks.SelectMany(pair => GroupsOf(hooks, pair.Key)).SelectMany(ScriptsOf).ToList()
+            : [];
+        if (!File.Exists(_scriptPath) || scripts.All(File.Exists))
+        {
+            return false;
+        }
+
+        Install();
+        return true;
     }
 
     public ClaudeHooksStatusModel Remove()
@@ -150,8 +165,13 @@ public sealed class ClaudeHooksInstaller
     private static bool IsTilyGroup(JsonObject group) =>
         (group["hooks"] as JsonArray)?.OfType<JsonObject>().Any(IsTilyHook) == true;
 
+    private static IEnumerable<string> ScriptsOf(JsonObject group) =>
+        (group["hooks"] as JsonArray)?.OfType<JsonObject>().SelectMany(hook => (hook["args"] as JsonArray)?.Select(TextOf).OfType<string>() ?? []).Where(IsScript) ?? [];
+
     private static bool IsTilyHook(JsonObject hook) =>
-        (hook["args"] as JsonArray)?.Any(argument => argument?.GetValueKind() == JsonValueKind.String && argument.GetValue<string>().EndsWith("tily-agent-state.ps1", StringComparison.OrdinalIgnoreCase)) == true;
+        (hook["args"] as JsonArray)?.Any(argument => argument?.GetValueKind() == JsonValueKind.String && IsScript(argument.GetValue<string>())) == true;
+
+    private static bool IsScript(string argument) => argument.EndsWith(ScriptName, StringComparison.OrdinalIgnoreCase);
 
     private JsonObject Read()
     {

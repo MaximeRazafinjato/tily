@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Reflection;
 using System.Text;
 using System.Text.Json;
 using Tily.Core.Agents;
@@ -24,7 +25,7 @@ public sealed class HostBridge : IDisposable
     private const string TerminalCommandPrefix = "terminal.";
     private const string InvalidDroppedPath = "Chemin déposé invalide.";
     private const string AttentionDone = "done";
-    private static readonly string ApplicationVersion = typeof(HostBridge).Assembly.GetName().Version?.ToString(3) ?? string.Empty;
+    private static readonly string ApplicationVersion = typeof(HostBridge).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion.Split('+')[0] ?? string.Empty;
     private static readonly TimeSpan WriteDrainTimeout = TimeSpan.FromSeconds(10);
     private static readonly JsonSerializerOptions JsonOptions = SessionRepository.JsonOptions;
 
