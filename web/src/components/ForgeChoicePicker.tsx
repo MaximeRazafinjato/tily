@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ChangeEvent, type KeyboardEvent } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ChangeEvent, type KeyboardEvent } from 'react'
 import { filterOptions, optionLabel, type ChoiceOption } from '../forge/mergeRequestFormOptions'
 import { Icon } from './Icon'
 import { IconName } from './iconName'
@@ -16,6 +16,30 @@ interface ForgeChoicePickerProps {
 
 const CHIP = 'flex max-w-[220px] items-center gap-[4px] rounded border border-tily-line bg-tily-paper py-[1px] pr-[2px] pl-[6px] text-[11px] text-tily-ink'
 
+const POPUP_WIDTH = 320
+const POPUP_MARGIN = 8
+const POPUP_GAP = 4
+const SEARCH_HEIGHT = 40
+const LIST_MAX_HEIGHT = 260
+const LIST_MIN_HEIGHT = 120
+
+interface PopupPlacement {
+  style: CSSProperties
+  listHeight: number
+}
+
+const popupPlacement = (anchor: DOMRect): PopupPlacement => {
+  const below = window.innerHeight - anchor.bottom - POPUP_GAP - POPUP_MARGIN
+  const above = anchor.top - POPUP_GAP - POPUP_MARGIN
+  const upward = below < LIST_MIN_HEIGHT + SEARCH_HEIGHT && above > below
+  const room = (upward ? above : below) - SEARCH_HEIGHT
+  const left = Math.max(POPUP_MARGIN, Math.min(anchor.left, window.innerWidth - POPUP_WIDTH - POPUP_MARGIN))
+  return {
+    style: upward ? { left, bottom: window.innerHeight - anchor.top + POPUP_GAP } : { left, top: anchor.bottom + POPUP_GAP },
+    listHeight: Math.max(LIST_MIN_HEIGHT, Math.min(LIST_MAX_HEIGHT, room)),
+  }
+}
+
 const colorDot = (color: string | undefined) => color && <span className="size-[8px] shrink-0 rounded-full" style={{ backgroundColor: color }} />
 
 export function ForgeChoicePicker({ label, options, selected, multiple, emptyMessage, disabled = false, onToggle }: ForgeChoicePickerProps) {
@@ -25,7 +49,7 @@ export function ForgeChoicePicker({ label, options, selected, multiple, emptyMes
   const rootRef = useRef<HTMLDivElement>(null)
   const buttonRef = useRef<HTMLButtonElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
-  const popupRef = useRef<HTMLDivElement>(null)
+  const [placement, setPlacement] = useState<PopupPlacement | null>(null)
   const visible = filterOptions(options, text)
   const activeIndex = Math.min(active, Math.max(visible.length - 1, 0))
 
@@ -39,9 +63,27 @@ export function ForgeChoicePicker({ label, options, selected, multiple, emptyMes
       }
     }
     document.addEventListener('pointerdown', handlePointerDown)
-    popupRef.current?.scrollIntoView({ block: 'nearest' })
     return () => document.removeEventListener('pointerdown', handlePointerDown)
   }, [open])
+
+  useLayoutEffect(() => {
+    if (!open) {
+      return
+    }
+    const place = () => {
+      const anchor = buttonRef.current?.getBoundingClientRect()
+      if (anchor) {
+        setPlacement(popupPlacement(anchor))
+      }
+    }
+    place()
+    window.addEventListener('resize', place)
+    window.addEventListener('scroll', place, true)
+    return () => {
+      window.removeEventListener('resize', place)
+      window.removeEventListener('scroll', place, true)
+    }
+  }, [open, selected.length])
 
   useEffect(() => {
     listRef.current?.querySelector(`[data-index="${activeIndex}"]`)?.scrollIntoView({ block: 'nearest' })
@@ -110,8 +152,8 @@ export function ForgeChoicePicker({ label, options, selected, multiple, emptyMes
           {multiple || selected.length === 0 ? 'Ajouter' : 'Changer'}
         </button>
       </div>
-      {open && (
-        <div ref={popupRef} className="flex w-[320px] max-w-full flex-col gap-1 rounded-md border border-tily-line bg-tily-panel p-1 shadow-lg">
+      {open && placement && (
+        <div className="fixed z-40 flex flex-col gap-1 rounded-md border border-tily-line bg-tily-panel p-1 shadow-lg" style={{ ...placement.style, width: POPUP_WIDTH }}>
           <input
             type="text"
             className={SETTINGS_INPUT}
@@ -125,7 +167,7 @@ export function ForgeChoicePicker({ label, options, selected, multiple, emptyMes
             onChange={handleTextChange}
             onKeyDown={handleSearchKeyDown}
           />
-          <div ref={listRef} role="listbox" aria-label={label} aria-multiselectable={multiple} className="max-h-[min(40vh,260px)] overflow-y-auto">
+          <div ref={listRef} role="listbox" aria-label={label} aria-multiselectable={multiple} className="overflow-y-auto" style={{ maxHeight: placement.listHeight }}>
             {visible.length === 0 && <span className="block px-3 py-2 text-xs text-tily-muted">{options.length === 0 ? emptyMessage : 'Aucun résultat.'}</span>}
             {visible.map((option, index) => (
               <button
