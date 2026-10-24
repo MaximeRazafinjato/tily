@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text.Encodings.Web;
 using System.Text.Json;
 
 namespace Tily.Core.Forge;
@@ -16,6 +17,61 @@ internal static class ForgeJson
             }
 
             return document.RootElement.EnumerateArray().Select(read).OrderByDescending(item => item.UpdatedAt).ToList();
+        }
+        catch (JsonException)
+        {
+            throw new ForgeException($"Réponse de {host} illisible.");
+        }
+        catch (InvalidOperationException)
+        {
+            throw new ForgeException($"Réponse de {host} illisible.");
+        }
+    }
+
+    public const int PageSize = 100;
+    public const int MaxPages = 5;
+
+    private static readonly JsonSerializerOptions BodyOptions = new() { Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
+
+    public static string Serialize(object body) => JsonSerializer.Serialize(body, BodyOptions);
+
+    public static IReadOnlyList<T> ReadPages<T>(ForgeRemoteModel remote, Func<int, ForgeOutputModel> fetch, Func<JsonElement, T?> read)
+        where T : class
+    {
+        var items = new List<T>();
+        for (var page = 1; page <= MaxPages; page++)
+        {
+            var output = fetch(page);
+            if (!output.Succeeded)
+            {
+                throw new ForgeException(ForgeErrors.Describe(remote, output));
+            }
+
+            var count = ReadObject(output.Output, remote.Host, root =>
+            {
+                if (root.ValueKind != JsonValueKind.Array)
+                {
+                    throw new ForgeException($"Réponse de {remote.Host} illisible.");
+                }
+
+                items.AddRange(root.EnumerateArray().Select(read).OfType<T>());
+                return root.GetArrayLength();
+            });
+            if (count < PageSize)
+            {
+                break;
+            }
+        }
+
+        return items;
+    }
+
+    public static T ReadObject<T>(string json, string host, Func<JsonElement, T> read)
+    {
+        try
+        {
+            using var document = JsonDocument.Parse(json);
+            return read(document.RootElement);
         }
         catch (JsonException)
         {

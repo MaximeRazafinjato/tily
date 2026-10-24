@@ -2,6 +2,7 @@ import { GitRefKind, GitResetMode, type GitBranch, type GitCommit, type GitRefLa
 import { WorktreeBranchMode, type Worktree } from '../bridge/worktreeMessages'
 import type { ActionMenuItem } from '../components/ActionMenu'
 import { revealInExplorer } from '../explorer/fileExplorerActions'
+import { createMergeRequestLabel, openMergeRequestForm } from '../forge/mergeRequestFormActions'
 import { openWorktree, openWorktreeDialog, requestWorktreeRemoval } from '../worktree/worktreeActions'
 import type { GitGraphLayout } from '../model/session'
 import type { GitRefHandle } from '../store/gitStore'
@@ -31,6 +32,13 @@ import { copyToClipboard, revealCommit, stageChanges } from './gitRequests'
 const copyName = (name: string): ActionMenuItem => ({ id: 'copy', label: 'Copier le nom', run: () => copyToClipboard(name, `Nom copié : ${name}`) })
 
 const WORKTREE_FROM_BRANCH = 'Créer un worktree depuis cette branche…'
+const ORIGIN = 'origin'
+
+const mergeRequestFrom = (branch: string, state: GitState): ActionMenuItem => ({
+  id: 'merge-request',
+  label: `${createMergeRequestLabel(state.root, currentName(state.head))} depuis cette branche…`,
+  run: () => openMergeRequestForm(state.root, branch),
+})
 
 export const worktreeOfBranch = (name: string, state: GitState): Worktree | undefined => state.worktrees.find((worktree) => worktree.branch === name)
 
@@ -59,6 +67,7 @@ export const branchMenu = (branch: GitBranch, state: GitState): ActionMenuItem[]
     { id: 'branch', label: 'Créer une branche ici…', run: () => promptNewBranch(branch.name, branch.name) },
     { id: 'tag', label: 'Créer un tag ici…', run: () => promptNewTag(branch.sha, `« ${branch.name} »`) },
     worktreeFromBranch(branch, state),
+    mergeRequestFrom(branch.name, state),
     { id: 'rename', label: 'Renommer…', run: () => promptRenameBranch(branch) },
     { id: 'delete', label: branch.merged ? 'Supprimer' : 'Supprimer (sans merge)…', disabled: branch.current, run: () => deleteBranch(branch) },
     copyName(branch.name),
@@ -75,6 +84,7 @@ export const remoteBranchMenu = (branch: GitRemoteBranch, state: GitState): Acti
     { id: 'show', label: 'Aller au commit', run: () => revealCommit(branch.sha) },
     { id: 'branch', label: 'Créer une branche ici…', run: () => promptNewBranch(branch.name, branch.name) },
     { id: 'worktree', label: WORKTREE_FROM_BRANCH, run: () => openWorktreeDialog(state.root, { mode: WorktreeBranchMode.Remote, branch: branch.name }) },
+    ...(branch.remote === ORIGIN ? [mergeRequestFrom(branch.branch, state)] : []),
     { id: 'delete', label: 'Supprimer la branche distante…', run: () => deleteRemoteBranch(branch) },
     copyName(branch.name),
   ]
