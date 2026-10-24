@@ -3,9 +3,14 @@ import { activeTab, activeWorkspace, panesOf, type Tab } from '../model/session'
 import { useHostStore } from '../store/hostStore'
 import { useSessionStore } from '../store/sessionStore'
 import { useUiStore } from '../store/uiStore'
+import { Command } from '../keyboard/commands'
+import { shortcutText } from '../keyboard/shortcutLabels'
 
 const SINGLE_PANE_STATUS = 'Un seul pane dans cet onglet : rien à agrandir.'
-const ZOOMED_STATUS = 'Pane agrandi, les autres tournent toujours : Ctrl + Maj + M ou « Réduire » dans son en-tête pour les revoir.'
+const zoomedStatus = (): string => {
+  const shortcut = shortcutText(Command.TogglePaneZoom)
+  return `Pane agrandi, les autres tournent toujours : ${shortcut ? `${shortcut} ou ` : ''}« Réduire » dans son en-tête pour les revoir.`
+}
 const UNZOOMED_STATUS = 'Tous les panes de l’onglet sont de nouveau affichés.'
 const MIN_PANES_TO_ZOOM = 2
 
@@ -23,7 +28,7 @@ const NO_STATUS = ''
 export const endPaneZoom = (sameTab: boolean): void => {
   useUiStore.getState().clearPaneZoom()
   const { status, setStatus } = useHostStore.getState()
-  if (status.text === ZOOMED_STATUS) {
+  if (status.text === zoomedStatus()) {
     setStatus(sameTab ? UNZOOMED_STATUS : NO_STATUS)
   }
 }
@@ -50,5 +55,5 @@ export const togglePaneZoom = (paneId?: string): void => {
   const target = paneId ?? tab.active
   useSessionStore.getState().selectPane(target)
   useUiStore.getState().togglePaneZoom(target)
-  useHostStore.getState().setStatus(useUiStore.getState().zoomedPaneId === target ? ZOOMED_STATUS : UNZOOMED_STATUS)
+  useHostStore.getState().setStatus(useUiStore.getState().zoomedPaneId === target ? zoomedStatus() : UNZOOMED_STATUS)
 }

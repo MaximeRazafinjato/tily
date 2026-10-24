@@ -6,6 +6,7 @@ import { terminalRegistry } from '../terminal/terminalRegistry'
 import { textArgument, type McpArguments } from './mcpArguments'
 import { paneLabel, requireConsent } from './mcpConsent'
 import { locationOf, placeOf, requirePlace, requireSession, requireTab } from './mcpPanes'
+import { restoreHint } from '../keyboard/shortcutLabels'
 
 const OWN_PANE = 'Vous ne pouvez pas fermer votre propre pane ni son onglet : Claude Code s’y exécute.'
 
@@ -72,7 +73,7 @@ const closeTab = async (tabId: string, caller: string | undefined): Promise<McpC
     return { kind: ClosedKind.Tab, id: tabId, asked, message: 'L’onglet était déjà fermé.' }
   }
   closeTabWithoutAsking(tabId)
-  return { kind: ClosedKind.Tab, id: tabId, asked, message: `Onglet « ${workspace.name} › ${tab.name} » fermé ; l’utilisateur peut le rouvrir par Ctrl + Maj + Z.` }
+  return { kind: ClosedKind.Tab, id: tabId, asked, message: `Onglet « ${workspace.name} › ${tab.name} » fermé ; l’utilisateur peut le rouvrir par ${restoreHint()}.` }
 }
 
 export const closeElement = async (values: McpArguments, caller: string | undefined): Promise<McpClosed> => {

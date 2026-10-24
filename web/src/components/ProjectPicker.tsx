@@ -2,6 +2,8 @@ import { useMemo } from 'react'
 import type { Project } from '../bridge/messages'
 import type { SearchItem } from '../palette/searchFilter'
 import { SearchDialog } from './SearchDialog'
+import { Command } from '../keyboard/commands'
+import { shortcutText, withShortcut } from '../keyboard/shortcutLabels'
 
 interface ProjectPickerProps {
   projects: Project[]
@@ -29,7 +31,7 @@ export function ProjectPicker({ projects, root, error, onClose, onSelect }: Proj
     <SearchDialog
       label="Ouvrir un projet"
       placeholder={root ? `Dossier dans ${root}…` : 'Dossier de projet…'}
-      emptyMessage={error ?? (root === '' ? PROJECTS_LOADING : projects.length === 0 ? `Aucun projet dans ${root} : le dossier des projets se change dans Paramètres (Leader puis ,).` : 'Aucun dossier ne correspond à la recherche.')}
+      emptyMessage={error ?? (root === '' ? PROJECTS_LOADING : projects.length === 0 ? `Aucun projet dans ${root} : le dossier des projets se change dans ${withShortcut('Paramètres', shortcutText(Command.Settings))}.` : 'Aucun dossier ne correspond à la recherche.')}
       items={items}
       onClose={onClose}
       onRun={handleRun}

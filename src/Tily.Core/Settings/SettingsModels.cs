@@ -3,6 +3,7 @@ using Tily.Core.Context;
 using Tily.Core.Git;
 using Tily.Core.Projects;
 using Tily.Core.Session;
+using Tily.Core.Shortcuts;
 using Tily.Core.Updates;
 using Tily.Core.Worktrees;
 
@@ -20,6 +21,7 @@ public sealed class SettingsModel
     public GitSettingsModel Git { get; set; } = GitSettingsModel.Default;
     public UpdateSettingsModel Updates { get; set; } = UpdateSettingsModel.Default;
     public AppearanceSettingsModel Appearance { get; set; } = AppearanceSettingsModel.Default;
+    public ShortcutSettingsModel Shortcuts { get; set; } = ShortcutSettingsModel.Default;
 
     public string? WorktreeFolderOf(string? project) =>
         project is null ? null : WorktreeFolders.FirstOrDefault(entry => WorktreeTarget.SamePath(entry.Project, project))?.Folder;

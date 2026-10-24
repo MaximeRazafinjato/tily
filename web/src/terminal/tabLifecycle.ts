@@ -6,6 +6,7 @@ import { requestClose } from './closeGuard'
 import { terminalRegistry } from './terminalRegistry'
 import { keepClosedTabText, takeClosedTabText } from './textPersistence'
 import { focusPane } from './terminalActions'
+import { restoreHint } from '../keyboard/shortcutLabels'
 
 const PANE_ALONE_STATUS = 'Ce pane est déjà seul dans son onglet.'
 const PANE_MOVED_STATUS = 'Pane déplacé dans un nouvel onglet : son terminal continue de tourner.'
@@ -69,7 +70,7 @@ const closeTabNow = (tabId: string): void => {
   const text = terminalRegistry.snapshot(paneIdsOf(tab))
   useSessionStore.getState().closeTab(tabId)
   keepClosedTabText(text)
-  useHostStore.getState().setStatus('Onglet fermé. Ctrl + Maj + Z le rouvre avec un nouveau terminal.')
+  useHostStore.getState().setStatus(`Onglet fermé. ${restoreHint()} le rouvre avec un nouveau terminal.`)
 }
 
 export const closeTabWithoutAsking = (tabId: string): void => closeTabNow(tabId)
@@ -101,7 +102,7 @@ const closeTabsNow = (tabIds: string[]): void => {
     closeTab(tab.id)
   }
   keepClosedTabText(text)
-  useHostStore.getState().setStatus(tabs.length === 1 ? 'Onglet fermé. Ctrl + Maj + Z le rouvre avec un nouveau terminal.' : `${tabs.length} onglets fermés. Ctrl + Maj + Z rouvre les derniers un par un.`)
+  useHostStore.getState().setStatus(tabs.length === 1 ? `Onglet fermé. ${restoreHint()} le rouvre avec un nouveau terminal.` : `${tabs.length} onglets fermés. ${restoreHint()} rouvre les derniers un par un.`)
 }
 
 export const closeOtherTabsKeepingText = (tabId: string): void => {
@@ -139,7 +140,7 @@ const closeWorkspaceNow = (workspaceId: string): void => {
     closeTab(tab.id)
   }
   keepClosedTabText(text)
-  useHostStore.getState().setStatus(`Workspace « ${workspace.name} » fermé. Ctrl + Maj + Z rouvre ses derniers onglets un par un.`)
+  useHostStore.getState().setStatus(`Workspace « ${workspace.name} » fermé. ${restoreHint()} rouvre ses derniers onglets un par un.`)
 }
 
 export const closeWorkspaceKeepingText = (workspaceId: string): void => {

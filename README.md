@@ -63,6 +63,8 @@ Aucun droit administrateur n’est nécessaire. Tily vérifie ensuite lui-même 
 
 ## Raccourcis clavier
 
+Valeurs par défaut : la touche Leader, son délai et chaque raccourci se changent dans Paramètres, section « Raccourcis clavier ».
+
 | Leader (Ctrl + Espace, puis…) | Raccourci direct | Action |
 | --- | --- | --- |
 | P | Ctrl + P | Palette |
@@ -86,6 +88,7 @@ Aucun droit administrateur n’est nécessaire. Tily vérifie ensuite lui-même 
 | A | Ctrl + Maj + A | Rejoindre l’agent Claude Code en attente depuis le plus longtemps |
 | , | — | Paramètres |
 | Flèche | Alt + flèche | Passer d’un terminal à l’autre |
+| — | Ctrl + Maj + F | Rechercher dans le terminal actif (Entrée / Maj + Entrée : occurrence précédente / suivante, Alt + Entrée : dans tous les terminaux) |
 | — | Alt + PgUp / PgDn | Remonter ou descendre d’une commande dans l’historique du terminal (PowerShell) |
 | Pg préc. / Pg suiv. | Ctrl + Maj + Pg préc. / Pg suiv. | Déplacer l’onglet vers la gauche / la droite |
 | 1 … 9 | — | Aller à l’onglet 1 à 8 du workspace, 9 pour le dernier |

@@ -5,6 +5,7 @@ import { openPanelView } from '../panel/rightPanel'
 import { useAgentStore } from '../store/agentStore'
 import { useHostStore } from '../store/hostStore'
 import { usePaneStore } from '../store/paneStore'
+import { useTerminalSearchStore } from '../store/terminalSearchStore'
 import { copyPaneBranch, copyPanePath, gitSummary, openPaneFolder, queryContext } from '../terminal/contextActions'
 import { clearPaneScrollback, copyLastCommandOutput, copyPaneSelection, focusPane, hasPaneSelection, pasteIntoPane, selectAllInPane, setPaneTerminalTabbable } from '../terminal/terminalActions'
 import { movePaneToNewTab } from '../terminal/tabLifecycle'
@@ -12,7 +13,11 @@ import { TerminalPane } from '../terminal/TerminalPane'
 import { AgentBadge } from './AgentBadge'
 import { AgentOwnerMark } from './AgentOwnerMark'
 import { PaneOverlay } from './PaneOverlay'
+import { PaneSearchBar } from './PaneSearchBar'
 import { TerminalContextMenu, type TerminalMenuActions, type TerminalMenuRequest } from './TerminalContextMenu'
+import { Command } from '../keyboard/commands'
+import { useShortcutText, withShortcut } from '../keyboard/shortcutLabels'
+import { usePaneHeaderTips } from './paneHeaderTips'
 
 interface PaneViewProps {
   pane: Pane
@@ -98,7 +103,10 @@ export const PaneView = memo(function PaneView({ pane, active, zoomed, onToggleZ
   const paneState = usePaneStore((state) => state.states[pane.id])
   const context = useHostStore((state) => state.contexts[pane.id])
   const agent = useAgentStore((state) => state.agents[pane.id])
+  const searching = useTerminalSearchStore((state) => state.paneId === pane.id)
   const [menu, setMenu] = useState<TerminalMenuRequest | null>(null)
+  const tips = usePaneHeaderTips()
+  const gitShortcut = useShortcutText(Command.ToggleGit)
 
   useEffect(() => {
     queryContext(pane.id)
@@ -181,7 +189,7 @@ export const PaneView = memo(function PaneView({ pane, active, zoomed, onToggleZ
           <button
             type="button"
             className="flex max-w-[35%] min-w-0 shrink cursor-pointer items-center gap-1 rounded font-mono text-tily-muted hover:text-tily-ink @max-[520px]:hidden"
-            data-tip={`${gitSummary(context)} · Clic : vue Git (Ctrl + Maj + G)`}
+            data-tip={withShortcut(`${gitSummary(context)} · Clic : vue Git`, gitShortcut)}
             aria-label={`${branchLabel} : ouvrir la vue Git`}
             onClick={handleOpenGit}
           >
@@ -202,23 +210,24 @@ export const PaneView = memo(function PaneView({ pane, active, zoomed, onToggleZ
           <BranchIcon />
         </button>
         <span className="mx-1 h-3 w-px bg-tily-line @max-[280px]:hidden" aria-hidden="true" />
-        <button type="button" className={HEADER_BUTTON} data-tip="Split côte à côte (Ctrl + Maj + D)" aria-label="Split côte à côte" onClick={ignoringRepeatedClicks(handleSplitSideBySide)}>
+        <button type="button" className={HEADER_BUTTON} data-tip={tips.splitSideBySide} aria-label="Split côte à côte" onClick={ignoringRepeatedClicks(handleSplitSideBySide)}>
           <SplitIcon horizontal />
         </button>
-        <button type="button" className={HEADER_BUTTON} data-tip="Split haut / bas (Ctrl + Maj + H)" aria-label="Split haut / bas" onClick={ignoringRepeatedClicks(handleSplitTopBottom)}>
+        <button type="button" className={HEADER_BUTTON} data-tip={tips.splitTopBottom} aria-label="Split haut / bas" onClick={ignoringRepeatedClicks(handleSplitTopBottom)}>
           <SplitIcon horizontal={false} />
         </button>
         {zoomed && (
-          <button type="button" className={`${HEADER_BUTTON} text-tily-green`} data-tip="Réduire le pane et revoir les autres (Ctrl + Maj + M)" aria-label="Réduire le pane" onClick={handleToggleZoom}>
+          <button type="button" className={`${HEADER_BUTTON} text-tily-green`} data-tip={tips.reduce} aria-label="Réduire le pane" onClick={handleToggleZoom}>
             <UnzoomIcon />
           </button>
         )}
-        <button type="button" className={`${HEADER_BUTTON} hover:text-tily-error`} data-tip="Fermer le pane (Ctrl + Maj + X)" aria-label="Fermer le pane" onClick={ignoringRepeatedClicks(handleClose)}>
+        <button type="button" className={`${HEADER_BUTTON} hover:text-tily-error`} data-tip={tips.close} aria-label="Fermer le pane" onClick={ignoringRepeatedClicks(handleClose)}>
           <CloseIcon />
         </button>
       </header>
       <div className="relative min-h-0">
         <TerminalPane pane={pane} active={active} onFocus={onFocus} onContextMenu={handleContextMenu} />
+        {searching && !paneState && <PaneSearchBar />}
         {paneState && <PaneOverlay state={paneState} active={active} shells={shells} onRestart={handleRestart} onRestartIn={handleRestartIn} onChangeShell={handleChangeShell} onDismiss={handleDismissState} onClose={handleClose} />}
       </div>
       {menu && <TerminalContextMenu request={menu} canCopy={hasPaneSelection(pane.id)} zoomed={zoomed} actions={menuActions} onDismiss={handleDismissMenu} />}

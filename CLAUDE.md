@@ -29,6 +29,8 @@ Toujours lancer `pnpm lint`, `pnpm build` (qui exécute `tsc -b`) et `dotnet tes
 
 Toujours tester une modification dans l'application avant de l'annoncer terminée, en plus du lint, du build et des tests : lancer le build (`src/Tily.Host/bin/Debug/<tfm>/win-x64/Tily.exe`, qui embarque `web/dist`) dans une instance isolée par `TILY_DATA_DIR` avec `WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS=--remote-debugging-port=<port>`, piloter l'interface par le protocole DevTools (`Runtime.evaluate`, `chrome.webview.postMessage` avec `terminal.input` pour écrire dans un pane), vérifier par `Page.captureScreenshot`, puis fermer l'instance et supprimer son dossier de données. Un état d'agent se simule en écrivant `<TILY_DATA_DIR>/agents/<paneId>.json` (`{"agent":"claude","state":"waiting","message":…,"detail":…}`) pendant qu'un processus tourne dans le pane. Si un comportement ne peut pas être reproduit, le dire explicitement.
 
+À la fin de chaque modification de l'application, toujours donner à l'utilisateur la commande PowerShell prête à copier qui lance Tily depuis le worktree courant (chemins absolus) sur une instance isolée, pour qu'il teste à la main : `$env:TILY_DATA_DIR = "$env:TEMP\tily-<nom du worktree>"; dotnet run --project <worktree>\src\Tily.Host`, précédée de `pnpm --dir <worktree>\web build` si le web a changé depuis le dernier build (en Debug, `dotnet run` réutilise `web\dist` s'il existe).
+
 Distribution :
 
 ```bash
@@ -46,7 +48,7 @@ Les issues GitHub `[Fxx]` référencent les **numéros de sections** de la spec 
 
 La spécification distingue trois statuts qu'il faut respecter dans toute rédaction : **Retenu** (décision utilisateur), **Convention proposée** (détail d'implémentation non validé), **À décider**. Ne jamais promouvoir une convention proposée en exigence validée ; les décisions restantes sont consignées en section 18 de la spec et dans l'issue GitHub `[D01]` (#22).
 
-Décisions déjà tranchées à ne pas rouvrir : Leader = Ctrl + Espace (délai 5 s), palette = Ctrl + P, shell par défaut = Windows PowerShell 5.1 (pour retrouver le profil existant, `pwsh` n'est pas supposé équivalent), agents suivis = Claude Code (`claude`) et Codex CLI (`codex`), projets = premier niveau du dossier des projets (`C:\Files\Projects` par défaut, réglage `ProjectsRoot`) hors `worktrees`, recherche dans les terminaux **hors périmètre**, F13 retirée.
+Décisions déjà tranchées à ne pas rouvrir : Leader = Ctrl + Espace (délai 5 s), palette = Ctrl + P, shell par défaut = Windows PowerShell 5.1 (pour retrouver le profil existant, `pwsh` n'est pas supposé équivalent), agents suivis = Claude Code (`claude`) et Codex CLI (`codex`), projets = premier niveau du dossier des projets (`C:\Files\Projects` par défaut, réglage `ProjectsRoot`) hors `worktrees`, recherche dans les terminaux réintégrée (Ctrl + Maj + F dans le pane, recherche dans tous les terminaux depuis la palette, issue #160), F13 retirée.
 
 ## Application (`src/`, `web/`, `tests/`)
 

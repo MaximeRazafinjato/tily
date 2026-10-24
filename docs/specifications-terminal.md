@@ -30,7 +30,6 @@ Le panneau de gauche présente les workspaces et leurs onglets. Les états d’a
 - Création ou fermeture automatique de workspaces liée au cycle de vie des worktrees : seules les actions explicites de l’utilisateur en ouvrent ou en ferment (voir la gestion des worktrees en section 11). Une action demandée par le serveur MCP de Tily par un agent que l’utilisateur a lancé vaut action explicite (section 12, « Pilotage par Claude Code (MCP) »).
 - Modèles de workspace et mode focus dédié.
 - Recherche globale dans le contenu des fichiers du projet.
-- Recherche dans la sortie des terminaux : ce besoin a été retiré du périmètre.
 - Catalogue permanent de thèmes : la direction retenue est Tily vert avec panneau en arborescence.
 
 ## 3. Modèle fonctionnel
@@ -288,6 +287,14 @@ Les splits peuvent être imbriqués. L’action de fermeture d’un pane retire 
 
 **Retenu (29 septembre 2026).** Dans un pane où Tily détecte Claude Code ou Codex CLI, Maj + Entrée et Ctrl + Entrée insèrent un retour à la ligne dans le prompt au lieu de l’envoyer (Tily transmet Échap + Entrée, que les deux agents interprètent ainsi). Dans les autres panes, ces combinaisons restent transmises telles quelles au shell.
 
+### Recherche dans les terminaux
+
+**Retenu (23 octobre 2026, issue #160).** La recherche dans la sortie des terminaux revient dans le périmètre. Ctrl + Maj + F (ou « Rechercher dans le terminal du pane actif… » dans la palette) ouvre une barre de recherche dans le pane actif ; « Rechercher dans tous les terminaux… » (palette) cherche dans tous les terminaux ouverts. Trois options : respect de la casse, mot entier, expression régulière.
+
+**Convention proposée.** La barre se place en haut à droite du pane et reprend le texte sélectionné dans le terminal s’il tient sur une ligne. Toutes les occurrences sont surlignées, l’occurrence courante plus vivement, avec un compteur « 3/12 » (au-delà de 1 000 occurrences : « 1000+ ») ; la saisie cherche en partant du bas. Entrée remonte à l’occurrence précédente, Maj + Entrée descend à la suivante ; Alt + C, Alt + W et Alt + R basculent la casse, le mot entier et l’expression régulière ; une expression invalide est signalée dans la barre ; Échap ferme la barre, efface le surlignage et rend le focus au terminal. Une seule barre est ouverte à la fois ; Ctrl + Maj + F dans un autre pane l’y déplace. Ctrl + Maj + F sur un pane navigateur ouvre la recherche dans tous les terminaux.
+
+**Convention proposée.** La recherche dans tous les terminaux (aussi Alt + Entrée ou « Tous » depuis la barre, qui en reprend le texte et les options) liste les lignes trouvées, celles du pane actif d’abord, puis celles des autres panes dans l’ordre des workspaces et des onglets, les plus récentes en premier, avec l’occurrence surlignée et l’emplacement (workspace / onglet · dossier) ; au plus 300 lignes affichées, le total étant indiqué. Le texte est relevé à l’ouverture : seuls les terminaux déjà affichés depuis le lancement de Tily sont parcourus. Entrée ou un clic affiche le pane de la ligne et y ouvre la barre sur cette occurrence.
+
 ## 9. Palette et clavier
 
 ### Palette de commandes
@@ -317,7 +324,7 @@ Le principe d’une touche Leader est retenu. Le raccourci par défaut est **Ctr
 
 | Séquence Leader | Raccourci direct | Action |
 | --- | --- | --- |
-| Ctrl + Espace, puis P | Ctrl + P ou Ctrl + Maj + P | Palette |
+| Ctrl + Espace, puis P | Ctrl + P | Palette |
 | Ctrl + Espace, puis T | Ctrl + Maj + T | Nouvel onglet PowerShell |
 | Ctrl + Espace, puis V | Ctrl + Maj + D | Split côte à côte |
 | Ctrl + Espace, puis H | Ctrl + Maj + H | Split haut/bas |
@@ -327,8 +334,11 @@ Le principe d’une touche Leader est retenu. Le raccourci par défaut est **Ctr
 | Ctrl + Espace, puis E | Ctrl + Maj + E | Explorateur de fichiers |
 | Ctrl + Espace, puis G | Ctrl + Maj + G | Vue Git |
 | Ctrl + Espace, puis flèche | Alt + flèche | Navigation entre panes |
+| — | Ctrl + Maj + F | Recherche dans le terminal du pane actif (section 8) |
 
 Les séquences Leader sont consommées par l’application uniquement lorsqu’elles correspondent à une commande active. Une commande non reconnue ou expirée rend la saisie au pane actif ; les raccourcis personnalisés peuvent désactiver ou remplacer les valeurs par défaut.
+
+**Retenu (23 octobre 2026, issue #159).** Les raccourcis se modifient dans Paramètres, section « Raccourcis clavier » : la touche Leader (combinaison libre, sauf Alt + F4, Ctrl + Maj + C et Ctrl + Maj + V), son délai (1 à 60 s), et pour chaque commande clavier ou commande fixe de la palette (hors entrées propres à une cible : rejoindre un onglet, déplacer vers un workspace, onglets fermés, navigation) au plus un raccourci direct et au plus une touche après le Leader, chacun désactivable. Un raccourci direct passe par Ctrl ou Alt, sauf touche de fonction ou Maj + touche non imprimable ; Ctrl + lettre seule reste au shell (sauf Ctrl + P), Ctrl + Maj + C / V, Maj + Entrée, Ctrl + Entrée et Alt + F4 sont réservés. Après le Leader : une touche seule, avec Maj au besoin ; 1 à 9 et Échap restent réservés. La saisie se fait au clavier (cliquer puis appuyer sur la combinaison) ; un raccourci déjà pris passe à la nouvelle commande, l’ancienne le perd et un message le signale. Les infobulles, la palette, les menus et l’aide du Leader affichent les raccourcis en vigueur. Une commande de contexte lancée sans son contexte (aucun worktree, aucun autre onglet…) consomme la touche et l’explique dans la barre de statut. L’hôte valide les raccourcis et les enregistre dans `shortcuts.json` (écarts aux valeurs par défaut seulement), repris par l’export et l’import des préférences. Ctrl + Maj + P n’ouvre plus la palette par défaut.
 
 **Convention proposée.** Leader puis un chiffre de 1 à 9 (touches de la rangée du haut, sans Maj en AZERTY) affiche l’onglet correspondant du workspace actif, 9 affichant le dernier, comme les navigateurs et le préfixe de tmux ; un onglet absent est signalé dans la barre de statut.
 
@@ -706,6 +716,7 @@ Ces scénarios définissent les vérifications à effectuer sur l’application 
 | R58 | Dans un pane navigateur, se connecter à une application Azure AD (popup de connexion et redirection), fermer puis rouvrir Tily ; ouvrir la même application dans le navigateur par défaut. | Connexion réussie dans le pane, sans connexion automatique avec le compte Windows ; session retrouvée après redémarrage ; l’interface de Tily et le navigateur par défaut n’en partagent rien (section 7, « Panes navigateur »). |
 | R59 | Ouvrir une page qui écrit dans la console (journal, avertissement, erreur), lève une exception, rejette une promesse et appelle une API qui répond 404 puis 500 ; observer le compteur, recharger, écrire 3 000 erreurs d’un coup, puis passer sur un autre onglet pendant que la page continue d’appeler l’API. | Le compteur affiche les erreurs du chargement courant (console et réseau, sans les avertissements), revient à zéro au rechargement puis remonte, compte les 3 000 erreurs sans figer l’interface ; la collecte continue en arrière-plan ; un clic sur le compteur ouvre les DevTools (section 7, « Panes navigateur »). |
 | R60 | Depuis Claude dans un pane, avec deux navigateurs dans son onglet : demander la console sans préciser le pane ; ouvrir `localhost:5173` en onglet, passer en mobile, faire une capture enregistrée dans `avant.png`, lister les requêtes en échec, recharger, lire la console depuis le dernier chargement ; afficher un autre onglet et refaire une capture pleine page ; naviguer dans un navigateur ouvert par l’utilisateur ; lire ce navigateur avec `tily_read_pane` ; fermer le navigateur créé. | La première demande est refusée en français (plusieurs navigateurs) ; l’onglet du navigateur s’affiche sans prendre le focus clavier, la page est chargée et le résultat donne statut et titre ; les outils sans pane visent ce navigateur ; la capture mobile est rendue à Claude et enregistrée ; échecs et console exacts ; la capture pleine page marche onglet masqué ; la navigation dans le pane de l’utilisateur ne demande aucun accord ; `tily_read_pane` renvoie vers les outils navigateur ; la fermeture du navigateur de l’agent se fait sans confirmation (section 12, « Pilotage par Claude Code (MCP) »). |
+| R61 | Dans un pane avec une sortie longue : Ctrl + Maj + F, saisir un mot présent plusieurs fois, Entrée, Maj + Entrée, Alt + C, Alt + W, Alt + R avec une expression valide puis invalide, Échap ; sélectionner un mot puis Ctrl + Maj + F. Ouvrir « Rechercher dans tous les terminaux… » avec deux workspaces affichés, choisir une ligne d’un autre workspace. | Compteur et surlignage justes, expression invalide signalée, focus rendu au terminal ; sélection reprise dans la barre ; le bon pane s’affiche avec la barre sur l’occurrence choisie. |
 
 ## 18. Décisions restantes avant développement
 
