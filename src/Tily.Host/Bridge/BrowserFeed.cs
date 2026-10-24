@@ -17,11 +17,13 @@ public sealed class BrowserFeed : IDisposable
     private readonly Func<CoreWebView2Environment?> _environment;
     private readonly Action<object> _post;
     private readonly Action _focusInterface;
+    private readonly Func<IReadOnlyList<string>> _shortcutChords;
     private readonly Dictionary<string, BrowserView> _views = new();
     private readonly BrowserCallbacks _callbacks;
 
-    public BrowserFeed(Canvas layer, Func<CoreWebView2Environment?> environment, Action<object> post, Action focusInterface)
+    public BrowserFeed(Canvas layer, Func<CoreWebView2Environment?> environment, Action<object> post, Action focusInterface, Func<IReadOnlyList<string>> shortcutChords)
     {
+        _shortcutChords = shortcutChords;
         _layer = layer;
         _environment = environment;
         _post = post;
@@ -123,7 +125,7 @@ public sealed class BrowserFeed : IDisposable
         _layer.Children.Add(view.Control);
         try
         {
-            await view.InitializeAsync(environment, BrowserAddress.IsAllowed(command.Url) ? command.Url! : BrowserAddress.Blank, command.Shortcuts);
+            await view.InitializeAsync(environment, BrowserAddress.IsAllowed(command.Url) ? command.Url! : BrowserAddress.Blank, _shortcutChords());
         }
         catch (Exception exception) when (exception is COMException or InvalidOperationException or ArgumentException)
         {
@@ -152,6 +154,22 @@ public sealed class BrowserFeed : IDisposable
         "error" => BrowserLogLevel.Error,
         _ => throw new InvalidOperationException($"Niveau inconnu : « {level} ». Choisissez debug, log, warn ou error.")
     };
+
+    public async void UpdateShortcuts()
+    {
+        var chords = _shortcutChords();
+        foreach (var view in _views.Values.ToList())
+        {
+            try
+            {
+                await view.UpdateShortcutsAsync(chords);
+            }
+            catch (Exception exception) when (exception is COMException or InvalidOperationException)
+            {
+                _post(new { type = "error", message = $"Raccourcis non transmis au navigateur : {exception.Message}" });
+            }
+        }
+    }
 
     private BrowserView? Find(BrowserCommandModel command) => command.Pane is { } paneId && _views.TryGetValue(paneId, out var view) ? view : null;
 
@@ -195,7 +213,6 @@ internal sealed class BrowserCommandModel
     public string? Url { get; init; }
     public string? Viewport { get; init; }
     public string? Level { get; init; }
-    public string? Shortcuts { get; init; }
     public double X { get; init; }
     public double Y { get; init; }
     public double Width { get; init; }

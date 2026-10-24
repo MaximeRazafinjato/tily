@@ -5,7 +5,7 @@ import { PickTarget, type AttentionKind, type NotificationSettings, type Setting
 import { activePane, activeTab, activeWorkspace, DEFAULT_SHELL, EXPLORER_DEFAULT, EXPLORER_MAX, EXPLORER_MIN, findWorkspace, RightPanelView, SIDEBAR_DEFAULT, SIDEBAR_MAX, SIDEBAR_MIN, type Session, type SplitAxis, type SplitPath, type Workspace } from '../model/session'
 import { toggleFavoriteCommand, type PaletteItem } from '../palette/paletteItems'
 import { waitingPanes } from '../agents/agentSummary'
-import { Command, handleDocumentShortcut, handleLeaderKeyCapture, runCommand } from '../keyboard/shortcuts'
+import { Command, handleDocumentShortcut, handleLeaderKeyCapture, isPaletteShortcut, runCommand } from '../keyboard/shortcuts'
 import { agentKey, useAgentStore } from '../store/agentStore'
 import { useHostStore } from '../store/hostStore'
 import { useSessionStore } from '../store/sessionStore'
@@ -254,7 +254,7 @@ export function AppShell({ session }: AppShellProps) {
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (!event.defaultPrevented && event.ctrlKey && !event.altKey && event.key.toLowerCase() === 'p' && !confirmationOpen()) {
+      if (!event.defaultPrevented && isPaletteShortcut(event) && !confirmationOpen()) {
         event.preventDefault()
         openPalette()
       }

@@ -1,4 +1,6 @@
 import { useEffect, useRef } from 'react'
+import { Command } from '../keyboard/commands'
+import { useLeaderText, useShortcutText, useShortcutTip } from '../keyboard/shortcutLabels'
 
 interface EmptyStateProps {
   canRestore: boolean
@@ -11,6 +13,11 @@ const SECONDARY_BUTTON = 'cursor-pointer rounded border border-tily-line px-3 py
 
 export function EmptyState({ canRestore, onNewWorkspace, onOpenProject, onRestoreTab }: EmptyStateProps) {
   const newWorkspaceRef = useRef<HTMLButtonElement>(null)
+  const newWorkspaceTip = useShortcutTip('Créer un workspace avec un terminal dans votre dossier utilisateur', Command.NewWorkspace)
+  const openProjectTip = useShortcutTip('Ouvrir un workspace dans un dossier de projet', Command.Projects)
+  const restoreTip = useShortcutTip('Rouvrir le dernier onglet fermé', Command.RestoreTab)
+  const paletteShortcut = useShortcutText(Command.Palette)
+  const leaderText = useLeaderText()
 
   useEffect(() => {
     if (document.activeElement === document.body) {
@@ -25,19 +32,19 @@ export function EmptyState({ canRestore, onNewWorkspace, onOpenProject, onRestor
         <p className="text-[12px]">Créez-en un pour lancer un terminal, ou ouvrez un dossier de projet.</p>
       </div>
       <div className="flex flex-wrap justify-center gap-3">
-        <button ref={newWorkspaceRef} type="button" className="cursor-pointer rounded border border-tily-green px-3 py-1.5 text-[13px] text-tily-green-deep hover:bg-tily-green-soft" data-tip="Créer un workspace avec un terminal dans votre dossier utilisateur (Ctrl + Maj + W)" onClick={onNewWorkspace}>
+        <button ref={newWorkspaceRef} type="button" className="cursor-pointer rounded border border-tily-green px-3 py-1.5 text-[13px] text-tily-green-deep hover:bg-tily-green-soft" data-tip={newWorkspaceTip} onClick={onNewWorkspace}>
           Nouveau workspace
         </button>
-        <button type="button" className={SECONDARY_BUTTON} data-tip="Ouvrir un workspace dans un dossier de projet (Leader puis F)" onClick={onOpenProject}>
+        <button type="button" className={SECONDARY_BUTTON} data-tip={openProjectTip} onClick={onOpenProject}>
           Ouvrir un projet…
         </button>
         {canRestore && (
-          <button type="button" className={SECONDARY_BUTTON} data-tip="Rouvrir le dernier onglet fermé (Ctrl + Maj + Z)" onClick={onRestoreTab}>
+          <button type="button" className={SECONDARY_BUTTON} data-tip={restoreTip} onClick={onRestoreTab}>
             Rouvrir le dernier onglet fermé
           </button>
         )}
       </div>
-      <p className="text-[11px]">Ctrl + P ouvre la palette · Ctrl + Espace puis une lettre lance une commande au clavier</p>
+      <p className="text-[11px]">{`${paletteShortcut ? `${paletteShortcut} ouvre la palette · ` : ''}${leaderText} puis une lettre lance une commande au clavier`}</p>
     </div>
   )
 }

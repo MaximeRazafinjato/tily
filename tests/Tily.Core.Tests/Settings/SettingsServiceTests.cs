@@ -2,6 +2,7 @@ using Tily.Core.Agents;
 using Tily.Core.Git;
 using Tily.Core.Session;
 using Tily.Core.Settings;
+using Tily.Core.Shortcuts;
 using Tily.Core.Updates;
 using Tily.Core.Worktrees;
 using Xunit;
@@ -25,7 +26,7 @@ public sealed class SettingsServiceTests : IDisposable
         Assert.Equal(NotificationSettingsModel.Default, settings.Notifications);
         Assert.Equal(GitSettingsModel.Default, settings.Git);
         Assert.Equal(AppearanceSettingsModel.Default, settings.Appearance);
-        Assert.Equal(8, Directory.GetFiles(_directory, "*.json").Length);
+        Assert.Equal(9, Directory.GetFiles(_directory, "*.json").Length);
     }
 
     [Fact]
@@ -137,7 +138,7 @@ public sealed class SettingsServiceTests : IDisposable
         Assert.False(snapshot.Shells.Single(shell => shell.Id == "gitbash").Available);
         Assert.Contains(snapshot.Warnings, warning => warning.Contains(@"C:\introuvable\bash.exe"));
         Assert.Contains(snapshot.Warnings, warning => warning.Contains(@"C:\introuvable\projets"));
-        Assert.Equal(8, snapshot.Files.Count);
+        Assert.Equal(9, snapshot.Files.Count);
     }
 
     [Fact]
@@ -491,6 +492,43 @@ public sealed class SettingsServiceTests : IDisposable
         var result = service.Import(path);
 
         Assert.Equal(AppearanceSettingsModel.Default, result.Settings!.Appearance);
+    }
+
+    [Fact]
+    public void Save_WhenShortcutReserved_ThenRefusesWithoutWritingShortcutsFile()
+    {
+        var service = new SettingsService(_directory);
+        var settings = new SettingsModel { ProjectsRoot = _directory, Shortcuts = new ShortcutSettingsModel { Bindings = new() { ["newTab"] = new ShortcutBindingModel(Direct: "Ctrl+Shift+C") } } };
+
+        var result = service.Save(settings);
+
+        Assert.Equal((false, "Ctrl + Maj + C est réservé : il copie la sélection du terminal.", false), (result.IsValid, result.Error, File.Exists(Path.Combine(_directory, ShortcutSettingsRepository.FileName))));
+    }
+
+    [Fact]
+    public void Export_ThenImport_KeepsShortcuts()
+    {
+        var service = new SettingsService(_directory);
+        var shortcuts = ShortcutRules.Resolve(new ShortcutSettingsModel { LeaderTimeoutSeconds = 12, Bindings = new() { ["openBrowser"] = new ShortcutBindingModel(Direct: "Ctrl+Shift+U") } });
+        var settings = new SettingsModel { ProjectsRoot = _directory, Shortcuts = shortcuts };
+        var exportPath = Path.Combine(_directory, "prefs.json");
+
+        service.Export(settings, exportPath);
+        var result = service.Import(exportPath);
+
+        Assert.Equal((12, "Ctrl+Shift+U"), (result.Settings!.Shortcuts.LeaderTimeoutSeconds, result.Settings.Shortcuts.Bindings!["openBrowser"].Direct));
+    }
+
+    [Fact]
+    public void Import_WhenShortcutsMissing_ThenDefaultShortcuts()
+    {
+        var service = new SettingsService(_directory);
+        var path = Path.Combine(_directory, "prefs.json");
+        File.WriteAllText(path, "{ \"version\": 1, \"shells\": {}, \"editor\": \"code.cmd\", \"persistence\": { \"textIntervalSeconds\": 30, \"linesPerPane\": 1000, \"maxTextMebibytes\": 32 }, \"projectsRoot\": \"C:\\\\Projets\" }");
+
+        var result = service.Import(path);
+
+        Assert.Equal(new ShortcutBindingModel("Ctrl+Shift+T", "T"), result.Settings!.Shortcuts.Bindings!["newTab"]);
     }
 
     public void Dispose()

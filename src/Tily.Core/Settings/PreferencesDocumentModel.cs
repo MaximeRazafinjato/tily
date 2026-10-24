@@ -1,6 +1,7 @@
 using Tily.Core.Agents;
 using Tily.Core.Git;
 using Tily.Core.Session;
+using Tily.Core.Shortcuts;
 using Tily.Core.Updates;
 using Tily.Core.Worktrees;
 
@@ -20,6 +21,7 @@ public sealed class PreferencesDocumentModel
     public GitSettingsModel? Git { get; set; }
     public UpdateSettingsModel? Updates { get; set; }
     public AppearanceSettingsModel? Appearance { get; set; }
+    public ShortcutSettingsModel? Shortcuts { get; set; }
 
     public static PreferencesDocumentModel From(SettingsModel settings) => new()
     {
@@ -32,7 +34,8 @@ public sealed class PreferencesDocumentModel
         Worktrees = settings.Worktrees,
         Git = settings.Git,
         Updates = settings.Updates,
-        Appearance = settings.Appearance
+        Appearance = settings.Appearance,
+        Shortcuts = settings.Shortcuts
     };
 
     public string? MissingKey()

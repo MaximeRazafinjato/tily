@@ -1,27 +1,16 @@
 import { longestWaitingFirst, waitedFor, waitingPanes } from '../agents/agentSummary'
-import { bridge } from '../bridge/bridge'
 import type { GitContext, ShellProfile } from '../bridge/messages'
-import { BrowserPlacement, openBrowser } from '../browser/browserActions'
-import { Command, revealWorkspacePanel, runCommand } from '../keyboard/shortcuts'
+import { shortcutText } from '../keyboard/shortcutLabels'
+import { Command, runCommand } from '../keyboard/shortcuts'
 import { DEFAULT_FONT_SIZE, MAX_FONT_SIZE, MIN_FONT_SIZE } from '../model/appearance'
-import { activePane, activeTab, activeWorkspace, distinctWorkspaceName, FAVORITES_MAX, folderName, isLeaf, panesOf, RightPanelView, type Pane, type Session, type Tab, type Workspace } from '../model/session'
-import { openPanelView } from '../panel/rightPanel'
-import { refreshFolders } from '../explorer/fileExplorerActions'
-import { openFilePicker } from '../explorer/projectFileActions'
-import { refreshRepository } from '../git/gitRequests'
-import { canSearchCommits, openCommitPicker } from '../git/commitSearch'
+import { activeTab, activeWorkspace, distinctWorkspaceName, FAVORITES_MAX, folderName, isLeaf, panesOf, type Pane, type Session, type Tab, type Workspace } from '../model/session'
+import { canSearchCommits } from '../git/commitSearch'
 import { useAgentStore } from '../store/agentStore'
-import { useExplorerStore } from '../store/explorerStore'
 import { useHostStore } from '../store/hostStore'
 import { useSessionStore } from '../store/sessionStore'
-import { RenameOrigin, useUiStore } from '../store/uiStore'
-import { closeOtherTabsKeepingText, closeTabKeepingText, closeTabsToRightKeepingText, closeWorkspaceKeepingText, duplicateTabKeepingLayout, movePaneToTab, restoreClosedTab, restoreClosedTabAt } from '../terminal/tabLifecycle'
-import { clearPaneScrollback, copyLastCommandOutput, joinPane } from '../terminal/terminalActions'
+import { movePaneToTab, restoreClosedTabAt } from '../terminal/tabLifecycle'
+import { joinPane } from '../terminal/terminalActions'
 import { terminalRegistry } from '../terminal/terminalRegistry'
-import { OpenTarget } from '../bridge/messages'
-import { copyPaneBranch, copyPanePath, openPaneFolder } from '../terminal/contextActions'
-import { WorktreePickerKind } from '../store/worktreeStore'
-import { openWorktreePicker, requestWorktreeRemoval } from '../worktree/worktreeActions'
 import { worktreeTarget } from '../worktree/worktreePaths'
 import type { SearchItem } from './searchFilter'
 
@@ -44,116 +33,103 @@ const ATTENTION_PREFIX = 'attention-'
 const MOVE_TAB_PREFIX = 'move-tab-'
 const JOIN_TAB_PREFIX = 'join-tab-'
 
-const requestFontSize = (fontSize: number): void => bridge.send({ type: 'appearance.fontSize', fontSize })
-
 const fontSizeItems = (): PaletteItem[] => {
   const size = terminalRegistry.fontSize()
   return [
-    ...(size < MAX_FONT_SIZE ? [command('font-larger', `Agrandir le texte des terminaux (${size + 1} px)`, () => requestFontSize(size + 1))] : []),
-    ...(size > MIN_FONT_SIZE ? [command('font-smaller', `Réduire le texte des terminaux (${size - 1} px)`, () => requestFontSize(size - 1))] : []),
-    ...(size !== DEFAULT_FONT_SIZE ? [command('font-default', `Taille du texte des terminaux par défaut (${DEFAULT_FONT_SIZE} px)`, () => requestFontSize(DEFAULT_FONT_SIZE))] : []),
+    ...(size < MAX_FONT_SIZE ? [bound('font-larger', `Agrandir le texte des terminaux (${size + 1} px)`, Command.FontLarger)] : []),
+    ...(size > MIN_FONT_SIZE ? [bound('font-smaller', `Réduire le texte des terminaux (${size - 1} px)`, Command.FontSmaller)] : []),
+    ...(size !== DEFAULT_FONT_SIZE ? [bound('font-default', `Taille du texte des terminaux par défaut (${DEFAULT_FONT_SIZE} px)`, Command.FontDefault)] : []),
   ]
-}
-
-const showAndRun = (view: RightPanelView, run: () => void): void => {
-  openPanelView(view)
-  run()
 }
 
 const command = (id: string, label: string, run: () => void, hint?: string): PaletteItem => ({ id, kind: PaletteKind.Command, label, hint, favorite: false, run })
 
+const bound = (id: string, label: string, target: Command, fallbackHint?: string): PaletteItem => command(id, label, () => runCommand(target), shortcutText(target) ?? fallbackHint)
+
 const commandItems = (session: Session, shells: ShellProfile[]): PaletteItem[] => {
   const store = useSessionStore.getState()
-  const ui = useUiStore.getState()
   const workspace = activeWorkspace(session)
   const tab = workspace ? activeTab(workspace) : undefined
   const items: PaletteItem[] = [
-    command('new-tab', 'Nouvel onglet', () => runCommand(Command.NewTab), 'Ctrl + Maj + T'),
+    bound('new-tab', 'Nouvel onglet', Command.NewTab),
     ...shells.map((shell) => command(`new-tab-${shell.id}`, `Nouvel onglet${SEPARATOR}${shell.name}`, () => store.newTab(shell.id))),
-    command('split-x', 'Split côte à côte', () => runCommand(Command.SplitSideBySide), 'Ctrl + Maj + D'),
-    command('split-y', 'Split haut / bas', () => runCommand(Command.SplitTopBottom), 'Ctrl + Maj + H'),
-    command('browser-beside', 'Navigateur côte à côte', () => runCommand(Command.OpenBrowser), 'Leader puis U'),
-    command('browser-below', 'Navigateur en dessous', () => openBrowser(BrowserPlacement.Below)),
-    command('browser-tab', 'Navigateur dans un nouvel onglet', () => openBrowser(BrowserPlacement.Tab)),
-    command('close-pane', 'Fermer le pane actif', () => runCommand(Command.ClosePane), 'Ctrl + Maj + X'),
-    command('toggle-zoom', 'Agrandir / réduire le pane actif', () => runCommand(Command.TogglePaneZoom), 'Ctrl + Maj + M'),
-    command('join-waiting', 'Rejoindre l’agent en attente suivant', () => runCommand(Command.JoinWaitingAgent), 'Ctrl + Maj + A'),
-    command('next-tab', 'Onglet suivant', () => runCommand(Command.NextTab), 'Ctrl + Tab'),
-    command('previous-tab', 'Onglet précédent', () => runCommand(Command.PreviousTab), 'Ctrl + Maj + Tab'),
-    command('new-workspace', 'Nouveau workspace', () => runCommand(Command.NewWorkspace), 'Ctrl + Maj + W'),
-    command('projects', 'Ouvrir un projet', () => runCommand(Command.Projects), 'Leader puis F'),
-    command('create-worktree', 'Créer un worktree…', () => runCommand(Command.CreateWorktree), 'Leader puis N'),
-    command('open-worktree', 'Ouvrir un worktree…', () => openWorktreePicker(WorktreePickerKind.Open)),
-    command('toggle-explorer', 'Afficher / masquer les fichiers', () => runCommand(Command.ToggleExplorer), 'Ctrl + Maj + E'),
-    command('toggle-git', 'Afficher / masquer Git', () => runCommand(Command.ToggleGit), 'Ctrl + Maj + G'),
-    command('toggle-notes', 'Afficher / masquer les notes du workspace', () => runCommand(Command.ToggleNotes), 'Ctrl + Maj + O'),
-    command('toggle-status-log', 'Afficher / masquer le journal des messages', () => runCommand(Command.ToggleStatusLog), 'Ctrl + Maj + L'),
-    command('settings', 'Paramètres', () => runCommand(Command.Settings), 'Leader puis ,'),
-    command('settings-export', 'Exporter les préférences…', () => {
-      runCommand(Command.Settings)
-      bridge.send({ type: 'settings.export' })
-    }),
-    command('settings-import', 'Importer les préférences…', () => {
-      runCommand(Command.Settings)
-      bridge.send({ type: 'settings.import' })
-    }),
-    command('restore-tab', 'Rouvrir le dernier onglet fermé', restoreClosedTab, 'Ctrl + Maj + Z'),
-    command('toggle-sidebar', session.sidebarCollapsed ? 'Afficher les workspaces' : 'Masquer les workspaces', () => runCommand(Command.ToggleSidebar), 'Ctrl + Maj + B'),
-    command('focus-sidebar', 'Aller au panneau des workspaces', revealWorkspacePanel),
+    bound('split-x', 'Split côte à côte', Command.SplitSideBySide),
+    bound('split-y', 'Split haut / bas', Command.SplitTopBottom),
+    bound('browser-beside', 'Navigateur côte à côte', Command.OpenBrowser),
+    bound('browser-below', 'Navigateur en dessous', Command.BrowserBelow),
+    bound('browser-tab', 'Navigateur dans un nouvel onglet', Command.BrowserTab),
+    bound('close-pane', 'Fermer le pane actif', Command.ClosePane),
+    bound('toggle-zoom', 'Agrandir / réduire le pane actif', Command.TogglePaneZoom),
+    bound('join-waiting', 'Rejoindre l’agent en attente suivant', Command.JoinWaitingAgent),
+    bound('next-tab', 'Onglet suivant', Command.NextTab),
+    bound('previous-tab', 'Onglet précédent', Command.PreviousTab),
+    bound('new-workspace', 'Nouveau workspace', Command.NewWorkspace),
+    bound('projects', 'Ouvrir un projet', Command.Projects),
+    bound('create-worktree', 'Créer un worktree…', Command.CreateWorktree),
+    bound('open-worktree', 'Ouvrir un worktree…', Command.OpenWorktree),
+    bound('toggle-explorer', 'Afficher / masquer les fichiers', Command.ToggleExplorer),
+    bound('toggle-git', 'Afficher / masquer Git', Command.ToggleGit),
+    bound('toggle-notes', 'Afficher / masquer les notes du workspace', Command.ToggleNotes),
+    bound('toggle-status-log', 'Afficher / masquer le journal des messages', Command.ToggleStatusLog),
+    bound('settings', 'Paramètres', Command.Settings),
+    bound('settings-export', 'Exporter les préférences…', Command.SettingsExport),
+    bound('settings-import', 'Importer les préférences…', Command.SettingsImport),
+    bound('restore-tab', 'Rouvrir le dernier onglet fermé', Command.RestoreTab),
+    bound('toggle-sidebar', session.sidebarCollapsed ? 'Afficher les workspaces' : 'Masquer les workspaces', Command.ToggleSidebar),
+    bound('focus-sidebar', 'Aller au panneau des workspaces', Command.FocusSidebar),
   ]
   if (workspace) {
     items.push(
-      command('rename-workspace', 'Renommer le workspace', () => ui.startRenamingWorkspace(workspace.id, RenameOrigin.Header)),
-      command('move-workspace-up', 'Monter le workspace', () => store.moveWorkspace(workspace.id, -1)),
-      command('move-workspace-down', 'Descendre le workspace', () => store.moveWorkspace(workspace.id, 1)),
-      command('close-workspace', `Fermer le workspace${SEPARATOR}${workspace.name}`, () => closeWorkspaceKeepingText(workspace.id)),
+      bound('rename-workspace', 'Renommer le workspace', Command.RenameWorkspace),
+      bound('move-workspace-up', 'Monter le workspace', Command.MoveWorkspaceUp),
+      bound('move-workspace-down', 'Descendre le workspace', Command.MoveWorkspaceDown),
+      bound('close-workspace', `Fermer le workspace${SEPARATOR}${workspace.name}`, Command.CloseWorkspace),
     )
   }
   if (tab) {
     const paneId = tab.active
     items.push(
-      command('copy-path', 'Copier le chemin du pane actif', () => copyPanePath(paneId)),
-      command('previous-command', 'Remonter à la commande précédente du pane actif', () => runCommand(Command.PreviousCommand), 'Alt + PgUp'),
-      command('next-command', 'Descendre à la commande suivante du pane actif', () => runCommand(Command.NextCommand), 'Alt + PgDn'),
-      command('copy-last-output', 'Copier la sortie de la dernière commande du pane actif', () => copyLastCommandOutput(paneId)),
-      command('clear-scrollback', 'Effacer l’historique de défilement du pane actif', () => clearPaneScrollback(paneId)),
-      command('open-file', 'Ouvrir un fichier du projet…', openFilePicker),
-      command('open-editor', 'Ouvrir le dossier du pane actif dans l’éditeur', () => openPaneFolder(paneId, OpenTarget.Editor)),
-      command('open-explorer', 'Ouvrir le dossier du pane actif dans l’explorateur', () => openPaneFolder(paneId, OpenTarget.Explorer)),
-      command('copy-branch', 'Copier la branche Git du pane actif', () => copyPaneBranch(paneId)),
-      command('collapse-files', 'Tout replier dans l’arbre des fichiers', () => useExplorerStore.getState().collapseUnder(activePane(tab).path)),
+      bound('copy-path', 'Copier le chemin du pane actif', Command.CopyPath),
+      bound('previous-command', 'Remonter à la commande précédente du pane actif', Command.PreviousCommand),
+      bound('next-command', 'Descendre à la commande suivante du pane actif', Command.NextCommand),
+      bound('copy-last-output', 'Copier la sortie de la dernière commande du pane actif', Command.CopyLastOutput),
+      bound('clear-scrollback', 'Effacer l’historique de défilement du pane actif', Command.ClearScrollback),
+      bound('open-file', 'Ouvrir un fichier du projet…', Command.OpenFile),
+      bound('open-editor', 'Ouvrir le dossier du pane actif dans l’éditeur', Command.OpenEditor),
+      bound('open-explorer', 'Ouvrir le dossier du pane actif dans l’explorateur', Command.OpenExplorer),
+      bound('copy-branch', 'Copier la branche Git du pane actif', Command.CopyBranch),
+      bound('collapse-files', 'Tout replier dans l’arbre des fichiers', Command.CollapseFiles),
       ...fontSizeItems(),
-      command('refresh-files', 'Actualiser l’arbre des fichiers', () => showAndRun(RightPanelView.Files, refreshFolders), 'F5 dans l’arbre'),
-      ...(canSearchCommits() ? [command('search-commit', 'Rechercher un commit dans le graphe…', openCommitPicker)] : []),
-      command('refresh-git', 'Actualiser la vue Git', () => showAndRun(RightPanelView.Git, refreshRepository), 'F5 dans la vue Git'),
+      bound('refresh-files', 'Actualiser l’arbre des fichiers', Command.RefreshFiles, 'F5 dans l’arbre'),
+      ...(canSearchCommits() ? [bound('search-commit', 'Rechercher un commit dans le graphe…', Command.SearchCommit)] : []),
+      bound('refresh-git', 'Actualiser la vue Git', Command.RefreshGit, 'F5 dans la vue Git'),
     )
     const context = useHostStore.getState().contexts[paneId]
     if (context?.worktreeRoot) {
-      const { path, name } = worktreeTarget(context.worktreeRoot)
-      items.push(command('remove-worktree', `Supprimer ce worktree${SEPARATOR}${name}…`, () => requestWorktreeRemoval(path, context.branch ?? undefined)))
+      items.push(bound('remove-worktree', `Supprimer ce worktree${SEPARATOR}${worktreeTarget(context.worktreeRoot).name}…`, Command.RemoveWorktree))
     }
     if (!isLeaf(tab.tree)) {
       items.push(
-        command('equalize-panes', 'Égaliser les panes de l’onglet', () => runCommand(Command.EqualizePanes), 'Leader puis ='),
-        command('swap-pane-left', 'Échanger le pane actif avec son voisin de gauche', () => runCommand(Command.SwapPaneLeft), 'Leader puis Maj + ←'),
-        command('swap-pane-right', 'Échanger le pane actif avec son voisin de droite', () => runCommand(Command.SwapPaneRight), 'Leader puis Maj + →'),
-        command('swap-pane-up', 'Échanger le pane actif avec son voisin du haut', () => runCommand(Command.SwapPaneUp), 'Leader puis Maj + ↑'),
-        command('swap-pane-down', 'Échanger le pane actif avec son voisin du bas', () => runCommand(Command.SwapPaneDown), 'Leader puis Maj + ↓'),
-        command('move-pane-to-new-tab', 'Déplacer le pane actif dans un nouvel onglet', () => runCommand(Command.MovePaneToNewTab), 'Leader puis !'),
+        bound('equalize-panes', 'Égaliser les panes de l’onglet', Command.EqualizePanes),
+        bound('swap-pane-left', 'Échanger le pane actif avec son voisin de gauche', Command.SwapPaneLeft),
+        bound('swap-pane-right', 'Échanger le pane actif avec son voisin de droite', Command.SwapPaneRight),
+        bound('swap-pane-up', 'Échanger le pane actif avec son voisin du haut', Command.SwapPaneUp),
+        bound('swap-pane-down', 'Échanger le pane actif avec son voisin du bas', Command.SwapPaneDown),
+        bound('move-pane-to-new-tab', 'Déplacer le pane actif dans un nouvel onglet', Command.MovePaneToNewTab),
       )
     }
     items.push(
-      command('rename-tab', 'Renommer l’onglet', () => ui.startRenamingTab(tab.id)),
-      command('duplicate-tab', 'Dupliquer l’onglet', () => duplicateTabKeepingLayout(tab.id)),
-      command('close-tab', 'Fermer l’onglet', () => closeTabKeepingText(tab.id)),
+      bound('rename-tab', 'Renommer l’onglet', Command.RenameTab),
+      bound('duplicate-tab', 'Dupliquer l’onglet', Command.DuplicateTab),
+      bound('close-tab', 'Fermer l’onglet', Command.CloseTab),
     )
     if (tab.manual) {
-      items.push(command('auto-name-tab', 'Reprendre le nom du dossier pour l’onglet', () => useSessionStore.getState().resetTabName(tab.id)))
+      items.push(bound('auto-name-tab', 'Reprendre le nom du dossier pour l’onglet', Command.AutoNameTab))
     }
     if (workspace && workspace.tabs.length > 1) {
-      items.push(command('close-other-tabs', 'Fermer les autres onglets', () => closeOtherTabsKeepingText(tab.id)))
+      items.push(bound('close-other-tabs', 'Fermer les autres onglets', Command.CloseOtherTabs))
       if (workspace.tabs.at(-1)?.id !== tab.id) {
-        items.push(command('close-tabs-to-right', 'Fermer les onglets à droite', () => closeTabsToRightKeepingText(tab.id)))
+        items.push(bound('close-tabs-to-right', 'Fermer les onglets à droite', Command.CloseTabsToRight))
       }
     }
     for (const target of workspace?.tabs.filter((candidate) => candidate.id !== tab.id) ?? []) {

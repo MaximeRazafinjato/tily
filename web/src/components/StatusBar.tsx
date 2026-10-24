@@ -11,6 +11,8 @@ import { Icon } from './Icon'
 import { IconName } from './iconName'
 import { Spinner } from './Spinner'
 import { STATUS_LOG_ID, StatusLogDrawer } from './StatusLogDrawer'
+import { Command } from '../keyboard/commands'
+import { useShortcutText, withShortcut } from '../keyboard/shortcutLabels'
 
 const STATUS_CLASSES: Record<StatusLevel, string> = {
   [StatusLevel.Info]: 'text-tily-muted',
@@ -27,6 +29,7 @@ export function StatusBar() {
   const [day, setDay] = useState(0)
   const status = useHostStore((state) => state.status)
   const unsaved = useHostStore((state) => state.unsaved)
+  const logShortcut = useShortcutText(Command.ToggleStatusLog)
   const { busy, busyRefs } = useGitStore(useShallow((state) => ({ busy: state.busy, busyRefs: state.busyRefs })))
   const { worktreeTasks, purge } = useWorktreeStore(useShallow((state) => ({ worktreeTasks: state.tasks.length, purge: state.purge })))
   const worktreeBusy = worktreeTasks > 0
@@ -51,7 +54,7 @@ export function StatusBar() {
           className="flex h-full min-w-0 flex-1 cursor-pointer items-center gap-[6px] px-3 text-left hover:bg-tily-green-hover"
           onClick={toggleStatusLog}
         >
-          <span className="flex shrink-0" data-tip={logOpen ? 'Masquer le journal (Ctrl + Maj + L)' : 'Afficher le journal des messages (Ctrl + Maj + L)'}>
+          <span className="flex shrink-0" data-tip={withShortcut(logOpen ? 'Masquer le journal' : 'Afficher le journal des messages', logShortcut)}>
             <Icon name={IconName.Chevron} size={10} className={`text-tily-muted transition-transform ${logOpen ? 'rotate-90' : '-rotate-90'}`} />
           </span>
           {spinning && <Spinner size={10} className="shrink-0 text-tily-green" />}
