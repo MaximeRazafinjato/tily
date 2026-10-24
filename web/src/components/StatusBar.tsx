@@ -26,7 +26,7 @@ const untilTomorrow = (): number => {
 }
 
 export function StatusBar() {
-  const [day, setDay] = useState(0)
+  const [today, setToday] = useState(() => new Date())
   const status = useHostStore((state) => state.status)
   const unsaved = useHostStore((state) => state.unsaved)
   const logShortcut = useShortcutText(Command.ToggleStatusLog)
@@ -38,13 +38,13 @@ export function StatusBar() {
   const spinning = Boolean(busy) || worktreeBusy
 
   useEffect(() => {
-    const timer = setTimeout(() => setDay(day + 1), untilTomorrow())
+    const timer = setTimeout(() => setToday(new Date()), untilTomorrow())
     return () => clearTimeout(timer)
-  }, [day])
+  }, [today])
 
   return (
     <>
-      {logOpen && <StatusLogDrawer />}
+      {logOpen && <StatusLogDrawer today={today} />}
       <footer className={`flex h-[24px] shrink-0 items-center border-t border-tily-line bg-tily-paper font-mono text-[11px] ${spinning ? 'text-tily-ink-soft' : STATUS_CLASSES[status.level]}`}>
         <button
           type="button"
@@ -76,7 +76,7 @@ export function StatusBar() {
         )}
         {status.at && !spinning && (
           <time dateTime={status.at} data-tip={`Message du ${entryFullDate(status)}`} className="shrink-0 px-3 text-tily-muted tabular-nums">
-            {entryTime(status, new Date())}
+            {entryTime(status, today)}
           </time>
         )}
         {unsaved && (

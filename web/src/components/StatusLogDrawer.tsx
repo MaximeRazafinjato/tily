@@ -21,7 +21,7 @@ const LEVEL_CLASSES: Record<StatusLevel, string> = {
 
 const countLabel = (count: number): string => (count === 0 ? 'Aucun message' : count === 1 ? '1 message' : `${count} messages`)
 
-export function StatusLogDrawer() {
+export function StatusLogDrawer({ today }: { today: Date }) {
   const entries = useStatusLogStore((state) => state.entries)
   const logShortcut = useShortcutText(Command.ToggleStatusLog)
   const hideTip = `Masquer le journal (Échap${logShortcut ? `, ${logShortcut}` : ''})`
@@ -31,7 +31,6 @@ export function StatusLogDrawer() {
   const numbered = entries.map((entry, position) => ({ entry, position }))
   const shown = problemsOnly ? numbered.filter(({ entry }) => entry.level !== StatusLevel.Info) : numbered
   const empty = entries.length === 0
-  const now = new Date()
 
   useLayoutEffect(() => {
     const list = listRef.current
@@ -100,7 +99,7 @@ export function StatusLogDrawer() {
             {shown.map(({ entry, position }) => (
               <li key={`${entry.at}-${position}`} className="flex gap-[10px]">
                 <time dateTime={entry.at} data-tip={entryFullDate(entry)} className="shrink-0 text-tily-muted tabular-nums">
-                  {entryTime(entry, now)}
+                  {entryTime(entry, today)}
                 </time>
                 <span className={`w-[92px] shrink-0 ${LEVEL_CLASSES[entry.level]}`}>{levelLabel(entry.level)}</span>
                 <span className={`min-w-0 break-words whitespace-pre-wrap ${entry.level === StatusLevel.Info ? 'text-tily-ink' : LEVEL_CLASSES[entry.level]}`}>{entry.text}</span>
