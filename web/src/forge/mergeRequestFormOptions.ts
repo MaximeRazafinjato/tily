@@ -1,5 +1,6 @@
 import type { ForgeLabel, ForgeUser, MergeRequestBranchInfo } from '../bridge/forgeMessages'
 import { normalize } from '../palette/searchFilter'
+import type { MergeRequestForm } from '../store/mergeRequestFormStore'
 
 export interface ChoiceOption {
   id: string
@@ -41,3 +42,13 @@ export const publicationNotice = (branch: MergeRequestBranchInfo): string | null
 
 export const commitsNotice = (branch: MergeRequestBranchInfo): string =>
   branch.commits === 0 ? `Aucun commit d’avance sur « ${branch.target} ».` : `${plural(branch.commits, 'commit')} d’avance sur « ${branch.target} ».`
+
+export const otherAssigneesNotice = (form: MergeRequestForm): string | null => {
+  const edit = form.data?.edit
+  const others = edit?.assignees.filter((user) => user.login !== edit.input.assignee) ?? []
+  if (!edit || others.length === 0) {
+    return null
+  }
+  const names = others.map((user) => user.name || user.login).join(', ')
+  return form.fields.assignee === edit.input.assignee ? `Aussi assignée à ${names}, gardé${others.length > 1 ? 's' : ''} tant que l’assigné ne change pas.` : `${names} ne ser${others.length > 1 ? 'ont' : 'a'} plus assigné${others.length > 1 ? 's' : ''}.`
+}

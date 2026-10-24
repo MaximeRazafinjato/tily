@@ -70,18 +70,20 @@ public sealed class ForgeService
         return result;
     }
 
-    public MergeRequestFormDataModel FormData(string path, string? source)
+    public MergeRequestFormDataModel FormData(string path, string? source, int? number = null)
     {
         var git = _gitOf(path);
         var remote = Detect(git.Root);
         var provider = ProviderFor(remote);
+        var detail = number is { } edited ? Task.Run(() => provider.Get(remote, git.Root, edited)) : null;
         var user = Task.Run(() => CurrentUser(provider, remote, git.Root));
         var members = Task.Run(() => provider.Members(remote, git.Root));
         var labels = Task.Run(() => provider.Labels(remote, git.Root));
         var defaultBranch = Task.Run(() => provider.DefaultBranch(remote, git.Root));
         var local = git.LocalBranches();
         var origin = git.OriginBranches();
-        var sourceBranch = string.IsNullOrWhiteSpace(source) ? git.CurrentBranch() ?? local.FirstOrDefault() : source.Trim();
+        var edit = detail is null ? null : EditOf(remote, detail.GetAwaiter().GetResult());
+        var sourceBranch = edit?.Input.SourceBranch ?? (string.IsNullOrWhiteSpace(source) ? git.CurrentBranch() ?? local.FirstOrDefault() : source.Trim());
         if (sourceBranch is null)
         {
             throw new ForgeException("Aucune branche locale : créez une branche avant d’ouvrir une MR/PR.");
@@ -96,7 +98,7 @@ public sealed class ForgeService
             throw new ForgeException(failures[0]);
         }
 
-        var target = DefaultTarget(sourceBranch, origin, _baseBranch(), forgeDefault ?? git.OriginDefaultBranch());
+        var target = edit?.Input.TargetBranch ?? DefaultTarget(sourceBranch, origin, _baseBranch(), forgeDefault ?? git.OriginDefaultBranch());
         var sources = local.Union(origin, StringComparer.Ordinal).Order(StringComparer.OrdinalIgnoreCase).ToList();
         return new MergeRequestFormDataModel(
             remote,
@@ -107,14 +109,15 @@ public sealed class ForgeService
             sources,
             origin,
             target,
-            BranchInfo(git, remote, sourceBranch, target),
-            failures.Distinct().ToList());
+            BranchInfo(git, remote, sourceBranch, target, edit?.Number),
+            failures.Distinct().ToList(),
+            edit);
     }
 
-    public MergeRequestBranchInfoModel BranchInfo(string path, string source, string target)
+    public MergeRequestBranchInfoModel BranchInfo(string path, string source, string target, int? number = null)
     {
         var git = _gitOf(path);
-        return BranchInfo(git, Detect(git.Root), source.Trim(), target.Trim());
+        return BranchInfo(git, Detect(git.Root), source.Trim(), target.Trim(), number);
     }
 
     public MergeRequestCreatedModel Create(string path, MergeRequestInputModel? input, bool push)
@@ -141,6 +144,28 @@ public sealed class ForgeService
         return ProviderFor(remote).Create(remote, git.Root, request);
     }
 
+    public MergeRequestUpdatedModel Update(string path, int number, MergeRequestInputModel? original, MergeRequestInputModel? edited, bool push, bool close)
+    {
+        var changes = MergeRequestChanges.Between(number, original, edited, close);
+        var git = _gitOf(path);
+        var remote = Detect(git.Root);
+        var source = changes.Edited.SourceBranch;
+        var pushed = push && git.Publication(source).NeedsPush;
+        if (pushed)
+        {
+            git.Push(source);
+        }
+
+        if (changes.Any)
+        {
+            return ProviderFor(remote).Update(remote, git.Root, changes);
+        }
+
+        return pushed
+            ? new MergeRequestUpdatedModel(number, MergeRequestInputs.Reference(remote.Kind, number), false, [])
+            : throw new ForgeException("Aucune modification à enregistrer.");
+    }
+
     public static string DefaultTarget(string source, IReadOnlyList<string> originBranches, string configuredBase, string? forgeDefault)
     {
         var candidates = new[] { configuredBase.Trim(), forgeDefault ?? string.Empty }.Where(branch => branch.Length > 0 && branch != source);
@@ -149,11 +174,11 @@ public sealed class ForgeService
             ?? string.Empty;
     }
 
-    private MergeRequestBranchInfoModel BranchInfo(IMergeRequestGit git, ForgeRemoteModel remote, string source, string target)
+    private MergeRequestBranchInfoModel BranchInfo(IMergeRequestGit git, ForgeRemoteModel remote, string source, string target, int? number)
     {
         var publication = git.Publication(source);
         var commits = target.Length > 0 ? git.Commits(source, target) : [];
-        var error = !publication.Local && !publication.Published
+        var error = number is null && !publication.Local && !publication.Published
             ? $"Branche source « {source} » introuvable, ni en local ni sur origin."
             : target.Length == 0
                 ? "Aucune branche cible sur origin : faites un fetch ou publiez une branche."
@@ -167,8 +192,30 @@ public sealed class ForgeService
             commits.Count,
             MergeRequestSuggestion.Title(source, commits),
             MergeRequestSuggestion.Description(commits, git.Template(remote.Kind)),
-            ForBranch(git.Root, source, false).Items,
+            ForBranch(git.Root, source, false).Items.Where(item => item.Number != number).ToList(),
             error);
+    }
+
+    private static MergeRequestEditModel EditOf(ForgeRemoteModel remote, MergeRequestDetailModel detail)
+    {
+        var item = detail.Item;
+        var noun = MergeRequestInputs.Noun(remote.Kind);
+        if (item.State != MergeRequestState.Open)
+        {
+            var state = item.State == MergeRequestState.Merged ? "fusionnée" : "fermée";
+            throw new ForgeException($"La {noun} {item.Reference} est {state} : seules les {noun} ouvertes se modifient.");
+        }
+
+        var input = new MergeRequestInputModel(
+            item.SourceBranch,
+            item.TargetBranch,
+            detail.Title.Trim(),
+            MergeRequestInputs.Description(detail.Description),
+            detail.Reviewers,
+            item.Assignees.Select(user => user.Login).FirstOrDefault(login => login.Length > 0),
+            item.Labels,
+            item.Draft);
+        return new MergeRequestEditModel(item.Number, item.Reference, item.Url, input, item.Assignees);
     }
 
     private bool IsBaseBranch(string path, string branch)

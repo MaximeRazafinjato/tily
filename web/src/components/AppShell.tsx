@@ -31,6 +31,7 @@ import { togglePaneZoom, useEndZoomWhenPaneChanges, zoomedPaneOf } from '../term
 import { AttentionToasts } from './AttentionToasts'
 import { CloseConfirmDialog } from './CloseConfirmDialog'
 import { McpConsentDialog } from './McpConsentDialog'
+import { MergeRequestContextMenu } from './MergeRequestContextMenu'
 import { MergeRequestDialog } from './MergeRequestDialog'
 import { PasteConfirmDialog } from './PasteConfirmDialog'
 import { CommandPalette } from './CommandPalette'
@@ -407,6 +408,7 @@ export function AppShell({ session }: AppShellProps) {
       {deleteRequest && <DeleteConfirmDialog request={deleteRequest} onConfirm={confirmDelete} onCancel={handleCancelDelete} />}
       <WorktreeDialogs />
       <MergeRequestDialog />
+      <MergeRequestContextMenu />
       {gitConfirmation && <GitConfirmDialog confirmation={gitConfirmation} onConfirm={handleConfirmGit} onCancel={handleCancelGit} />}
       {closeConfirmation && <CloseConfirmDialog confirmation={closeConfirmation} onConfirm={confirmClose} onCancel={handleCancelClose} />}
       <PasteConfirmDialog />

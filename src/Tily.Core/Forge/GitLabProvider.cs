@@ -1,9 +1,10 @@
 using System.Globalization;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 
 namespace Tily.Core.Forge;
 
-public sealed class GitLabProvider(IForgeCommandRunner runner) : IForgeProvider
+public sealed partial class GitLabProvider(IForgeCommandRunner runner) : IForgeProvider
 {
     private const string DraftPrefix = "Draft: ";
     private const string ActiveState = "active";
@@ -98,9 +99,78 @@ public sealed class GitLabProvider(IForgeCommandRunner runner) : IForgeProvider
         return number > 0 ? new MergeRequestCreatedModel(number, $"!{number}", url, warnings) : throw new ForgeException($"Réponse de {remote.Host} illisible.");
     }
 
+    public MergeRequestDetailModel Get(ForgeRemoteModel remote, string directory, int number)
+    {
+        var output = Api(remote, directory, MergeRequest(remote, number));
+        if (!output.Succeeded)
+        {
+            throw new ForgeException(ForgeErrors.Describe(remote, output));
+        }
+
+        return ForgeJson.ReadObject(output.Output, remote.Host, root =>
+        {
+            var item = Read(root);
+            if (item.Number <= 0)
+            {
+                throw new ForgeException($"Réponse de {remote.Host} illisible.");
+            }
+
+            var title = item.Draft ? DraftPrefixes().Replace(item.Title, string.Empty) : item.Title;
+            return new MergeRequestDetailModel(item, title, ForgeJson.Text(root, "description"), item.Reviewers.Select(user => user.Login).Where(login => login.Length > 0).ToList());
+        });
+    }
+
+    public MergeRequestUpdatedModel Update(ForgeRemoteModel remote, string directory, MergeRequestChangesModel changes)
+    {
+        var edited = changes.Edited;
+        var warnings = new List<string>();
+        var request = new Dictionary<string, object>();
+        if (changes.TitleChanged || changes.DraftChanged)
+        {
+            request["title"] = edited.Draft ? $"{DraftPrefix}{edited.Title}" : edited.Title;
+        }
+
+        if (changes.DescriptionChanged)
+        {
+            request["description"] = edited.Description;
+        }
+
+        if (changes.TargetChanged)
+        {
+            request["target_branch"] = edited.TargetBranch;
+        }
+
+        if (changes.AssigneeChanged)
+        {
+            request["assignee_ids"] = UserIds(remote, directory, edited.Assignee is { } assignee ? [assignee] : [], warnings);
+        }
+
+        if (changes.ReviewersChanged)
+        {
+            request["reviewer_ids"] = UserIds(remote, directory, edited.Reviewers, warnings);
+        }
+
+        if (changes.LabelsChanged)
+        {
+            request["labels"] = string.Join(',', edited.Labels);
+        }
+
+        if (changes.Close)
+        {
+            request["state_event"] = "close";
+        }
+
+        var output = runner.Run(ForgeKind.GitLab, directory, ["api", MergeRequest(remote, changes.Number), "--method", "PUT", "--input", "-", "--hostname", remote.Host], ForgeJson.Serialize(request));
+        return output.Succeeded
+            ? new MergeRequestUpdatedModel(changes.Number, $"!{changes.Number}", changes.Close, warnings)
+            : throw new ForgeException(ForgeErrors.DescribeRequest(remote, output));
+    }
+
     public static IReadOnlyList<MergeRequestModel> Parse(string json, string host) => ForgeJson.ParseArray(json, host, Read);
 
     private static string Project(ForgeRemoteModel remote) => $"projects/{Uri.EscapeDataString(remote.Project)}";
+
+    private static string MergeRequest(ForgeRemoteModel remote, int number) => $"{Project(remote)}/merge_requests/{number.ToString(CultureInfo.InvariantCulture)}";
 
     private static string PageQuery(int page) => $"per_page={ForgeJson.PageSize}&page={page.ToString(CultureInfo.InvariantCulture)}";
 
@@ -184,4 +254,7 @@ public sealed class GitLabProvider(IForgeCommandRunner runner) : IForgeProvider
         "requested_changes" => MergeRequestReview.ChangesRequested,
         _ => MergeRequestReview.None
     };
+
+    [GeneratedRegex(@"^(?:\s*(?:\[draft\]|\(draft\)|draft:))+\s*", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    private static partial Regex DraftPrefixes();
 }

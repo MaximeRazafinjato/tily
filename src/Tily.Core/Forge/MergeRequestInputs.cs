@@ -7,6 +7,8 @@ public static class MergeRequestInputs
 
     public static string Noun(ForgeKind kind) => kind == ForgeKind.GitHub ? "PR" : "MR";
 
+    public static string Reference(ForgeKind kind, int number) => kind == ForgeKind.GitHub ? $"#{number}" : $"!{number}";
+
     public static MergeRequestInputModel Normalize(MergeRequestInputModel? input)
     {
         if (input is null)
@@ -32,7 +34,7 @@ public static class MergeRequestInputs
             throw new ForgeException($"Titre trop long : {TitleMaxLength} caractères au plus.");
         }
 
-        var description = (input.Description ?? string.Empty).Replace("\r\n", "\n").TrimEnd();
+        var description = Description(input.Description);
         if (description.Length > DescriptionMaxLength)
         {
             throw new ForgeException($"Description trop longue : {DescriptionMaxLength} caractères au plus.");
@@ -49,6 +51,8 @@ public static class MergeRequestInputs
             Distinct(input.Labels),
             input.Draft);
     }
+
+    public static string Description(string? description) => (description ?? string.Empty).Replace("\r\n", "\n").TrimEnd();
 
     private static string RequireBranch(string? branch, string role)
     {

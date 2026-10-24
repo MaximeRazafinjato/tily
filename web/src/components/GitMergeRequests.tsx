@@ -6,6 +6,7 @@ import { filterActive, filterMergeRequests } from '../forge/mergeRequestFilter'
 import { openMergeRequestForm } from '../forge/mergeRequestFormActions'
 import { kindNoun, MERGE_REQUEST_LINK_HINT, sectionTitle, STATE_FILTER_LABELS } from '../forge/mergeRequestLabels'
 import { branchKey, useForgeStore } from '../store/forgeStore'
+import { BranchEditMergeRequestButton } from './BranchEditMergeRequestButton'
 import { Icon } from './Icon'
 import { IconName } from './iconName'
 import { MergeRequestFilters } from './MergeRequestFilters'
@@ -73,6 +74,7 @@ export function GitMergeRequests({ root, branch }: GitMergeRequestsProps) {
         {current?.loading && <Spinner />}
         <span className="ml-auto" />
         {branch && <MergeRequestPill path={root} branch={branch} className="min-w-0 text-[11px]" />}
+        {branch && <BranchEditMergeRequestButton path={root} branch={branch} />}
         <button type="button" className={PANEL_HEADER_BUTTON} data-tip={branch ? `Créer une ${noun} depuis « ${branch} »` : `Créer une ${noun}`} aria-label={`Créer une ${noun}`} onClick={handleCreate}>
           <Icon name={IconName.Plus} />
         </button>
@@ -92,7 +94,7 @@ export function GitMergeRequests({ root, branch }: GitMergeRequestsProps) {
                 ) : (
                   items.map((item) => (
                     <div key={item.number} role="listitem">
-                      <MergeRequestRow item={item} current={item.sourceBranch === branch} />
+                      <MergeRequestRow path={root} kind={forge?.kind} item={item} current={item.sourceBranch === branch} />
                     </div>
                   ))
                 )}

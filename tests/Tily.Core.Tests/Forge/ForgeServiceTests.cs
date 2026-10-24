@@ -213,4 +213,81 @@ public sealed class ForgeServiceTests
 
         Assert.Equal((true, false, false), creatable);
     }
+
+    private static readonly MergeRequestInputModel Edition = new("feat/creation", "main", "Modifier des MR/PR", "Résumé", ["bob"], "alice", ["git"], false);
+
+    private static FakeForgeRunner GitHubEdit(string state = "OPEN")
+    {
+        var form = GitHubForm();
+        return new FakeForgeRunner(arguments => arguments[0] == "pr" && arguments[1] == "view"
+            ? new ForgeOutputModel(0, $$"""{"number":157,"title":"Modifier des MR/PR","body":"Résumé\r\n","state":"{{state}}","isDraft":true,"headRefName":"feat/creation","baseRefName":"main","assignees":[{"login":"alice"},{"login":"dave"}],"reviewRequests":[{"login":"bob"}],"labels":[{"name":"git"}],"url":"https://github.com/MaximeRazafinjato/tily/pull/157"}""", string.Empty)
+            : form.Run(ForgeKind.GitHub, ".", arguments));
+    }
+
+    [Fact]
+    public void FormData_WhenEditing_ThenPrefillsFromMergeRequestAndKeepsItsTarget()
+    {
+        var service = FormServiceWith(GitHubEdit(), new FakeMergeRequestGit { Current = "main" });
+
+        var form = service.FormData(_folder, null, 157);
+
+        Assert.Equal(
+            ("#157", "feat/creation", "main", "Résumé", "alice", "alice,dave", true, "feat/creation", "main"),
+            (form.Edit?.Reference, form.Edit?.Input.SourceBranch, form.Edit?.Input.TargetBranch, form.Edit?.Input.Description, form.Edit?.Input.Assignee, string.Join(',', form.Edit?.Assignees.Select(user => user.Login) ?? []), form.Edit?.Input.Draft, form.Branch.Source, form.Branch.Target));
+    }
+
+    [Fact]
+    public void FormData_WhenEditingMergedPullRequest_ThenRefuses()
+    {
+        var service = FormServiceWith(GitHubEdit("MERGED"), new FakeMergeRequestGit());
+
+        var exception = Assert.Throws<ForgeException>(() => service.FormData(_folder, null, 157));
+
+        Assert.Equal("La PR #157 est fusionnée : seules les PR ouvertes se modifient.", exception.Message);
+    }
+
+    [Fact]
+    public void BranchInfo_WhenEditingFromUnknownSource_ThenNoErrorAndExcludesEditedMergeRequest()
+    {
+        var service = FormServiceWith(GitHubAnswering("""[{"number":157,"headRefName":"feat/fork","state":"OPEN"}]"""), new FakeMergeRequestGit());
+
+        var info = service.BranchInfo(_folder, "feat/fork", "main", 157);
+
+        Assert.Equal((null, 0), (info.Error, info.Existing.Count));
+    }
+
+    [Fact]
+    public void Update_WhenNothingChanged_ThenRefusesWithoutCallingForge()
+    {
+        var runner = GitHubForm();
+        var service = FormServiceWith(runner, new FakeMergeRequestGit());
+
+        var exception = Assert.Throws<ForgeException>(() => service.Update(_folder, 157, Edition, Edition, false, false));
+
+        Assert.Equal(("Aucune modification à enregistrer.", 0), (exception.Message, runner.Calls.Count));
+    }
+
+    [Fact]
+    public void Update_WhenOnlyPushAsked_ThenPushesWithoutCallingForge()
+    {
+        var git = new FakeMergeRequestGit();
+        git.Publications["feat/creation"] = new BranchPublicationModel(true, true, 2);
+        var runner = GitHubForm();
+        var service = FormServiceWith(runner, git);
+
+        var updated = service.Update(_folder, 157, Edition, Edition, true, false);
+
+        Assert.Equal(("feat/creation", "#157", 0), (string.Join(',', git.Pushed), updated.Reference, runner.Calls.Count));
+    }
+
+    [Fact]
+    public void Update_WhenTitleChanged_ThenPatchesPullRequest()
+    {
+        var runner = GitHubForm();
+        var service = FormServiceWith(runner, new FakeMergeRequestGit());
+
+        service.Update(_folder, 157, Edition, Edition with { Title = "Nouveau titre" }, false, false);
+
+        Assert.Equal(("repos/MaximeRazafinjato/tily/pulls/157", """{"title":"Nouveau titre"}"""), (runner.Calls.Single().Arguments[3], runner.Inputs.Single()));
+    }
 }

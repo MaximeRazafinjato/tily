@@ -205,4 +205,108 @@ public sealed class ForgeProviderTests
 
         Assert.Equal(("master", "api projects/gitlab-org%2Fcli --hostname gitlab.com"), (branch, string.Join(' ', runner.Calls.Single().Arguments)));
     }
+
+    private const string GitHubDetailJson = """
+        {"assignees":[{"login":"alice","name":"Alice"},{"login":"dave","name":""}],"author":{"login":"MaximeRazafinjato","name":"Maxime Razafinjato"},"baseRefName":"develop","body":"## Résumé","createdAt":"2026-10-24T16:23:01Z","headRefName":"feat/modification","isDraft":true,"labels":[{"name":"git"}],"number":157,"reviewDecision":"","reviewRequests":[{"login":"bob"},{"slug":"equipe-web","name":"Équipe web"}],"state":"OPEN","title":"Modifier des MR/PR","updatedAt":"2026-10-24T17:00:00Z","url":"https://github.com/MaximeRazafinjato/tily/pull/157"}
+        """;
+
+    private static readonly MergeRequestInputModel Edition = new("feat/modification", "develop", "Modifier des MR/PR", "## Résumé", ["bob"], "alice", ["git"], true);
+
+    [Fact]
+    public void GitHubGet_WhenPullRequestRead_ThenKeepsBodyAndUserReviewersOnly()
+    {
+        var runner = FakeForgeRunner.Answering(GitHubDetailJson);
+
+        var detail = new GitHubProvider(runner).Get(GitHubRemote, ".", 157);
+
+        Assert.Equal(
+            ("## Résumé", "bob", "Modifier des MR/PR", 2, "pr view 157 --repo github.com/MaximeRazafinjato/tily"),
+            (detail.Description, string.Join(',', detail.Reviewers), detail.Title, detail.Item.Assignees.Count, string.Join(' ', runner.Calls.Single().Arguments.Take(5))));
+    }
+
+    [Fact]
+    public void GitHubUpdate_WhenSomeFieldsChanged_ThenSendsOnlyThem()
+    {
+        var runner = FakeForgeRunner.Answering("{}");
+        var changes = MergeRequestChanges.Between(157, Edition, Edition with { Title = "Modifier les MR/PR", Reviewers = ["carol"], Labels = ["git", "enhancement"], Draft = false }, false);
+
+        var updated = new GitHubProvider(runner).Update(GitHubRemote, ".", changes);
+
+        Assert.Equal(
+            ("#157", 0, "repos/MaximeRazafinjato/tily/pulls/157 PATCH,repos/MaximeRazafinjato/tily/issues/157 PATCH,repos/MaximeRazafinjato/tily/pulls/157/requested_reviewers DELETE,repos/MaximeRazafinjato/tily/pulls/157/requested_reviewers POST,ready 157",
+                """{"title":"Modifier les MR/PR"}""", """{"labels":["git","enhancement"]}""", """{"reviewers":["bob"]}"""),
+            (updated.Reference, updated.Warnings.Count, string.Join(',', runner.Calls.Select(call => call.Arguments[0] == "pr" ? $"{call.Arguments[1]} {call.Arguments[2]}" : $"{call.Arguments[3]} {call.Arguments[5]}")),
+                runner.Inputs[0], runner.Inputs[1], runner.Inputs[2]));
+    }
+
+    [Fact]
+    public void GitHubUpdate_WhenDraftAsked_ThenUndoesReadyAndClearsAssignee()
+    {
+        var runner = FakeForgeRunner.Answering("{}");
+        var changes = MergeRequestChanges.Between(157, Edition with { Draft = false }, Edition with { Assignee = null }, false);
+
+        new GitHubProvider(runner).Update(GitHubRemote, ".", changes);
+
+        Assert.Equal(
+            ("""{"assignees":[]}""", "pr ready 157 --repo github.com/MaximeRazafinjato/tily --undo"),
+            (runner.Inputs[0], string.Join(' ', runner.Calls[1].Arguments)));
+    }
+
+    [Fact]
+    public void GitHubUpdate_WhenClosing_ThenClosesWithEditsAndSkipsDraft()
+    {
+        var runner = FakeForgeRunner.Answering("{}");
+        var changes = MergeRequestChanges.Between(157, Edition, Edition with { TargetBranch = "main", Draft = false }, true);
+
+        var updated = new GitHubProvider(runner).Update(GitHubRemote, ".", changes);
+
+        Assert.Equal((true, 1, """{"base":"main","state":"closed"}"""), (updated.Closed, runner.Calls.Count, runner.Inputs.Single()));
+    }
+
+    [Fact]
+    public void GitHubUpdate_WhenMainChangeRefused_ThenThrowsWithoutOtherCalls()
+    {
+        var runner = new FakeForgeRunner(_ => new ForgeOutputModel(1, """{"message":"Validation Failed","errors":[{"resource":"PullRequest","field":"base","code":"invalid"}]}""", "gh: Validation Failed (HTTP 422)"));
+        var changes = MergeRequestChanges.Between(157, Edition, Edition with { TargetBranch = "absente", Labels = [] }, false);
+
+        var exception = Assert.Throws<ForgeException>(() => new GitHubProvider(runner).Update(GitHubRemote, ".", changes));
+
+        Assert.Equal(("Branche cible introuvable sur github.com.", 1), (exception.Message, runner.Calls.Count));
+    }
+
+    [Fact]
+    public void GitHubUpdate_WhenReadyRefused_ThenWarns()
+    {
+        var runner = new FakeForgeRunner(arguments => arguments[0] == "pr" ? new ForgeOutputModel(1, string.Empty, "Draft pull requests are not supported in this repository.") : new ForgeOutputModel(0, "{}", string.Empty));
+        var changes = MergeRequestChanges.Between(157, Edition with { Draft = false }, Edition, false);
+
+        var updated = new GitHubProvider(runner).Update(GitHubRemote, ".", changes);
+
+        Assert.Equal(["Passage en brouillon impossible : « gh » a échoué : Draft pull requests are not supported in this repository."], updated.Warnings);
+    }
+
+    [Fact]
+    public void GitLabGet_WhenDraft_ThenStripsDraftPrefixFromTitle()
+    {
+        var runner = FakeForgeRunner.Answering("""{"iid":12,"title":"Draft: [Draft] Modifier des MR/PR","description":"Corps","state":"opened","draft":true,"source_branch":"feat/modification","target_branch":"main","reviewers":[{"username":"bob","name":"Bob"}],"assignees":[],"labels":["git"],"web_url":"u"}""");
+
+        var detail = new GitLabProvider(runner).Get(GitLabRemote, ".", 12);
+
+        Assert.Equal(
+            ("Modifier des MR/PR", "Corps", "bob", "api projects/gitlab-org%2Fcli/merge_requests/12 --hostname gitlab.com"),
+            (detail.Title, detail.Description, string.Join(',', detail.Reviewers), string.Join(' ', runner.Calls.Single().Arguments)));
+    }
+
+    [Fact]
+    public void GitLabUpdate_WhenChanged_ThenPutsOnlyChangedFieldsInOneCall()
+    {
+        var runner = new FakeForgeRunner(arguments => new ForgeOutputModel(0, arguments[1] == "users?username=carol" ? """[{"id":9}]""" : "{}", string.Empty));
+        var changes = MergeRequestChanges.Between(12, Edition with { Draft = false }, Edition with { Reviewers = ["carol"], Labels = [] }, true);
+
+        var updated = new GitLabProvider(runner).Update(GitLabRemote, ".", changes);
+
+        Assert.Equal(
+            ("!12", true, """{"title":"Draft: Modifier des MR/PR","reviewer_ids":[9],"labels":"","state_event":"close"}""", "api projects/gitlab-org%2Fcli/merge_requests/12 --method PUT --input - --hostname gitlab.com"),
+            (updated.Reference, updated.Closed, runner.Inputs.Last(), string.Join(' ', runner.Calls.Last().Arguments)));
+    }
 }

@@ -5,7 +5,8 @@ import { Command, runCommand } from '../keyboard/shortcuts'
 import { DEFAULT_FONT_SIZE, MAX_FONT_SIZE, MIN_FONT_SIZE } from '../model/appearance'
 import { activeTab, activeWorkspace, distinctWorkspaceName, FAVORITES_MAX, folderName, isLeaf, panesOf, type Pane, type Session, type Tab, type Workspace } from '../model/session'
 import { canSearchCommits } from '../git/commitSearch'
-import { createMergeRequestLabel, openMergeRequestForm } from '../forge/mergeRequestFormActions'
+import { canEditMergeRequest, createMergeRequestLabel, editMergeRequestLabel, openMergeRequestEditForm, openMergeRequestForm } from '../forge/mergeRequestFormActions'
+import { branchKey, useForgeStore } from '../store/forgeStore'
 import { useAgentStore } from '../store/agentStore'
 import { useHostStore } from '../store/hostStore'
 import { useSessionStore } from '../store/sessionStore'
@@ -112,6 +113,10 @@ const commandItems = (session: Session, shells: ShellProfile[]): PaletteItem[] =
     if (pane && context?.branch) {
       const { branch } = context
       items.push(command('create-merge-request', `${createMergeRequestLabel(pane.path, branch)}…`, () => openMergeRequestForm(pane.path, branch), `depuis ${branch}`))
+      const branchResult = useForgeStore.getState().branches[branchKey(pane.path, branch)]
+      branchResult?.items
+        .filter(canEditMergeRequest)
+        .forEach((item) => items.push(command(`edit-merge-request-${item.number}`, editMergeRequestLabel(item, branchResult.forge?.kind), () => openMergeRequestEditForm(pane.path, item), item.title)))
     }
     if (context?.worktreeRoot) {
       items.push(bound('remove-worktree', `Supprimer ce worktree${SEPARATOR}${worktreeTarget(context.worktreeRoot).name}…`, Command.RemoveWorktree))

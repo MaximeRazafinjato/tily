@@ -41,4 +41,11 @@ public sealed record MergeRequestFormDataModel(
     IReadOnlyList<string> TargetBranches,
     string DefaultTarget,
     MergeRequestBranchInfoModel Branch,
-    IReadOnlyList<string> Warnings);
+    IReadOnlyList<string> Warnings,
+    MergeRequestEditModel? Edit = null);
+
+public sealed record MergeRequestDetailModel(MergeRequestModel Item, string Title, string Description, IReadOnlyList<string> Reviewers);
+
+public sealed record MergeRequestEditModel(int Number, string Reference, string Url, MergeRequestInputModel Input, IReadOnlyList<ForgeUserModel> Assignees);
+
+public sealed record MergeRequestUpdatedModel(int Number, string Reference, bool Closed, IReadOnlyList<string> Warnings);

@@ -13,4 +13,8 @@ public interface IForgeProvider
     string? DefaultBranch(ForgeRemoteModel remote, string directory);
 
     MergeRequestCreatedModel Create(ForgeRemoteModel remote, string directory, MergeRequestInputModel input);
+
+    MergeRequestDetailModel Get(ForgeRemoteModel remote, string directory, int number);
+
+    MergeRequestUpdatedModel Update(ForgeRemoteModel remote, string directory, MergeRequestChangesModel changes);
 }

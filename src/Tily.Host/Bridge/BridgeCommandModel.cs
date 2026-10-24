@@ -54,6 +54,7 @@ public sealed class BridgeCommandModel
     public string[]? Stashes { get; init; }
     public GitHunkSelectionModel[]? Selection { get; init; }
     public MergeRequestInputModel? MergeRequest { get; init; }
+    public MergeRequestInputModel? Original { get; init; }
     public int Cols { get; init; }
     public int Rows { get; init; }
     public int Line { get; init; }
@@ -66,8 +67,10 @@ public sealed class BridgeCommandModel
     public int FontSize { get; init; }
     public int Index { get; init; }
     public int Request { get; init; }
+    public int Number { get; init; }
     public bool Amend { get; init; }
     public bool Push { get; init; }
+    public bool Close { get; init; }
     public bool Force { get; init; }
     public bool Pop { get; init; }
     public bool Checkout { get; init; }

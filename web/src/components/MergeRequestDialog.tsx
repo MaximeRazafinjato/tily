@@ -1,18 +1,21 @@
 import { useEffect, type ChangeEvent, type KeyboardEvent, type SubmitEvent } from 'react'
 import {
+  canCloseMergeRequest,
   canSubmitMergeRequest,
   changeMergeRequestDescription,
   changeMergeRequestTitle,
+  closeMergeRequest,
   closeMergeRequestForm,
+  disarmMergeRequestClose,
   setMergeRequestDraft,
   submitMergeRequest,
   toggleMergeRequestAssignee,
   toggleMergeRequestFormLabel,
   toggleMergeRequestReviewer,
 } from '../forge/mergeRequestFormActions'
-import { labelOptions, memberOptions } from '../forge/mergeRequestFormOptions'
+import { labelOptions, memberOptions, otherAssigneesNotice } from '../forge/mergeRequestFormOptions'
 import { kindNoun } from '../forge/mergeRequestLabels'
-import { useMergeRequestFormStore } from '../store/mergeRequestFormStore'
+import { MergeRequestFormMode, useMergeRequestFormStore } from '../store/mergeRequestFormStore'
 import { keepTabInside } from './focusTrap'
 import { ForgeChoicePicker } from './ForgeChoicePicker'
 import { MergeRequestBranchFields } from './MergeRequestBranchFields'
@@ -21,6 +24,7 @@ import { Spinner } from './Spinner'
 
 const PRIMARY = `${SETTINGS_BUTTON} flex items-center gap-2 border-tily-green text-tily-green-deep hover:bg-tily-green-soft disabled:cursor-default disabled:opacity-50 disabled:hover:bg-transparent`
 const CHECK_LABEL = 'flex items-center gap-2 text-[12px] text-tily-ink'
+const DANGER = `${SETTINGS_BUTTON} mr-auto border-tily-error text-tily-error hover:bg-tily-green-hover disabled:cursor-default disabled:opacity-50 disabled:hover:bg-transparent`
 
 const handleSubmit = (event: SubmitEvent<HTMLFormElement>) => {
   event.preventDefault()
@@ -69,10 +73,13 @@ export function MergeRequestDialog() {
   }
 
   const { data, fields, submitting } = form
+  const editing = form.mode === MergeRequestFormMode.Edit
   const noun = kindNoun(data?.forge.kind)
-  const title = `Créer une ${noun}`
+  const title = editing ? `Modifier la ${noun}${form.reference ? ` ${form.reference}` : ''}` : `Créer une ${noun}`
   const members = data ? memberOptions(data.members, data.currentUser) : []
   const labels = data ? labelOptions(data.labels) : []
+  const assigneesNotice = otherAssigneesNotice(form)
+  const submitLabel = editing ? (submitting ? 'Enregistrement…' : 'Enregistrer') : submitting ? 'Création…' : 'Créer'
 
   return (
     <div className="absolute inset-0 z-30 flex items-start justify-center bg-tily-paper/60 pt-[6vh]">
@@ -82,7 +89,7 @@ export function MergeRequestDialog() {
             <h2 className="text-[15px] font-semibold text-tily-ink">{title}</h2>
             {data && <span className={`${SETTINGS_HINT} truncate font-mono`}>{`${data.forge.host} · ${data.forge.project}`}</span>}
           </div>
-          <span className={`${SETTINGS_HINT} shrink-0`}>Ctrl + Entrée crée · Échap ferme</span>
+          <span className={`${SETTINGS_HINT} shrink-0`}>{`Ctrl + Entrée ${editing ? 'enregistre' : 'crée'} · Échap ferme`}</span>
         </div>
         <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 py-4">
           {!data && !form.loadError && (
@@ -94,7 +101,7 @@ export function MergeRequestDialog() {
           {form.loadError && <p className="text-[12px] break-words text-tily-error">{form.loadError}</p>}
           {data && (
             <>
-              <MergeRequestBranchFields data={data} fields={fields} branch={form.branch} push={form.push} comparing={form.comparing} compareError={form.compareError} disabled={submitting} />
+              <MergeRequestBranchFields data={data} fields={fields} branch={form.branch} push={form.push} comparing={form.comparing} compareError={form.compareError} disabled={submitting} editing={editing} />
               <fieldset className="flex flex-col gap-3" disabled={submitting}>
                 <label className="flex flex-col gap-1">
                   <span className={SETTINGS_LABEL}>Titre</span>
@@ -106,12 +113,15 @@ export function MergeRequestDialog() {
                 </label>
                 <div className="grid grid-cols-2 gap-3">
                   <ForgeChoicePicker label="Reviewers" options={members} selected={fields.reviewers} multiple emptyMessage="Aucun membre lu." disabled={submitting} onToggle={toggleMergeRequestReviewer} />
-                  <ForgeChoicePicker label="Assigné" options={members} selected={fields.assignee ? [fields.assignee] : []} multiple={false} emptyMessage="Aucun membre lu." disabled={submitting} onToggle={toggleMergeRequestAssignee} />
+                  <div className="flex flex-col gap-1">
+                    <ForgeChoicePicker label="Assigné" options={members} selected={fields.assignee ? [fields.assignee] : []} multiple={false} emptyMessage="Aucun membre lu." disabled={submitting} onToggle={toggleMergeRequestAssignee} />
+                    {assigneesNotice && <span className={SETTINGS_HINT}>{assigneesNotice}</span>}
+                  </div>
                 </div>
                 <ForgeChoicePicker label="Labels" options={labels} selected={fields.labels} multiple emptyMessage="Aucun label dans ce projet." disabled={submitting} onToggle={toggleMergeRequestFormLabel} />
                 <label className={CHECK_LABEL}>
                   <input type="checkbox" checked={fields.draft} onChange={handleDraftChange} />
-                  Créer en brouillon
+                  {editing ? 'Brouillon' : 'Créer en brouillon'}
                 </label>
               </fieldset>
               {data.warnings.map((warning) => (
@@ -124,12 +134,17 @@ export function MergeRequestDialog() {
           {form.submitError && <p className="text-[12px] break-words text-tily-error">{form.submitError}</p>}
         </div>
         <div className="flex items-center justify-end gap-2 border-t border-tily-line px-4 py-3">
+          {editing && (
+            <button type="button" className={DANGER} disabled={!canCloseMergeRequest(form)} onClick={closeMergeRequest} onBlur={disarmMergeRequestClose}>
+              {form.closeArmed ? 'Confirmer la fermeture' : `Fermer la ${noun}`}
+            </button>
+          )}
           <button type="button" className={SETTINGS_SECONDARY} onClick={closeMergeRequestForm}>
             {submitting ? 'Fermer' : 'Annuler'}
           </button>
           <button type="submit" className={PRIMARY} disabled={!canSubmitMergeRequest(form)}>
             {submitting && <Spinner size={10} className="text-tily-green" />}
-            {submitting ? 'Création…' : 'Créer'}
+            {submitLabel}
           </button>
         </div>
       </form>

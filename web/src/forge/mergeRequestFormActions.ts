@@ -1,5 +1,15 @@
 import { bridge } from '../bridge/bridge'
-import { ForgeKind, type MergeRequestBranchInfo, type MergeRequestCreated, type MergeRequestFormData, type MergeRequestInput } from '../bridge/forgeMessages'
+import {
+  ForgeKind,
+  MergeRequestState,
+  type MergeRequest,
+  type MergeRequestBranchInfo,
+  type MergeRequestCreated,
+  type MergeRequestEdit,
+  type MergeRequestFormData,
+  type MergeRequestInput,
+  type MergeRequestUpdated,
+} from '../bridge/forgeMessages'
 import { focusActivePane } from '../explorer/fileExplorerActions'
 import { branchKey, useForgeStore } from '../store/forgeStore'
 import { StatusLevel, useHostStore } from '../store/hostStore'
@@ -36,13 +46,15 @@ const suggested = (form: MergeRequestForm, branch: MergeRequestBranchInfo): Part
   },
 })
 
-export const openMergeRequestForm = (path: string, source?: string): void => {
+const startForm = (mode: MergeRequestFormMode, path: string, source: string | undefined, item: MergeRequest | null): void => {
   const request = nextRequest()
   returnFocus = document.activeElement instanceof HTMLElement && document.activeElement !== document.body ? document.activeElement : null
   useMergeRequestFormStore.getState().open({
-    mode: MergeRequestFormMode.Create,
+    mode,
     path,
     request,
+    number: item?.number ?? null,
+    reference: item?.reference ?? null,
     data: null,
     loadError: null,
     fields: { ...EMPTY_FIELDS, sourceBranch: source ?? '' },
@@ -55,9 +67,22 @@ export const openMergeRequestForm = (path: string, source?: string): void => {
     compareError: null,
     submitting: false,
     submitError: null,
+    closeArmed: false,
   })
-  bridge.send({ type: 'forge.form', request, path, branch: source })
+  bridge.send({ type: 'forge.form', request, path, branch: source, number: item?.number })
 }
+
+export const openMergeRequestForm = (path: string, source?: string): void => startForm(MergeRequestFormMode.Create, path, source, null)
+
+export const canEditMergeRequest = (item: MergeRequest): boolean => item.state === MergeRequestState.Open
+
+export const openMergeRequestEditForm = (path: string, item: MergeRequest): void => {
+  if (canEditMergeRequest(item)) {
+    startForm(MergeRequestFormMode.Edit, path, item.sourceBranch, item)
+  }
+}
+
+export const editMergeRequestLabel = (item: MergeRequest, kind: ForgeKind | undefined): string => `Modifier la ${kindNoun(kind)} ${item.reference}…`
 
 export const createMergeRequestLabel = (path: string, branch: string | null): string =>
   `Créer une ${kindNoun(branch ? useForgeStore.getState().branches[branchKey(path, branch)]?.forge?.kind : undefined)}`
@@ -72,9 +97,22 @@ export const closeMergeRequestForm = (): void => {
   returnFocus = null
 }
 
+const loadedForEdit = (data: MergeRequestFormData, edit: MergeRequestEdit): Partial<MergeRequestForm> => ({
+  branch: data.branch,
+  push: false,
+  data,
+  loadError: null,
+  reference: edit.reference,
+  titleEdited: true,
+  descriptionEdited: true,
+  fields: { ...edit.input },
+})
+
 export const receiveMergeRequestForm = (request: number, data: MergeRequestFormData | undefined, error: string | undefined): void =>
   useMergeRequestFormStore.getState().update(request, (form) =>
-    data
+    data?.edit
+      ? loadedForEdit(data, data.edit)
+      : data
       ? {
           branch: data.branch,
           push: data.branch.publication.needsPush,
@@ -100,7 +138,7 @@ export const changeMergeRequestBranches = (change: Pick<Partial<MergeRequestInpu
   const fields = { ...form.fields, ...change }
   const compareRequest = nextRequest()
   updateForm(() => ({ fields, compareRequest, comparing: true, compareError: null }))
-  bridge.send({ type: 'forge.compare', request: compareRequest, path: form.path, branch: fields.sourceBranch, target: fields.targetBranch })
+  bridge.send({ type: 'forge.compare', request: compareRequest, path: form.path, branch: fields.sourceBranch, target: fields.targetBranch, number: form.number ?? undefined })
 }
 
 export const receiveMergeRequestComparison = (request: number, branch: MergeRequestBranchInfo | undefined, error: string | undefined): void => {
@@ -128,13 +166,33 @@ export const setMergeRequestDraft = (draft: boolean): void => updateForm((form) 
 
 export const setMergeRequestPush = (push: boolean): void => updateForm(() => ({ push }))
 
-export const canSubmitMergeRequest = (form: MergeRequestForm): boolean => {
-  const { data, branch, fields, submitting, comparing } = form
+const sameSet = (left: string[], right: string[]): boolean => left.length === right.length && left.every((value) => right.includes(value))
+
+const pushRequested = (form: MergeRequestForm): boolean => form.push && Boolean(form.branch?.publication.needsPush)
+
+export const mergeRequestChanged = (form: MergeRequestForm): boolean => {
+  const original = form.data?.edit?.input
+  if (!original) {
+    return true
+  }
+  const { fields } = form
+  return (
+    fields.title.trim() !== original.title ||
+    fields.description.replace(/\r\n/g, '\n').trimEnd() !== original.description ||
+    fields.targetBranch !== original.targetBranch ||
+    fields.assignee !== original.assignee ||
+    fields.draft !== original.draft ||
+    !sameSet(fields.reviewers, original.reviewers) ||
+    !sameSet(fields.labels, original.labels)
+  )
+}
+
+const fieldsValid = (form: MergeRequestForm): boolean => {
+  const { data, fields, submitting, comparing } = form
   return (
     data !== null &&
     !submitting &&
     !comparing &&
-    !branch?.error &&
     fields.title.trim().length > 0 &&
     fields.sourceBranch.length > 0 &&
     fields.targetBranch.length > 0 &&
@@ -142,16 +200,48 @@ export const canSubmitMergeRequest = (form: MergeRequestForm): boolean => {
   )
 }
 
+export const canSubmitMergeRequest = (form: MergeRequestForm): boolean =>
+  fieldsValid(form) && !form.branch?.error && (form.mode === MergeRequestFormMode.Create || mergeRequestChanged(form) || pushRequested(form))
+
+export const canCloseMergeRequest = (form: MergeRequestForm): boolean => form.mode === MergeRequestFormMode.Edit && Boolean(form.data?.edit) && fieldsValid(form)
+
+const sendUpdate = (form: MergeRequestForm, close: boolean): void => {
+  const edit = form.data?.edit
+  if (!edit) {
+    return
+  }
+  updateForm(() => ({ submitting: true, submitError: null }))
+  bridge.send({ type: 'forge.update', request: form.request, path: form.path, number: edit.number, push: pushRequested(form), close, original: edit.input, mergeRequest: form.fields })
+}
+
 export const submitMergeRequest = (): void => {
   const form = currentForm()
   if (!form || !canSubmitMergeRequest(form)) {
     return
   }
+  if (form.mode === MergeRequestFormMode.Edit) {
+    sendUpdate(form, false)
+    return
+  }
   updateForm(() => ({ submitting: true, submitError: null }))
-  bridge.send({ type: 'forge.create', request: form.request, path: form.path, push: form.push && Boolean(form.branch?.publication.needsPush), mergeRequest: form.fields })
+  bridge.send({ type: 'forge.create', request: form.request, path: form.path, push: pushRequested(form), mergeRequest: form.fields })
 }
 
-const refreshAfterCreation = (path: string, source: string): void => {
+export const closeMergeRequest = (): void => {
+  const form = currentForm()
+  if (!form || !canCloseMergeRequest(form)) {
+    return
+  }
+  if (form.closeArmed) {
+    sendUpdate(form, true)
+  } else {
+    updateForm(() => ({ closeArmed: true }))
+  }
+}
+
+export const disarmMergeRequestClose = (): void => updateForm(() => ({ closeArmed: false }))
+
+const refreshAfterChange = (path: string, source: string): void => {
   const { branches, listing } = useForgeStore.getState()
   const paths = new Set([path.toLowerCase()])
   for (const key of Object.keys(branches)) {
@@ -183,6 +273,27 @@ export const receiveMergeRequestCreated = (request: number, path: string, source
   const announced = `${kindNoun(created.reference.startsWith('!') ? ForgeKind.GitLab : ForgeKind.GitHub)} ${created.reference} créée.`
   useHostStore.getState().setStatus(created.warnings.length > 0 ? `${announced} ${created.warnings.join(' ')}` : announced, created.warnings.length > 0 ? StatusLevel.Warning : StatusLevel.Info)
   if (source) {
-    refreshAfterCreation(path, source)
+    refreshAfterChange(path, source)
+  }
+}
+
+export const receiveMergeRequestUpdated = (request: number, path: string, source: string | undefined, updated: MergeRequestUpdated | undefined, error: string | undefined): void => {
+  const shown = currentForm()?.request === request
+  if (!updated) {
+    const failure = error ?? `Modification de la ${kindNoun(shown ? currentForm()?.data?.forge.kind : undefined)} impossible.`
+    if (shown) {
+      updateForm(() => ({ submitting: false, closeArmed: false, submitError: failure }))
+    } else {
+      useHostStore.getState().setStatus(failure, StatusLevel.Error)
+    }
+    return
+  }
+  if (shown) {
+    closeMergeRequestForm()
+  }
+  const announced = `${kindNoun(updated.reference.startsWith('!') ? ForgeKind.GitLab : ForgeKind.GitHub)} ${updated.reference} ${updated.closed ? 'fermée' : 'modifiée'}.`
+  useHostStore.getState().setStatus(updated.warnings.length > 0 ? `${announced} ${updated.warnings.join(' ')}` : announced, updated.warnings.length > 0 ? StatusLevel.Warning : StatusLevel.Info)
+  if (source) {
+    refreshAfterChange(path, source)
   }
 }

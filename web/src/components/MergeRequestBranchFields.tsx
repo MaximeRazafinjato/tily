@@ -15,6 +15,7 @@ interface MergeRequestBranchFieldsProps {
   comparing: boolean
   compareError: string | null
   disabled: boolean
+  editing: boolean
 }
 
 const CHECK_LABEL = 'flex items-center gap-2 text-[12px] text-tily-ink'
@@ -25,10 +26,10 @@ const handleSourceChange = (event: ChangeEvent<HTMLSelectElement>) => changeMerg
 const handleTargetChange = (event: ChangeEvent<HTMLSelectElement>) => changeMergeRequestBranches({ targetBranch: event.target.value })
 const handlePushChange = (event: ChangeEvent<HTMLInputElement>) => setMergeRequestPush(event.target.checked)
 
-export function MergeRequestBranchFields({ data, fields, branch, push, comparing, compareError, disabled }: MergeRequestBranchFieldsProps) {
+export function MergeRequestBranchFields({ data, fields, branch, push, comparing, compareError, disabled, editing }: MergeRequestBranchFieldsProps) {
   const noun = kindNoun(data.forge.kind)
   const pushNotice = branch ? publicationNotice(branch) : null
-  const existing = branch?.existing[0]
+  const existing = editing ? undefined : branch?.existing[0]
   const handleOpenExisting = (event: MouseEvent) => {
     if (existing) {
       openMergeRequest(existing.url, event.shiftKey)
@@ -40,7 +41,7 @@ export function MergeRequestBranchFields({ data, fields, branch, push, comparing
       <div className="grid grid-cols-[1fr_auto_1fr] items-end gap-2">
         <label className="flex min-w-0 flex-col gap-1">
           <span className={SETTINGS_LABEL}>Branche source</span>
-          <select className={SETTINGS_INPUT} value={fields.sourceBranch} onChange={handleSourceChange}>
+          <select className={`${SETTINGS_INPUT} disabled:opacity-60`} value={fields.sourceBranch} disabled={editing} onChange={handleSourceChange}>
             {withValue(data.sourceBranches, fields.sourceBranch).map((name) => (
               <option key={name} value={name}>
                 {name}
@@ -86,7 +87,7 @@ export function MergeRequestBranchFields({ data, fields, branch, push, comparing
             <span className="text-[11px] text-tily-warning">{pushNotice}</span>
             <label className={CHECK_LABEL}>
               <input type="checkbox" checked={push} onChange={handlePushChange} />
-              Pousser la branche avant de créer
+              {editing ? 'Pousser la branche avant d’enregistrer' : 'Pousser la branche avant de créer'}
             </label>
           </>
         )}

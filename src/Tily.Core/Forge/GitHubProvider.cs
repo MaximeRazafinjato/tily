@@ -89,6 +89,102 @@ public sealed class GitHubProvider(IForgeCommandRunner runner) : IForgeProvider
         return new MergeRequestCreatedModel(number, $"#{number}", url, warnings);
     }
 
+    public MergeRequestDetailModel Get(ForgeRemoteModel remote, string directory, int number)
+    {
+        var output = runner.Run(ForgeKind.GitHub, directory, ["pr", "view", number.ToString(CultureInfo.InvariantCulture), "--repo", $"{remote.Host}/{remote.Project}", "--json", $"{Fields},body"]);
+        if (!output.Succeeded)
+        {
+            throw new ForgeException(ForgeErrors.Describe(remote, output));
+        }
+
+        return ForgeJson.ReadObject(output.Output, remote.Host, root =>
+        {
+            var item = Read(root);
+            if (item.Number <= 0)
+            {
+                throw new ForgeException($"Réponse de {remote.Host} illisible.");
+            }
+
+            var reviewers = ForgeJson.Items(root, "reviewRequests").Select(request => ForgeJson.Text(request, "login")).Where(login => login.Length > 0).ToList();
+            return new MergeRequestDetailModel(item, item.Title, ForgeJson.Text(root, "body"), reviewers);
+        });
+    }
+
+    public MergeRequestUpdatedModel Update(ForgeRemoteModel remote, string directory, MergeRequestChangesModel changes)
+    {
+        var number = changes.Number;
+        var edited = changes.Edited;
+        var pull = new Dictionary<string, object>();
+        if (changes.TitleChanged)
+        {
+            pull["title"] = edited.Title;
+        }
+
+        if (changes.DescriptionChanged)
+        {
+            pull["body"] = edited.Description;
+        }
+
+        if (changes.TargetChanged)
+        {
+            pull["base"] = edited.TargetBranch;
+        }
+
+        if (changes.Close)
+        {
+            pull["state"] = "closed";
+        }
+
+        if (pull.Count > 0)
+        {
+            var output = Send(remote, directory, $"{Repository(remote)}/pulls/{number}", "PATCH", ForgeJson.Serialize(pull));
+            if (!output.Succeeded)
+            {
+                throw new ForgeException(ForgeErrors.DescribeRequest(remote, output));
+            }
+        }
+
+        var warnings = new List<string>();
+        var issue = new Dictionary<string, object>();
+        if (changes.AssigneeChanged)
+        {
+            issue["assignees"] = edited.Assignee is { } assignee ? new[] { assignee } : Array.Empty<string>();
+        }
+
+        if (changes.LabelsChanged)
+        {
+            issue["labels"] = edited.Labels;
+        }
+
+        if (issue.Count > 0)
+        {
+            var applied = Send(remote, directory, $"{Repository(remote)}/issues/{number}", "PATCH", ForgeJson.Serialize(issue));
+            if (!applied.Succeeded)
+            {
+                warnings.Add($"Assigné et labels non modifiés : {ForgeErrors.DescribeRequest(remote, applied)}");
+            }
+        }
+
+        RequestReviewers(remote, directory, number, changes.RemovedReviewers, "DELETE", "Reviewers non retirés", warnings);
+        RequestReviewers(remote, directory, number, changes.AddedReviewers, "POST", "Reviewers non ajoutés", warnings);
+        if (changes.DraftChanged && !changes.Close)
+        {
+            List<string> arguments = ["pr", "ready", number.ToString(CultureInfo.InvariantCulture), "--repo", $"{remote.Host}/{remote.Project}"];
+            if (edited.Draft)
+            {
+                arguments.Add("--undo");
+            }
+
+            var ready = runner.Run(ForgeKind.GitHub, directory, arguments);
+            if (!ready.Succeeded)
+            {
+                warnings.Add($"{(edited.Draft ? "Passage en brouillon impossible" : "Passage en prête pour la revue impossible")} : {ForgeErrors.Describe(remote, ready)}");
+            }
+        }
+
+        return new MergeRequestUpdatedModel(number, $"#{number}", changes.Close, warnings);
+    }
+
     public static IReadOnlyList<MergeRequestModel> Parse(string json, string host) => ForgeJson.ParseArray(json, host, Read);
 
     private static string Repository(ForgeRemoteModel remote) => $"repos/{remote.Project}";
@@ -100,6 +196,20 @@ public sealed class GitHubProvider(IForgeCommandRunner runner) : IForgeProvider
 
     private ForgeOutputModel Send(ForgeRemoteModel remote, string directory, string path, string method, string body) =>
         runner.Run(ForgeKind.GitHub, directory, ["api", "--hostname", remote.Host, path, "--method", method, "--input", "-"], body);
+
+    private void RequestReviewers(ForgeRemoteModel remote, string directory, int number, IReadOnlyList<string> reviewers, string method, string failure, List<string> warnings)
+    {
+        if (reviewers.Count == 0)
+        {
+            return;
+        }
+
+        var output = Send(remote, directory, $"{Repository(remote)}/pulls/{number}/requested_reviewers", method, ForgeJson.Serialize(new { reviewers }));
+        if (!output.Succeeded)
+        {
+            warnings.Add($"{failure} : {ForgeErrors.DescribeRequest(remote, output)}");
+        }
+    }
 
     private static ForgeUserModel? Member(JsonElement user)
     {
