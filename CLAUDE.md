@@ -27,6 +27,8 @@ Toujours lancer `pnpm lint`, `pnpm build` (qui exécute `tsc -b`) et `dotnet tes
 
 `TILY_DATA_DIR` remplace le dossier de données `%LOCALAPPDATA%\Tily` (session, préférences, états d'agents, profil WebView2) : l'utiliser pour lancer une instance isolée sans toucher à la session de l'utilisateur.
 
+À la fin de chaque modification de l'application, toujours donner à l'utilisateur la commande PowerShell prête à copier qui lance Tily depuis le worktree courant (chemins absolus) sur une instance isolée, pour qu'il teste à la main : `$env:TILY_DATA_DIR = "$env:TEMP\tily-<nom du worktree>"; dotnet run --project <worktree>\src\Tily.Host`, précédée de `pnpm --dir <worktree>\web build` si le web a changé depuis le dernier build (en Debug, `dotnet run` réutilise `web\dist` s'il existe).
+
 Distribution :
 
 ```bash
