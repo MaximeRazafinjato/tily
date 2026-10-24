@@ -1,6 +1,8 @@
 import type { ReactNode } from 'react'
 import { EditableName } from './EditableName'
 import { InlineNameEditor } from './InlineNameEditor'
+import { Command } from '../keyboard/commands'
+import { useShortcutText, useShortcutTip, withShortcut } from '../keyboard/shortcutLabels'
 import { LeaderHints } from './LeaderHints'
 import { UpdateButton } from './UpdateButton'
 
@@ -18,12 +20,14 @@ interface HeaderProps {
 }
 
 export function Header({ workspaceName, renaming, sidebarCollapsed, leaderActive, navigation, onToggleSidebar, onOpenSettings, onStartRename, onCommitRename, onCancelRename }: HeaderProps) {
+  const sidebarShortcut = useShortcutText(Command.ToggleSidebar)
+  const settingsTip = useShortcutTip('Paramètres', Command.Settings)
   return (
     <header className="relative flex h-[42px] shrink-0 items-center gap-4 border-b border-tily-line bg-tily-panel px-3 text-tily-ink">
       <button
         type="button"
         className="cursor-pointer rounded border border-tily-line px-2 text-lg leading-tight text-tily-muted hover:bg-tily-green-hover hover:text-tily-ink"
-        data-tip={sidebarCollapsed ? 'Afficher les workspaces (Ctrl + Maj + B)' : 'Masquer les workspaces (Ctrl + Maj + B)'}
+        data-tip={withShortcut(sidebarCollapsed ? 'Afficher les workspaces' : 'Masquer les workspaces', sidebarShortcut)}
         onClick={onToggleSidebar}
       >
         ☰
@@ -46,7 +50,7 @@ export function Header({ workspaceName, renaming, sidebarCollapsed, leaderActive
         <button
           type="button"
           className="flex cursor-pointer items-center gap-1.5 rounded border border-tily-line px-2 text-tily-muted hover:bg-tily-green-hover hover:text-tily-ink"
-          data-tip="Paramètres (Leader puis ,)"
+          data-tip={settingsTip}
           onClick={onOpenSettings}
         >
           <span className="text-lg leading-tight">⚙</span>

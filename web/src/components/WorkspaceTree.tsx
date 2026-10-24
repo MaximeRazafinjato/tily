@@ -13,6 +13,8 @@ import { WorkspaceContextMenu } from './WorkspaceContextMenu'
 import { WorkspaceItem } from './WorkspaceItem'
 import { isWorkspaceDropTarget } from './workspaceDrag'
 import { handlePanelRowKeys, menuPlaceOf, PANEL_DROP_LINE, type PanelMenuRequest, type WorkspacePanelActions } from './workspacePanel'
+import { Command } from '../keyboard/commands'
+import { useShortcutTip } from '../keyboard/shortcutLabels'
 
 interface WorkspaceTreeProps {
   session: Session
@@ -37,6 +39,9 @@ export function WorkspaceTree({ session, renamingWorkspaceId, renamingTabId, act
     })),
   )
   const agents = useAgentStore((state) => state.agents)
+  const openProjectTip = useShortcutTip('Ouvrir un projet', Command.Projects)
+  const createWorktreeTip = useShortcutTip('Créer un worktree depuis un projet', Command.CreateWorktree)
+  const newWorkspaceTip = useShortcutTip('Nouveau workspace', Command.NewWorkspace)
   const [menu, setMenu] = useState<PanelMenuRequest | null>(null)
   const namesKey = session.workspaces.map((workspace) => workspace.name).join(NAME_SEPARATOR)
   const workspaceNames = useMemo(() => namesKey.split(NAME_SEPARATOR), [namesKey])
@@ -55,13 +60,13 @@ export function WorkspaceTree({ session, renamingWorkspaceId, renamingTabId, act
     <aside className="@container flex h-full min-h-0 flex-col bg-tily-paper" style={{ width: session.sidebar }}>
       <div className="flex h-[36px] shrink-0 items-center gap-[2px] pr-[6px] pl-[12px] text-[11px] font-semibold tracking-[0.06em] text-tily-muted uppercase">
         <span className="flex-1">Workspaces</span>
-        <button type="button" className={HEADER_BUTTON} aria-label="Ouvrir un projet" data-tip="Ouvrir un projet (Leader puis F)" onClick={actions.openProjects}>
+        <button type="button" className={HEADER_BUTTON} aria-label="Ouvrir un projet" data-tip={openProjectTip} onClick={actions.openProjects}>
           <Icon name={IconName.Project} />
         </button>
-        <button type="button" className={HEADER_BUTTON} aria-label="Créer un worktree" data-tip="Créer un worktree depuis un projet (Leader puis N)" onClick={handleCreateWorktree}>
+        <button type="button" className={HEADER_BUTTON} aria-label="Créer un worktree" data-tip={createWorktreeTip} onClick={handleCreateWorktree}>
           <Icon name={IconName.Worktree} />
         </button>
-        <button type="button" className={HEADER_BUTTON} aria-label="Nouveau workspace" data-tip="Nouveau workspace (Ctrl + Maj + W)" onClick={actions.newWorkspace}>
+        <button type="button" className={HEADER_BUTTON} aria-label="Nouveau workspace" data-tip={newWorkspaceTip} onClick={actions.newWorkspace}>
           <Icon name={IconName.Plus} />
         </button>
       </div>

@@ -1,5 +1,4 @@
 import { bridge } from '../bridge/bridge'
-import { DIRECT_LETTER_KEYS } from '../keyboard/commands'
 import { BLANK_PAGE, BrowserViewport } from '../model/browser'
 import { activeTab, activeWorkspace, findPane } from '../model/session'
 import { useBrowserStore } from '../store/browserStore'
@@ -12,7 +11,6 @@ const MODAL_SELECTOR = '[role="menu"], [role="dialog"], [role="alertdialog"]'
 const FLOATING_SELECTOR = '[role="tooltip"]'
 const SAMPLES_PER_SIDE = 4
 const SNAPSHOT_RELEASE_MS = 150
-const SHORTCUT_LETTERS = Object.keys(DIRECT_LETTER_KEYS).join('')
 
 interface BrowserSlot {
   covered: boolean
@@ -47,7 +45,7 @@ const isCovered = (body: Element, rect: DOMRect, modal: boolean): boolean =>
 const attach = (paneId: string): void => {
   const session = useSessionStore.getState().session
   const pane = session ? findPane(session, paneId) : undefined
-  bridge.send({ type: 'browser.attach', pane: paneId, url: pane?.url ?? BLANK_PAGE, viewport: pane?.viewport ?? BrowserViewport.Desktop, shortcuts: SHORTCUT_LETTERS })
+  bridge.send({ type: 'browser.attach', pane: paneId, url: pane?.url ?? BLANK_PAGE, viewport: pane?.viewport ?? BrowserViewport.Desktop })
 }
 
 const slotOf = (paneId: string): BrowserSlot => {
