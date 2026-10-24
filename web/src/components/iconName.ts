@@ -18,6 +18,7 @@ export enum IconName {
   Graph = 'graph',
   Info = 'info',
   Local = 'local',
+  MergeRequest = 'mergeRequest',
   Minus = 'minus',
   More = 'more',
   NewFile = 'newFile',
