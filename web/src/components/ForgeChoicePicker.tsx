@@ -23,12 +23,18 @@ const SEARCH_HEIGHT = 40
 const LIST_MAX_HEIGHT = 260
 const LIST_MIN_HEIGHT = 120
 
+interface PopupAnchor {
+  left: number
+  top: number
+  bottom: number
+}
+
 interface PopupPlacement {
   style: CSSProperties
   listHeight: number
 }
 
-const popupPlacement = (anchor: DOMRect): PopupPlacement => {
+const popupPlacement = (anchor: PopupAnchor): PopupPlacement => {
   const below = window.innerHeight - anchor.bottom - POPUP_GAP - POPUP_MARGIN
   const above = anchor.top - POPUP_GAP - POPUP_MARGIN
   const upward = below < LIST_MIN_HEIGHT + SEARCH_HEIGHT && above > below
@@ -70,10 +76,17 @@ export function ForgeChoicePicker({ label, options, selected, multiple, emptyMes
     if (!open) {
       return
     }
+    const field = rootRef.current?.getBoundingClientRect()
+    const button = buttonRef.current?.getBoundingClientRect()
+    if (!field || !button) {
+      return
+    }
+    const topOffset = button.top - field.top
+    const bottomOffset = button.bottom - field.top
     const place = () => {
-      const anchor = buttonRef.current?.getBoundingClientRect()
-      if (anchor) {
-        setPlacement(popupPlacement(anchor))
+      const current = rootRef.current?.getBoundingClientRect()
+      if (current) {
+        setPlacement(popupPlacement({ left: current.left, top: current.top + topOffset, bottom: current.top + bottomOffset }))
       }
     }
     place()
@@ -83,7 +96,7 @@ export function ForgeChoicePicker({ label, options, selected, multiple, emptyMes
       window.removeEventListener('resize', place)
       window.removeEventListener('scroll', place, true)
     }
-  }, [open, selected.length])
+  }, [open])
 
   useEffect(() => {
     listRef.current?.querySelector(`[data-index="${activeIndex}"]`)?.scrollIntoView({ block: 'nearest' })
