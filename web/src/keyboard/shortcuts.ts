@@ -11,6 +11,8 @@ import { closePaneKeepingText, movePaneToNewTab, restoreClosedTab } from '../ter
 import { focusPane, joinNextWaitingPane, scrollPaneToCommand } from '../terminal/terminalActions'
 import { CommandDirection } from '../terminal/commandOutput'
 import { togglePaneZoom } from '../terminal/paneZoom'
+import { openPaneSearch } from '../terminal/paneSearch'
+import { openGlobalSearch } from '../terminal/globalSearch'
 import { togglePanelView } from '../panel/rightPanel'
 import { RenameOrigin, useUiStore } from '../store/uiStore'
 import { startWorktreeCreation } from '../worktree/worktreeActions'
@@ -55,6 +57,8 @@ const directCommand = (event: KeyboardEvent): Command | undefined => {
 }
 
 export const isPaletteShortcut = (event: KeyboardEvent): boolean => directCommand(event) === Command.Palette
+
+export const isPaneSearchShortcut = (event: KeyboardEvent): boolean => directCommand(event) === Command.SearchPane
 
 const exitLeader = (): void => {
   clearTimeout(leaderTimer)
@@ -262,6 +266,12 @@ export const runCommand = (command: Command): void => {
       break
     case Command.OpenBrowser:
       openBrowser(BrowserPlacement.Beside)
+      break
+    case Command.SearchPane:
+      openPaneSearch(currentPaneId())
+      break
+    case Command.SearchTerminals:
+      openGlobalSearch()
       break
     default:
       runContextCommand(command)

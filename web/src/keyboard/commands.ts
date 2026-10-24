@@ -64,4 +64,6 @@ export enum Command {
   FontDefault = 'fontDefault',
   SettingsExport = 'settingsExport',
   SettingsImport = 'settingsImport',
+  SearchPane = 'searchPane',
+  SearchTerminals = 'searchTerminals',
 }
