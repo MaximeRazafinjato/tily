@@ -3,12 +3,15 @@ import type { MergeRequestBranchInfo, MergeRequestFormData, MergeRequestInput } 
 
 export enum MergeRequestFormMode {
   Create = 'create',
+  Edit = 'edit',
 }
 
 export interface MergeRequestForm {
   mode: MergeRequestFormMode
   path: string
   request: number
+  number: number | null
+  reference: string | null
   data: MergeRequestFormData | null
   loadError: string | null
   fields: MergeRequestInput
@@ -21,6 +24,7 @@ export interface MergeRequestForm {
   compareError: string | null
   submitting: boolean
   submitError: string | null
+  closeArmed: boolean
 }
 
 interface MergeRequestFormState {

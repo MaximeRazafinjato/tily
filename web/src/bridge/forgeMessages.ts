@@ -109,6 +109,21 @@ export interface MergeRequestBranchInfo {
   error?: string
 }
 
+export interface MergeRequestEdit {
+  number: number
+  reference: string
+  url: string
+  input: MergeRequestInput
+  assignees: ForgeUser[]
+}
+
+export interface MergeRequestUpdated {
+  number: number
+  reference: string
+  closed: boolean
+  warnings: string[]
+}
+
 export interface MergeRequestFormData {
   forge: ForgeRemote
   root: string
@@ -120,6 +135,7 @@ export interface MergeRequestFormData {
   defaultTarget: string
   branch: MergeRequestBranchInfo
   warnings: string[]
+  edit?: MergeRequestEdit | null
 }
 
 export type ForgeHostMessage =
@@ -128,10 +144,12 @@ export type ForgeHostMessage =
   | { type: 'forge.formLoaded'; request: number; path: string; form?: MergeRequestFormData; error?: string }
   | { type: 'forge.compared'; request: number; path: string; branch?: MergeRequestBranchInfo; error?: string }
   | { type: 'forge.created'; request: number; path: string; source?: string; created?: MergeRequestCreated; error?: string }
+  | { type: 'forge.updated'; request: number; path: string; source?: string; updated?: MergeRequestUpdated; error?: string }
 
 export type ForgeWebMessage =
   | { type: 'forge.list'; request: number; path: string; state: MergeRequestStateFilter }
   | { type: 'forge.branch'; path: string; branch: string; force: boolean }
-  | { type: 'forge.form'; request: number; path: string; branch?: string }
-  | { type: 'forge.compare'; request: number; path: string; branch: string; target: string }
+  | { type: 'forge.form'; request: number; path: string; branch?: string; number?: number }
+  | { type: 'forge.compare'; request: number; path: string; branch: string; target: string; number?: number }
   | { type: 'forge.create'; request: number; path: string; push: boolean; mergeRequest: MergeRequestInput }
+  | { type: 'forge.update'; request: number; path: string; number: number; push: boolean; close: boolean; original: MergeRequestInput; mergeRequest: MergeRequestInput }

@@ -1,5 +1,6 @@
 import type { MouseEvent } from 'react'
 import { openMergeRequest } from '../forge/mergeRequestActions'
+import { openMergeRequestMenu } from '../forge/mergeRequestMenu'
 import { kindNoun, mergeRequestTip, statusTone } from '../forge/mergeRequestLabels'
 import { branchKey, useForgeStore } from '../store/forgeStore'
 import { Icon } from './Icon'
@@ -25,6 +26,7 @@ export function MergeRequestPill({ path, branch, className = '' }: MergeRequestP
     event.stopPropagation()
     openMergeRequest(first.url, event.shiftKey)
   }
+  const handleContextMenu = (event: MouseEvent<HTMLButtonElement>) => openMergeRequestMenu(event, path, result.forge?.kind, result.items)
 
   return (
     <button
@@ -33,6 +35,7 @@ export function MergeRequestPill({ path, branch, className = '' }: MergeRequestP
       data-tip={tip}
       aria-label={`${noun} ${first.reference} : ${first.title}`}
       onClick={handleClick}
+      onContextMenu={handleContextMenu}
     >
       <Icon name={IconName.MergeRequest} size={11} className="shrink-0" />
       <span>{`${noun} ${first.reference}`}</span>

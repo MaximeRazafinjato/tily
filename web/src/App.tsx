@@ -18,7 +18,7 @@ import { receiveActivity, receiveApplicationClosing } from './terminal/closeGuar
 import { receiveQueriedActivity } from './terminal/paneActivity'
 import { queryContext, receiveContext } from './terminal/contextActions'
 import { receiveBranchMergeRequests, receiveMergeRequestList } from './forge/mergeRequestActions'
-import { receiveMergeRequestComparison, receiveMergeRequestCreated, receiveMergeRequestForm } from './forge/mergeRequestFormActions'
+import { receiveMergeRequestComparison, receiveMergeRequestCreated, receiveMergeRequestForm, receiveMergeRequestUpdated } from './forge/mergeRequestFormActions'
 import { startExternalDrops } from './terminal/externalDrop'
 import { receiveCreated, receiveDeleted, receiveGitMarks, receiveListing, receiveRenamed } from './explorer/fileExplorerActions'
 import { receiveProjectFiles } from './explorer/projectFileActions'
@@ -158,6 +158,7 @@ export default function App() {
       bridge.on('forge.formLoaded', (message) => receiveMergeRequestForm(message.request, message.form, message.error)),
       bridge.on('forge.compared', (message) => receiveMergeRequestComparison(message.request, message.branch, message.error)),
       bridge.on('forge.created', (message) => receiveMergeRequestCreated(message.request, message.path, message.source, message.created, message.error)),
+      bridge.on('forge.updated', (message) => receiveMergeRequestUpdated(message.request, message.path, message.source, message.updated, message.error)),
       bridge.on('git.state', (message) => receiveGitState(message.path, message.state, message.error, message.displayRoot)),
       bridge.on('git.changed', (message) => receiveGitChanged(message.path)),
       bridge.on('git.history', (message) => receiveGitHistory(message.history, message.error)),

@@ -41,6 +41,9 @@ public sealed class ForgeFeed
             case "forge.create":
                 Create(command);
                 break;
+            case "forge.update":
+                Update(command);
+                break;
             default:
                 throw new InvalidOperationException($"Commande inconnue : {command.Type}");
         }
@@ -90,11 +93,12 @@ public sealed class ForgeFeed
         var path = command.Path ?? throw new InvalidOperationException("Chemin manquant.");
         var request = command.Request;
         var source = command.Branch;
+        var number = NumberOf(command);
         _forms.Enqueue(() =>
         {
             try
             {
-                _post(new { type = "forge.formLoaded", request, path, form = _service.FormData(path, source) });
+                _post(new { type = "forge.formLoaded", request, path, form = _service.FormData(path, source, number) });
             }
             catch (Exception exception)
             {
@@ -109,11 +113,12 @@ public sealed class ForgeFeed
         var source = command.Branch ?? throw new InvalidOperationException("Branche manquante.");
         var target = command.Target ?? string.Empty;
         var request = command.Request;
+        var number = NumberOf(command);
         _forms.Enqueue(() =>
         {
             try
             {
-                _post(new { type = "forge.compared", request, path, branch = _service.BranchInfo(path, source, target) });
+                _post(new { type = "forge.compared", request, path, branch = _service.BranchInfo(path, source, target, number) });
             }
             catch (Exception exception)
             {
@@ -148,4 +153,36 @@ public sealed class ForgeFeed
             }
         });
     }
+
+    private void Update(BridgeCommandModel command)
+    {
+        var path = command.Path ?? throw new InvalidOperationException("Chemin manquant.");
+        var request = command.Request;
+        var number = command.Number;
+        var original = command.Original;
+        var input = command.MergeRequest;
+        var push = command.Push;
+        var close = command.Close;
+        _forms.Enqueue(() =>
+        {
+            try
+            {
+                var updated = _service.Update(path, number, original, input, push, close);
+                _post(new { type = "forge.updated", request, path, source = input?.SourceBranch, updated });
+            }
+            catch (Exception exception)
+            {
+                _post(new { type = "forge.updated", request, path, source = input?.SourceBranch, error = UserErrorMessage.Of(exception) });
+            }
+            finally
+            {
+                if (push)
+                {
+                    _gitChanged();
+                }
+            }
+        });
+    }
+
+    private static int? NumberOf(BridgeCommandModel command) => command.Number > 0 ? command.Number : null;
 }
