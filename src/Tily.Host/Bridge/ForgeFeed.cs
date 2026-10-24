@@ -6,15 +6,20 @@ namespace Tily.Host.Bridge;
 public sealed class ForgeFeed
 {
     private readonly Action<object> _post;
-    private readonly ForgeService _service = new();
+    private readonly ForgeService _service;
+    private readonly Action _gitChanged;
     private readonly BackgroundQueue _lists;
     private readonly BackgroundQueue _branches;
+    private readonly BackgroundQueue _forms;
 
-    public ForgeFeed(Action<object> post, Action<Exception> onError)
+    public ForgeFeed(Action<object> post, Func<string> baseBranch, Action gitChanged, Action<Exception> onError)
     {
         _post = post;
+        _service = new ForgeService(baseBranch: baseBranch);
+        _gitChanged = gitChanged;
         _lists = new BackgroundQueue(onError);
         _branches = new BackgroundQueue(onError);
+        _forms = new BackgroundQueue(onError);
     }
 
     public void Handle(BridgeCommandModel command)
@@ -26,6 +31,15 @@ public sealed class ForgeFeed
                 break;
             case "forge.branch":
                 Branch(command);
+                break;
+            case "forge.form":
+                Form(command);
+                break;
+            case "forge.compare":
+                Compare(command);
+                break;
+            case "forge.create":
+                Create(command);
                 break;
             default:
                 throw new InvalidOperationException($"Commande inconnue : {command.Type}");
@@ -68,6 +82,70 @@ public sealed class ForgeFeed
             }
 
             _post(new { type = "forge.branchListed", path, branch, result });
+        });
+    }
+
+    private void Form(BridgeCommandModel command)
+    {
+        var path = command.Path ?? throw new InvalidOperationException("Chemin manquant.");
+        var request = command.Request;
+        var source = command.Branch;
+        _forms.Enqueue(() =>
+        {
+            try
+            {
+                _post(new { type = "forge.formLoaded", request, path, form = _service.FormData(path, source) });
+            }
+            catch (Exception exception)
+            {
+                _post(new { type = "forge.formLoaded", request, path, error = UserErrorMessage.Of(exception) });
+            }
+        });
+    }
+
+    private void Compare(BridgeCommandModel command)
+    {
+        var path = command.Path ?? throw new InvalidOperationException("Chemin manquant.");
+        var source = command.Branch ?? throw new InvalidOperationException("Branche manquante.");
+        var target = command.Target ?? string.Empty;
+        var request = command.Request;
+        _forms.Enqueue(() =>
+        {
+            try
+            {
+                _post(new { type = "forge.compared", request, path, branch = _service.BranchInfo(path, source, target) });
+            }
+            catch (Exception exception)
+            {
+                _post(new { type = "forge.compared", request, path, error = UserErrorMessage.Of(exception) });
+            }
+        });
+    }
+
+    private void Create(BridgeCommandModel command)
+    {
+        var path = command.Path ?? throw new InvalidOperationException("Chemin manquant.");
+        var request = command.Request;
+        var input = command.MergeRequest;
+        var push = command.Push;
+        _forms.Enqueue(() =>
+        {
+            try
+            {
+                var created = _service.Create(path, input, push);
+                _post(new { type = "forge.created", request, path, source = input?.SourceBranch, created });
+            }
+            catch (Exception exception)
+            {
+                _post(new { type = "forge.created", request, path, source = input?.SourceBranch, error = UserErrorMessage.Of(exception) });
+            }
+            finally
+            {
+                if (push)
+                {
+                    _gitChanged();
+                }
+            }
         });
     }
 }

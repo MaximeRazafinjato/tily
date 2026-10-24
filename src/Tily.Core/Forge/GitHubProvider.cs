@@ -26,7 +26,93 @@ public sealed class GitHubProvider(IForgeCommandRunner runner) : IForgeProvider
         return output.Succeeded && login.Length > 0 ? login : null;
     }
 
+    public IReadOnlyList<ForgeUserModel> Members(ForgeRemoteModel remote, string directory) =>
+        ForgeJson.ReadPages(remote, page => Api(remote, directory, $"{Repository(remote)}/assignees?{PageQuery(page)}"), Member)
+            .OrderBy(user => user.Login, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+    public IReadOnlyList<ForgeLabelModel> Labels(ForgeRemoteModel remote, string directory) =>
+        ForgeJson.ReadPages(remote, page => Api(remote, directory, $"{Repository(remote)}/labels?{PageQuery(page)}"), Label);
+
+    public string? DefaultBranch(ForgeRemoteModel remote, string directory)
+    {
+        var output = Api(remote, directory, Repository(remote), "--jq", ".default_branch");
+        var branch = output.Output.Trim();
+        return output.Succeeded && branch.Length > 0 ? branch : throw new ForgeException(ForgeErrors.Describe(remote, output));
+    }
+
+    public MergeRequestCreatedModel Create(ForgeRemoteModel remote, string directory, MergeRequestInputModel input)
+    {
+        var body = ForgeJson.Serialize(new { title = input.Title, body = input.Description, head = input.SourceBranch, @base = input.TargetBranch, draft = input.Draft });
+        var output = Send(remote, directory, $"{Repository(remote)}/pulls", "POST", body);
+        if (!output.Succeeded)
+        {
+            throw new ForgeException(ForgeErrors.DescribeRequest(remote, output));
+        }
+
+        var (number, url) = ForgeJson.ReadObject(output.Output, remote.Host, root => (ForgeJson.Number(root, "number"), ForgeJson.Text(root, "html_url")));
+        if (number <= 0)
+        {
+            throw new ForgeException($"Réponse de {remote.Host} illisible.");
+        }
+
+        var warnings = new List<string>();
+        if (input.Assignee is not null || input.Labels.Count > 0)
+        {
+            var issue = new Dictionary<string, object>();
+            if (input.Assignee is { } assignee)
+            {
+                issue["assignees"] = new[] { assignee };
+            }
+
+            if (input.Labels.Count > 0)
+            {
+                issue["labels"] = input.Labels;
+            }
+
+            var applied = Send(remote, directory, $"{Repository(remote)}/issues/{number}", "PATCH", ForgeJson.Serialize(issue));
+            if (!applied.Succeeded)
+            {
+                warnings.Add($"Assigné et labels non appliqués : {ForgeErrors.DescribeRequest(remote, applied)}");
+            }
+        }
+
+        if (input.Reviewers.Count > 0)
+        {
+            var requested = Send(remote, directory, $"{Repository(remote)}/pulls/{number}/requested_reviewers", "POST", ForgeJson.Serialize(new { reviewers = input.Reviewers }));
+            if (!requested.Succeeded)
+            {
+                warnings.Add($"Reviewers non ajoutés : {ForgeErrors.DescribeRequest(remote, requested)}");
+            }
+        }
+
+        return new MergeRequestCreatedModel(number, $"#{number}", url, warnings);
+    }
+
     public static IReadOnlyList<MergeRequestModel> Parse(string json, string host) => ForgeJson.ParseArray(json, host, Read);
+
+    private static string Repository(ForgeRemoteModel remote) => $"repos/{remote.Project}";
+
+    private static string PageQuery(int page) => $"per_page={ForgeJson.PageSize}&page={page.ToString(CultureInfo.InvariantCulture)}";
+
+    private ForgeOutputModel Api(ForgeRemoteModel remote, string directory, string path, params string[] options) =>
+        runner.Run(ForgeKind.GitHub, directory, ["api", "--hostname", remote.Host, path, .. options]);
+
+    private ForgeOutputModel Send(ForgeRemoteModel remote, string directory, string path, string method, string body) =>
+        runner.Run(ForgeKind.GitHub, directory, ["api", "--hostname", remote.Host, path, "--method", method, "--input", "-"], body);
+
+    private static ForgeUserModel? Member(JsonElement user)
+    {
+        var member = ForgeJson.User(user, "login");
+        return member.Login.Length > 0 ? member : null;
+    }
+
+    private static ForgeLabelModel? Label(JsonElement label)
+    {
+        var name = ForgeJson.Text(label, "name");
+        var color = ForgeJson.Text(label, "color");
+        return name.Length > 0 ? new ForgeLabelModel(name, color.Length > 0 ? $"#{color.TrimStart('#')}" : string.Empty, ForgeJson.Text(label, "description")) : null;
+    }
 
     private static string StateArgument(MergeRequestStateFilter state) => state switch
     {

@@ -17,6 +17,14 @@ public static class GitSyncCommands
             }
         }
 
+        return PushRef(repository, branch, "HEAD", force);
+    }
+
+    public static GitOutcomeModel PushBranch(GitRepository repository, string branch) =>
+        PushRef(repository, branch, $"{HeadsPrefix}{branch}", false);
+
+    private static GitOutcomeModel PushRef(GitRepository repository, string branch, string source, bool force)
+    {
         var target = Target(repository, branch);
         var arguments = new List<string> { "push", "--porcelain" };
         if (force)
@@ -29,7 +37,7 @@ public static class GitSyncCommands
             arguments.Add("--set-upstream");
         }
 
-        arguments.AddRange([target.Remote, $"HEAD:{target.Destination}"]);
+        arguments.AddRange([target.Remote, $"{source}:{target.Destination}"]);
         var output = repository.Run([.. arguments]);
         var rejected = output.Output.Split('\n').FirstOrDefault(line => line.StartsWith('!'));
         if (rejected is not null)

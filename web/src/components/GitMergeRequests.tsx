@@ -3,6 +3,7 @@ import { useShallow } from 'zustand/react/shallow'
 import { ForgeKind, type ForgeRemote, type MergeRequest } from '../bridge/forgeMessages'
 import { listMergeRequests, openMergeRequest, refreshMergeRequests, requestBranchMergeRequests, toggleMergeRequests } from '../forge/mergeRequestActions'
 import { filterActive, filterMergeRequests } from '../forge/mergeRequestFilter'
+import { openMergeRequestForm } from '../forge/mergeRequestFormActions'
 import { kindNoun, MERGE_REQUEST_LINK_HINT, sectionTitle, STATE_FILTER_LABELS } from '../forge/mergeRequestLabels'
 import { branchKey, useForgeStore } from '../store/forgeStore'
 import { Icon } from './Icon'
@@ -46,6 +47,7 @@ export function GitMergeRequests({ root, branch }: GitMergeRequestsProps) {
   const error = current?.error ?? (list ? null : (branchResult?.error ?? null))
   const count = list ? (filterActive(filter) ? `${items.length}/${list.items.length}` : `${list.items.length}${list.truncated ? '+' : ''}`) : ''
   const handleRefresh = () => refreshMergeRequests(root, branch)
+  const handleCreate = () => openMergeRequestForm(root, branch ?? undefined)
   const handleOpenList = (event: MouseEvent) => {
     if (forge) {
       openMergeRequest(listPageOf(forge), event.shiftKey)
@@ -71,6 +73,9 @@ export function GitMergeRequests({ root, branch }: GitMergeRequestsProps) {
         {current?.loading && <Spinner />}
         <span className="ml-auto" />
         {branch && <MergeRequestPill path={root} branch={branch} className="min-w-0 text-[11px]" />}
+        <button type="button" className={PANEL_HEADER_BUTTON} data-tip={branch ? `Créer une ${noun} depuis « ${branch} »` : `Créer une ${noun}`} aria-label={`Créer une ${noun}`} onClick={handleCreate}>
+          <Icon name={IconName.Plus} />
+        </button>
         <button type="button" className={PANEL_HEADER_BUTTON} data-tip={`Actualiser les ${noun}`} aria-label={`Actualiser les ${noun}`} onClick={handleRefresh}>
           <Icon name={IconName.Refresh} />
         </button>

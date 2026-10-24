@@ -5,7 +5,7 @@ namespace Tily.Core.Forge;
 
 public interface IForgeCommandRunner
 {
-    ForgeOutputModel Run(ForgeKind kind, string directory, IReadOnlyList<string> arguments);
+    ForgeOutputModel Run(ForgeKind kind, string directory, IReadOnlyList<string> arguments, string? input = null);
 }
 
 public sealed class ForgeCliRunner : IForgeCommandRunner
@@ -19,13 +19,18 @@ public sealed class ForgeCliRunner : IForgeCommandRunner
 
     public static string CliName(ForgeKind kind) => kind == ForgeKind.GitHub ? "gh" : "glab";
 
-    public ForgeOutputModel Run(ForgeKind kind, string directory, IReadOnlyList<string> arguments)
+    public ForgeOutputModel Run(ForgeKind kind, string directory, IReadOnlyList<string> arguments, string? input = null)
     {
         var executable = Locate(kind) ?? throw new ForgeException(MissingCli(kind));
         using var process = new Process { StartInfo = StartInfo(executable, directory, arguments) };
         process.Start();
         var output = process.StandardOutput.ReadToEndAsync();
         var error = process.StandardError.ReadToEndAsync();
+        if (input is not null)
+        {
+            process.StandardInput.Write(input);
+        }
+
         process.StandardInput.Close();
         if (!process.WaitForExit(Timeout))
         {
@@ -60,6 +65,7 @@ public sealed class ForgeCliRunner : IForgeCommandRunner
             RedirectStandardInput = true,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
+            StandardInputEncoding = Utf8,
             StandardOutputEncoding = Utf8,
             StandardErrorEncoding = Utf8
         };

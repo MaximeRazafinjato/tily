@@ -5,6 +5,7 @@ import { Command, runCommand } from '../keyboard/shortcuts'
 import { DEFAULT_FONT_SIZE, MAX_FONT_SIZE, MIN_FONT_SIZE } from '../model/appearance'
 import { activeTab, activeWorkspace, distinctWorkspaceName, FAVORITES_MAX, folderName, isLeaf, panesOf, type Pane, type Session, type Tab, type Workspace } from '../model/session'
 import { canSearchCommits } from '../git/commitSearch'
+import { createMergeRequestLabel, openMergeRequestForm } from '../forge/mergeRequestFormActions'
 import { useAgentStore } from '../store/agentStore'
 import { useHostStore } from '../store/hostStore'
 import { useSessionStore } from '../store/sessionStore'
@@ -107,6 +108,11 @@ const commandItems = (session: Session, shells: ShellProfile[]): PaletteItem[] =
       bound('refresh-git', 'Actualiser la vue Git', Command.RefreshGit, 'F5 dans la vue Git'),
     )
     const context = useHostStore.getState().contexts[paneId]
+    const pane = panesOf(tab.tree).find((candidate) => candidate.id === paneId)
+    if (pane && context?.branch) {
+      const { branch } = context
+      items.push(command('create-merge-request', `${createMergeRequestLabel(pane.path, branch)}…`, () => openMergeRequestForm(pane.path, branch), `depuis ${branch}`))
+    }
     if (context?.worktreeRoot) {
       items.push(bound('remove-worktree', `Supprimer ce worktree${SEPARATOR}${worktreeTarget(context.worktreeRoot).name}…`, Command.RemoveWorktree))
     }

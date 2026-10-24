@@ -19,6 +19,7 @@ import { useGitStore } from '../store/gitStore'
 import { usePreviewStore } from '../store/previewStore'
 import { useMcpConsentStore } from '../store/mcpConsentStore'
 import { usePasteStore } from '../store/pasteStore'
+import { mergeRequestFormOpen } from '../store/mergeRequestFormStore'
 import { worktreeModalOpen } from '../store/worktreeStore'
 import { filePickerOpen } from '../store/filePickerStore'
 import { commitPickerOpen } from '../store/commitPickerStore'
@@ -30,6 +31,7 @@ import { togglePaneZoom, useEndZoomWhenPaneChanges, zoomedPaneOf } from '../term
 import { AttentionToasts } from './AttentionToasts'
 import { CloseConfirmDialog } from './CloseConfirmDialog'
 import { McpConsentDialog } from './McpConsentDialog'
+import { MergeRequestDialog } from './MergeRequestDialog'
 import { PasteConfirmDialog } from './PasteConfirmDialog'
 import { CommandPalette } from './CommandPalette'
 import { DeleteConfirmDialog } from './DeleteConfirmDialog'
@@ -176,7 +178,7 @@ const handleCancelGit = (): void => {
 
 const confirmationOpen = (): boolean => {
   const { settingsOpen, closeConfirmation } = useUiStore.getState()
-  return settingsOpen || closeConfirmation !== null || useExplorerStore.getState().deleteRequest !== null || useGitStore.getState().confirmation !== null || usePasteStore.getState().request !== null || useMcpConsentStore.getState().queue.length > 0 || worktreeModalOpen() || filePickerOpen() || commitPickerOpen() || globalSearchOpen() || usePreviewStore.getState().pendingAction !== null
+  return settingsOpen || closeConfirmation !== null || useExplorerStore.getState().deleteRequest !== null || useGitStore.getState().confirmation !== null || usePasteStore.getState().request !== null || useMcpConsentStore.getState().queue.length > 0 || worktreeModalOpen() || mergeRequestFormOpen() || filePickerOpen() || commitPickerOpen() || globalSearchOpen() || usePreviewStore.getState().pendingAction !== null
 }
 
 const modalOpen = (): boolean => {
@@ -404,6 +406,7 @@ export function AppShell({ session }: AppShellProps) {
       {paletteOpen && <CommandPalette session={session} shells={availableShells} onClose={handleClosePalette} onRun={handleRunPaletteItem} onToggleFavorite={toggleFavoriteCommand} />}
       {deleteRequest && <DeleteConfirmDialog request={deleteRequest} onConfirm={confirmDelete} onCancel={handleCancelDelete} />}
       <WorktreeDialogs />
+      <MergeRequestDialog />
       {gitConfirmation && <GitConfirmDialog confirmation={gitConfirmation} onConfirm={handleConfirmGit} onCancel={handleCancelGit} />}
       {closeConfirmation && <CloseConfirmDialog confirmation={closeConfirmation} onConfirm={confirmClose} onCancel={handleCancelClose} />}
       <PasteConfirmDialog />
