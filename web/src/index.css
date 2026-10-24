@@ -53,6 +53,7 @@
   --color-tily-syntax-comment: #6d746f;
   --color-tily-search-match: #4a3f24;
   --color-tily-search-active: #7a5f26;
+  --color-tily-forge-merged: #a98fc9;
   --font-sans: 'Segoe UI Variable', 'Segoe UI', system-ui, sans-serif;
   --font-mono: 'CaskaydiaCove Nerd Font Mono', 'Cascadia Mono', 'Cascadia Code', Consolas, 'Symbols Nerd Font Mono', monospace;
 }

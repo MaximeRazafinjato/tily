@@ -14,12 +14,13 @@ interface ActionMenuProps {
   emptyMessage?: string
   header?: ReactNode
   align?: 'left' | 'right'
+  scrollable?: boolean
   onClose: () => void
 }
 
 const itemsOf = (menu: HTMLDivElement | null): HTMLButtonElement[] => Array.from(menu?.querySelectorAll('button:not(:disabled)') ?? [])
 
-export function ActionMenu({ label, items, emptyMessage, header, align = 'left', onClose }: ActionMenuProps) {
+export function ActionMenu({ label, items, emptyMessage, header, align = 'left', scrollable = false, onClose }: ActionMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -54,7 +55,7 @@ export function ActionMenu({ label, items, emptyMessage, header, align = 'left',
       ref={menuRef}
       role="menu"
       aria-label={label}
-      className={`absolute top-full z-20 mt-1 w-max max-w-[360px] min-w-[190px] rounded-md border border-tily-line bg-tily-panel p-1 shadow-lg ${align === 'right' ? 'right-0' : 'left-0'}`}
+      className={`absolute top-full z-20 mt-1 w-max max-w-[360px] min-w-[190px] rounded-md border border-tily-line bg-tily-panel p-1 shadow-lg ${align === 'right' ? 'right-0' : 'left-0'} ${scrollable ? 'max-h-[min(50vh,360px)] overflow-y-auto' : ''}`}
       onKeyDown={handleKeyDown}
     >
       {header}

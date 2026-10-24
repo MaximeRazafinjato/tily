@@ -11,6 +11,7 @@ import { GitBanners } from './GitBanners'
 import { GitChangesView } from './GitChangesView'
 import { GitCommitDetail } from './GitCommitDetail'
 import { GitHeader } from './GitHeader'
+import { GitMergeRequests } from './GitMergeRequests'
 import { GitPromptBar } from './GitPromptBar'
 import { GIT_SECONDARY, SECTION_TITLE } from './rightPanelStyles'
 
@@ -86,6 +87,7 @@ export function GitPanel({ folder }: GitPanelProps) {
         <GitHeader state={state} busy={busy} />
         <GitBanners state={state} busy={busy} />
         {prompt && <GitPromptBar key={`${prompt.kind}\n${prompt.target ?? ''}`} prompt={prompt} />}
+        <GitMergeRequests root={state.root} branch={state.head.detached ? null : (state.head.branch ?? null)} />
         {commit ? (
           <GitCommitDetail state={state} busy={busy} />
         ) : (

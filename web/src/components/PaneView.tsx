@@ -11,6 +11,7 @@ import { clearPaneScrollback, copyLastCommandOutput, copyPaneSelection, focusPan
 import { movePaneToNewTab } from '../terminal/tabLifecycle'
 import { TerminalPane } from '../terminal/TerminalPane'
 import { AgentBadge } from './AgentBadge'
+import { MergeRequestPill } from './MergeRequestPill'
 import { AgentOwnerMark } from './AgentOwnerMark'
 import { PaneOverlay } from './PaneOverlay'
 import { PaneSearchBar } from './PaneSearchBar'
@@ -197,6 +198,7 @@ export const PaneView = memo(function PaneView({ pane, active, zoomed, onToggleZ
             <span className="truncate py-1 [text-box:trim-both_cap_alphabetic]">{branchLabel}</span>
           </button>
         )}
+        {context?.branch && <MergeRequestPill path={pane.path} branch={context.branch} className="@max-[520px]:hidden" />}
         <button type="button" className={SECONDARY_BUTTON} data-tip={`Copier le chemin ${pane.path}`} aria-label="Copier le chemin" onClick={handleCopyPath}>
           <CopyIcon />
         </button>

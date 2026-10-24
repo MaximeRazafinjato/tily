@@ -1,5 +1,6 @@
 import type { Session } from '../model/session'
 import type { BrowserHostMessage, BrowserWebMessage } from './browserMessages'
+import type { ForgeHostMessage, ForgeWebMessage } from './forgeMessages'
 import type { GitChangeKind, GitHostMessage, GitSettings, GitWebMessage } from './gitMessages'
 import type { McpHostMessage, McpServerInfo, McpWebMessage } from './mcpMessages'
 import type { PreviewHostMessage, PreviewKind, PreviewWebMessage } from './previewMessages'
@@ -209,6 +210,7 @@ export type HostToWebMessage =
   | { type: 'files.searched'; path: string; root: string; files: string[]; changed: string[]; truncated: boolean; error?: string }
   | { type: 'error'; pane?: string; message: string }
   | GitHostMessage
+  | ForgeHostMessage
   | PreviewHostMessage
   | WorktreeHostMessage
   | UpdateHostMessage
@@ -258,6 +260,7 @@ export type WebToHostMessage =
   | { type: 'window.closeCancel' }
   | { type: 'window.title'; title: string }
   | GitWebMessage
+  | ForgeWebMessage
   | PreviewWebMessage
   | WorktreeWebMessage
   | UpdateWebMessage

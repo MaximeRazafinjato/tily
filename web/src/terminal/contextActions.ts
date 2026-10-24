@@ -1,5 +1,6 @@
 import { bridge } from '../bridge/bridge'
 import { OpenTarget, type GitContext } from '../bridge/messages'
+import { requestBranchMergeRequests } from '../forge/mergeRequestActions'
 import { allPanes, type Pane } from '../model/session'
 import { StatusLevel, useHostStore } from '../store/hostStore'
 import { useSessionStore } from '../store/sessionStore'
@@ -40,6 +41,9 @@ export const queryContext = (paneId: string): void => {
 
 export const receiveContext = (paneId: string, path: string, git: GitContext): void => {
   useHostStore.getState().setContext(paneId, git)
+  if (git.branch) {
+    requestBranchMergeRequests(path, git.branch)
+  }
   if (pendingBranchCopies.delete(paneId)) {
     copyBranchFrom(git, path)
   }

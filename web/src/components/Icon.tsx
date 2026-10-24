@@ -20,6 +20,14 @@ const SHAPES: Record<IconName, ReactNode> = {
     </>
   ),
   [IconName.Browser]: <path d="M5 2.2H2.6a.8.8 0 0 0-.8.8v6.4a.8.8 0 0 0 .8.8H9a.8.8 0 0 0 .8-.8V7M7.2 1.8h3v3M10.2 1.8 5.6 6.4" />,
+  [IconName.MergeRequest]: (
+    <>
+      <circle cx="3" cy="2.5" r="1.2" />
+      <circle cx="3" cy="9.5" r="1.2" />
+      <circle cx="9" cy="9.5" r="1.2" />
+      <path d="M3 3.7v4.6M9 8.3V5a1.5 1.5 0 0 0-1.5-1.5H5.6M7 2.1 5.6 3.5 7 4.9" />
+    </>
+  ),
   [IconName.Check]: <path d="M2.5 6.3 5 8.8l4.5-5.3" />,
   [IconName.Search]: (
     <>
