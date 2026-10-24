@@ -8,6 +8,7 @@ using Tily.Core.Projects;
 using Tily.Core.Session;
 using Tily.Core.Settings;
 using Tily.Core.Shell;
+using Tily.Core.Shortcuts;
 using Tily.Core.StatusLog;
 using Tily.Core.Terminal;
 using Tily.Core.Worktrees;
@@ -85,7 +86,7 @@ public sealed class HostBridge : IDisposable
         _worktrees = new WorktreeFeed(Post, () => _settings, RememberWorktreeFolder, _git.RefreshSoon, PostBackgroundError, dataDirectory);
         _updates = new UpdateFeed(Post, ApplicationVersion, dataDirectory);
         _mcp = new McpFeed(dataDirectory, Post, PostBackgroundError);
-        _browsers = new BrowserFeed(browserLayer, () => _core?.Environment, Post, focusInterface);
+        _browsers = new BrowserFeed(browserLayer, () => _core?.Environment, Post, focusInterface, () => ShortcutRules.InterceptedChords(_settings.Shortcuts));
         ApplySettings(_settings);
         _terminals.OutputReceived += HandleOutput;
         _terminals.CurrentDirectoryChanged += HandleCurrentDirectoryChanged;
@@ -398,6 +399,7 @@ public sealed class HostBridge : IDisposable
         _texts = new PaneTextRepository(_dataDirectory, _persistence.MaxTextBytes);
         _terminals.UpdatePaths(_shellPaths);
         _updates.Configure(settings.Updates.AutoCheck);
+        _browsers.UpdateShortcuts();
     }
 
     private void PostSettings(bool saved)
@@ -415,6 +417,7 @@ public sealed class HostBridge : IDisposable
             agents = _agents.Describe(),
             mcp = _mcp.Describe(),
             notifications = _notifier.Describe(),
+            shortcutDefaults = ShortcutSettingsModel.Default,
             saved
         });
     }
@@ -455,6 +458,7 @@ public sealed class HostBridge : IDisposable
             text = text.Text,
             persistence = _persistence,
             appearance = _settings.Appearance,
+            shortcuts = _settings.Shortcuts,
             statusLog = _statusLog.Entries(),
             recovery = recovery.Length > 0 ? recovery : null
         });

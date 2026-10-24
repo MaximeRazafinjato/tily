@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ChangeEvent, type KeyboardEvent, type MouseEvent, type PointerEvent } from 'react'
-import { AttentionKind, PickTarget, type ImportedPreferences, type NotificationSettings, type PersistenceSettings, type PickedPath, type Settings, type SettingsSnapshot } from '../bridge/messages'
+import { AttentionKind, PickTarget, type ImportedPreferences, type NotificationSettings, type PersistenceSettings, type PickedPath, type Settings, type SettingsSnapshot, type ShortcutSettings } from '../bridge/messages'
 import type { WorktreeProjectFolder, WorktreeSettings } from '../bridge/worktreeMessages'
 import { revealInExplorer } from '../explorer/fileExplorerActions'
 import { useHostStore } from '../store/hostStore'
@@ -7,6 +7,7 @@ import { AppearanceSettingsSection } from './AppearanceSettingsSection'
 import { keepTabInside } from './focusTrap'
 import { InfoTip } from './InfoTip'
 import { McpSettingsSection } from './McpSettingsSection'
+import { ShortcutSettingsSection } from './ShortcutSettingsSection'
 import { SETTINGS_BROWSE, SETTINGS_BUTTON, SETTINGS_HINT, SETTINGS_INPUT, SETTINGS_INPUT_BASE, SETTINGS_LABEL, SETTINGS_ROW } from './settingsStyles'
 import { SoundSetting } from './SoundSetting'
 import { UpdateSettingsSection } from './UpdateSettingsSection'
@@ -206,6 +207,7 @@ export function SettingsDialog({ snapshot, pickedPath, imported, onClose, onSave
   const handleTestDoneNotification = () => testNotification(AttentionKind.Done)
   const handleAutoCheckChange = (autoCheck: boolean) => updateDraft({ updates: { autoCheck } })
   const handleFontSizeChange = (fontSize: number) => updateDraft({ appearance: { fontSize } })
+  const handleShortcutsChange = (shortcuts: ShortcutSettings) => updateDraft({ shortcuts })
   const handleRevealFiles = () => {
     if (snapshot) {
       revealInExplorer(snapshot.files.shells)
@@ -252,6 +254,7 @@ export function SettingsDialog({ snapshot, pickedPath, imported, onClose, onSave
         })}
       </section>
       <AppearanceSettingsSection sectionClassName={SECTION} fontSize={settings.appearance.fontSize} onFontSizeChange={handleFontSizeChange} />
+      <ShortcutSettingsSection sectionClassName={SECTION} shortcuts={settings.shortcuts} defaults={current.shortcutDefaults} onChange={handleShortcutsChange} />
       <section className="flex flex-col gap-2">
         <h3 className={SECTION}>Éditeur</h3>
         <div className="flex flex-col gap-1">

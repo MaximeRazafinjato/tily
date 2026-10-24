@@ -324,7 +324,7 @@ Le principe d’une touche Leader est retenu. Le raccourci par défaut est **Ctr
 
 | Séquence Leader | Raccourci direct | Action |
 | --- | --- | --- |
-| Ctrl + Espace, puis P | Ctrl + P ou Ctrl + Maj + P | Palette |
+| Ctrl + Espace, puis P | Ctrl + P | Palette |
 | Ctrl + Espace, puis T | Ctrl + Maj + T | Nouvel onglet PowerShell |
 | Ctrl + Espace, puis V | Ctrl + Maj + D | Split côte à côte |
 | Ctrl + Espace, puis H | Ctrl + Maj + H | Split haut/bas |
@@ -337,6 +337,8 @@ Le principe d’une touche Leader est retenu. Le raccourci par défaut est **Ctr
 | — | Ctrl + Maj + F | Recherche dans le terminal du pane actif (section 8) |
 
 Les séquences Leader sont consommées par l’application uniquement lorsqu’elles correspondent à une commande active. Une commande non reconnue ou expirée rend la saisie au pane actif ; les raccourcis personnalisés peuvent désactiver ou remplacer les valeurs par défaut.
+
+**Retenu (23 octobre 2026, issue #159).** Les raccourcis se modifient dans Paramètres, section « Raccourcis clavier » : la touche Leader (combinaison libre, sauf Alt + F4, Ctrl + Maj + C et Ctrl + Maj + V), son délai (1 à 60 s), et pour chaque commande clavier ou commande fixe de la palette (hors entrées propres à une cible : rejoindre un onglet, déplacer vers un workspace, onglets fermés, navigation) au plus un raccourci direct et au plus une touche après le Leader, chacun désactivable. Un raccourci direct passe par Ctrl ou Alt, sauf touche de fonction ou Maj + touche non imprimable ; Ctrl + lettre seule reste au shell (sauf Ctrl + P), Ctrl + Maj + C / V, Maj + Entrée, Ctrl + Entrée et Alt + F4 sont réservés. Après le Leader : une touche seule, avec Maj au besoin ; 1 à 9 et Échap restent réservés. La saisie se fait au clavier (cliquer puis appuyer sur la combinaison) ; un raccourci déjà pris passe à la nouvelle commande, l’ancienne le perd et un message le signale. Les infobulles, la palette, les menus et l’aide du Leader affichent les raccourcis en vigueur. Une commande de contexte lancée sans son contexte (aucun worktree, aucun autre onglet…) consomme la touche et l’explique dans la barre de statut. L’hôte valide les raccourcis et les enregistre dans `shortcuts.json` (écarts aux valeurs par défaut seulement), repris par l’export et l’import des préférences. Ctrl + Maj + P n’ouvre plus la palette par défaut.
 
 **Convention proposée.** Leader puis un chiffre de 1 à 9 (touches de la rangée du haut, sans Maj en AZERTY) affiche l’onglet correspondant du workspace actif, 9 affichant le dernier, comme les navigateurs et le préfixe de tmux ; un onglet absent est signalé dans la barre de statut.
 

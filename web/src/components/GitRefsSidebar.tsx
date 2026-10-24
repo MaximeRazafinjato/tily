@@ -20,6 +20,8 @@ import { GitSection } from './GitSection'
 import { Icon } from './Icon'
 import { IconName } from './iconName'
 import { ROW_ACTION } from './rightPanelStyles'
+import { Command } from '../keyboard/commands'
+import { shortcutText, withShortcut } from '../keyboard/shortcutLabels'
 
 interface GitRefsSidebarProps {
   state: GitState
@@ -296,7 +298,7 @@ export function GitRefsSidebar({ state, width }: GitRefsSidebarProps) {
       <GitSection title="Stash" count={state.stashes.length} expanded={!collapsed[STASHES]} empty="Aucun stash." onToggle={toggle(STASHES)} actions={headerButton(IconName.Stash, clean ? 'Aucune modification à stash' : 'Stash des modifications', promptStash, clean)}>
         {state.stashes.map(renderStash)}
       </GitSection>
-      <GitSection title="Worktrees" count={state.worktrees.length} expanded={!collapsed[WORKTREES]} empty="Aucun worktree." onToggle={toggle(WORKTREES)} actions={headerButton(IconName.Plus, 'Créer un worktree (Leader puis N)', handleNewWorktree)}>
+      <GitSection title="Worktrees" count={state.worktrees.length} expanded={!collapsed[WORKTREES]} empty="Aucun worktree." onToggle={toggle(WORKTREES)} actions={headerButton(IconName.Plus, withShortcut('Créer un worktree', shortcutText(Command.CreateWorktree)), handleNewWorktree)}>
         {state.worktrees.map(renderWorktree)}
       </GitSection>
     </div>

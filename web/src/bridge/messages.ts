@@ -60,6 +60,17 @@ export interface AppearanceSettings {
   fontSize: number
 }
 
+export interface ShortcutBinding {
+  direct: string
+  leader: string
+}
+
+export interface ShortcutSettings {
+  leader: string
+  leaderTimeoutSeconds: number
+  bindings: Record<string, ShortcutBinding>
+}
+
 export interface PersistenceSettings {
   textIntervalSeconds: number
   linesPerPane: number
@@ -99,6 +110,7 @@ export interface Settings {
   git: GitSettings
   updates: UpdateSettings
   appearance: AppearanceSettings
+  shortcuts: ShortcutSettings
 }
 
 interface ShellSetting {
@@ -135,6 +147,7 @@ export interface SettingsSnapshot {
   agents: AgentHooksInfo
   mcp: McpServerInfo
   notifications: NotificationAvailability
+  shortcutDefaults: ShortcutSettings
 }
 
 export interface Project {
@@ -168,7 +181,7 @@ export interface PaneAgent {
 
 export type HostToWebMessage =
   | { type: 'appearance.changed'; fontSize: number }
-  | { type: 'app.hello'; version: string; session: Session; shells: ShellProfile[]; home: string; text: Record<string, string>; persistence: PersistenceSettings; appearance: AppearanceSettings; statusLog: StatusLogEntry[]; recovery?: string }
+  | { type: 'app.hello'; version: string; session: Session; shells: ShellProfile[]; home: string; text: Record<string, string>; persistence: PersistenceSettings; appearance: AppearanceSettings; shortcuts: ShortcutSettings; statusLog: StatusLogEntry[]; recovery?: string }
   | { type: 'app.closing'; activity: PaneActivity[] }
   | { type: 'session.saved' }
   | { type: 'session.saveFailed'; message: string }

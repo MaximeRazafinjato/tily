@@ -6,18 +6,26 @@ namespace Tily.Core.Tests.Browser;
 public sealed class BrowserPageScriptTests
 {
     [Fact]
-    public void Keys_WhenLetters_ThenOnlyDistinctLowercaseAsciiKept()
+    public void Keys_WhenChordRepeated_ThenListedOnce()
     {
-        var script = BrowserPageScript.Keys("ptdp'</script>Xé");
+        var script = BrowserPageScript.Keys(["Ctrl+Alt+F9", "Ctrl+Alt+F9"]);
 
-        Assert.Contains("const letters = 'ptdscri';", script);
+        Assert.Single(script.Split("F9").Skip(1));
     }
 
     [Fact]
-    public void Keys_WhenNoLetters_ThenEmptyListAndKeyMessageType()
+    public void Keys_WhenChordContainsScriptTag_ThenEscaped()
     {
-        var script = BrowserPageScript.Keys(null);
+        var script = BrowserPageScript.Keys(["</script>"]);
 
-        Assert.Equal((true, true), (script.Contains("const letters = '';"), script.Contains($"type: '{BrowserPageScript.KeyMessage}'")));
+        Assert.DoesNotContain("</script>", script);
+    }
+
+    [Fact]
+    public void Keys_WhenNoChords_ThenEmptyListAndKeyMessageType()
+    {
+        var script = BrowserPageScript.Keys([]);
+
+        Assert.Equal((true, true), (script.Contains("new Set([])"), script.Contains($"type: '{BrowserPageScript.KeyMessage}'")));
     }
 }

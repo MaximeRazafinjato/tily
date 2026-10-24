@@ -63,6 +63,8 @@ Aucun droit administrateur n’est nécessaire. Tily vérifie ensuite lui-même 
 
 ## Raccourcis clavier
 
+Valeurs par défaut : la touche Leader, son délai et chaque raccourci se changent dans Paramètres, section « Raccourcis clavier ».
+
 | Leader (Ctrl + Espace, puis…) | Raccourci direct | Action |
 | --- | --- | --- |
 | P | Ctrl + P | Palette |

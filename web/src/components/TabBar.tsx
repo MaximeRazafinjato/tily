@@ -19,6 +19,8 @@ import { InlineNameEditor } from './InlineNameEditor'
 import { ShellMenu } from './ShellMenu'
 import { TabContextMenu, type TabMenuActions, type TabMenuRequest } from './TabContextMenu'
 import { beginTabDrag, isDropTarget, type MoveTabHandler } from './tabDrag'
+import { Command } from '../keyboard/commands'
+import { usePanelShortcuts, useShortcutText, withShortcut } from '../keyboard/shortcutLabels'
 
 interface TabBarProps {
   workspace: Workspace
@@ -75,6 +77,8 @@ const focusNeighbourTab = (tabButton: HTMLElement, offset: number): void => {
 
 export function TabBar({ workspace, shells, renamingTabId, panelOpen, onTogglePanel, onSelect, onStartRename, onCommitRename, onCancelRename, onClose, onCloseOthers, onShift, onDuplicate, onNew, onMove }: TabBarProps) {
   const [menuOpen, setMenuOpen] = useState(false)
+  const newTabShortcut = useShortcutText(Command.NewTab)
+  const panelShortcuts = usePanelShortcuts()
   const [tabMenu, setTabMenu] = useState<TabMenuRequest | null>(null)
   const [fade, setFade] = useState<StripFade>(NO_FADE)
   const addButtonRef = useRef<HTMLButtonElement>(null)
@@ -247,7 +251,7 @@ export function TabBar({ workspace, shells, renamingTabId, panelOpen, onTogglePa
           aria-haspopup="menu"
           aria-expanded={menuOpen}
           className="cursor-pointer rounded px-2 py-1 text-base hover:bg-tily-green-hover"
-          data-tip="Nouvel onglet PowerShell (Ctrl + Maj + T ; clic droit : choisir le shell ou un navigateur ; double-clic dans l’espace vide de la barre : nouvel onglet)"
+          data-tip={`Nouvel onglet PowerShell (${newTabShortcut ? `${newTabShortcut} ; ` : ''}clic droit : choisir le shell ou un navigateur ; double-clic dans l’espace vide de la barre : nouvel onglet)`}
           onClick={handleNewDefault}
           onContextMenu={handleContextMenu}
           onKeyDown={handleAddKeyDown}
@@ -261,7 +265,7 @@ export function TabBar({ workspace, shells, renamingTabId, panelOpen, onTogglePa
         aria-pressed={panelOpen}
         aria-label={panelOpen ? 'Masquer le panneau de droite' : 'Afficher le panneau de droite'}
         className={`mb-1 ml-auto flex h-[26px] shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-md px-2 text-xs hover:bg-tily-green-hover hover:text-tily-ink ${panelOpen ? 'text-tily-green-deep' : 'text-tily-muted'}`}
-        data-tip={`${panelOpen ? 'Masquer' : 'Afficher'} le panneau Fichiers / Git / Notes (Ctrl + Maj + E, G ou O)`}
+        data-tip={withShortcut(`${panelOpen ? 'Masquer' : 'Afficher'} le panneau Fichiers / Git / Notes`, panelShortcuts)}
         onClick={onTogglePanel}
       >
         <Icon name={IconName.Explorer} size={14} />
