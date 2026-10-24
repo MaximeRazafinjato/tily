@@ -1,7 +1,6 @@
 import { Terminal, type IMarker } from '@xterm/xterm'
 import { FitAddon } from '@xterm/addon-fit'
 import { WebglAddon } from '@xterm/addon-webgl'
-import { CanvasAddon } from '@xterm/addon-canvas'
 import { Unicode11Addon } from '@xterm/addon-unicode11'
 import { ClipboardAddon } from '@xterm/addon-clipboard'
 import { SerializeAddon } from '@xterm/addon-serialize'
@@ -37,7 +36,6 @@ const FONT_FAMILY = '"CaskaydiaCove Nerd Font Mono", "Cascadia Mono", "Cascadia 
 
 enum Renderer {
   WebGl = 'webgl',
-  Canvas = 'canvas',
   Dom = 'dom',
 }
 
@@ -52,7 +50,7 @@ export interface TerminalHandle {
   fit: FitAddon
   serializer: SerializeAddon
   renderer: Renderer
-  rendererAddon?: WebglAddon | CanvasAddon
+  rendererAddon?: WebglAddon
   shownAt: number
   started: boolean
   unackedChars: number
@@ -83,17 +81,6 @@ const releaseRenderer = (handle: TerminalHandle): void => {
   handle.renderer = Renderer.Dom
 }
 
-const loadCanvas = (handle: TerminalHandle): void => {
-  try {
-    const canvas = new CanvasAddon()
-    handle.terminal.loadAddon(canvas)
-    handle.rendererAddon = canvas
-    handle.renderer = Renderer.Canvas
-  } catch {
-    handle.renderer = Renderer.Dom
-  }
-}
-
 const loadWebgl = (handle: TerminalHandle): void => {
   releaseRenderer(handle)
   try {
@@ -101,9 +88,6 @@ const loadWebgl = (handle: TerminalHandle): void => {
     webgl.onContextLoss(() => {
       if (handle.rendererAddon === webgl) {
         releaseRenderer(handle)
-        if (isShown(handle)) {
-          loadCanvas(handle)
-        }
       }
     })
     handle.terminal.loadAddon(webgl)
@@ -111,7 +95,6 @@ const loadWebgl = (handle: TerminalHandle): void => {
     handle.renderer = Renderer.WebGl
   } catch {
     webglUnavailable = true
-    loadCanvas(handle)
   }
 }
 
@@ -129,15 +112,9 @@ const releaseLeastRecentlyShownWebgl = (): void => {
 
 const showWithGpu = (handle: TerminalHandle): void => {
   handle.shownAt = performance.now()
-  if (handle.renderer !== Renderer.WebGl) {
-    if (webglUnavailable) {
-      if (handle.renderer === Renderer.Dom) {
-        loadCanvas(handle)
-      }
-    } else {
-      loadWebgl(handle)
-      releaseLeastRecentlyShownWebgl()
-    }
+  if (handle.renderer !== Renderer.WebGl && !webglUnavailable) {
+    loadWebgl(handle)
+    releaseLeastRecentlyShownWebgl()
   }
 }
 
