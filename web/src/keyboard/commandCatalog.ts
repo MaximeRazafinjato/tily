@@ -19,6 +19,7 @@ export const COMMAND_GROUPS: CommandGroup[] = [
       { command: Command.Settings, label: 'Paramètres', hint: 'paramètres' },
       { command: Command.Projects, label: 'Ouvrir un projet', hint: 'projet' },
       { command: Command.OpenFile, label: 'Ouvrir un fichier du projet…', hint: 'fichier du projet' },
+      { command: Command.SearchTerminals, label: 'Rechercher dans tous les terminaux…', hint: 'rechercher partout' },
       { command: Command.FontLarger, label: 'Agrandir le texte des terminaux', hint: 'texte plus grand' },
       { command: Command.FontSmaller, label: 'Réduire le texte des terminaux', hint: 'texte plus petit' },
       { command: Command.FontDefault, label: 'Taille du texte des terminaux par défaut', hint: 'taille du texte par défaut' },
@@ -80,6 +81,7 @@ export const COMMAND_GROUPS: CommandGroup[] = [
     entries: [
       { command: Command.PreviousCommand, label: 'Remonter à la commande précédente', hint: 'commande précédente' },
       { command: Command.NextCommand, label: 'Descendre à la commande suivante', hint: 'commande suivante' },
+      { command: Command.SearchPane, label: 'Rechercher dans le terminal du pane actif…', hint: 'rechercher' },
       { command: Command.CopyPath, label: 'Copier le chemin du pane actif', hint: 'copier le chemin' },
       { command: Command.CopyBranch, label: 'Copier la branche Git du pane actif', hint: 'copier la branche' },
       { command: Command.CopyLastOutput, label: 'Copier la sortie de la dernière commande', hint: 'copier la dernière sortie' },

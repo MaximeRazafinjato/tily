@@ -43,6 +43,7 @@ public static class ShortcutCatalog
         new("previousTab", "Ctrl+Shift+Tab"),
         new("previousCommand", "Alt+PageUp"),
         new("nextCommand", "Alt+PageDown"),
+        new("searchPane", "Ctrl+Shift+F"),
         new("browserBelow"),
         new("browserTab"),
         new("openWorktree"),
@@ -73,7 +74,8 @@ public static class ShortcutCatalog
         new("fontSmaller"),
         new("fontDefault"),
         new("settingsExport"),
-        new("settingsImport")
+        new("settingsImport"),
+        new("searchTerminals")
     ];
 
     public static bool Contains(string id) => Commands.Any(command => command.Id == id);

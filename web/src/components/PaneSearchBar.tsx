@@ -1,5 +1,6 @@
 import { useEffect, useRef, type ChangeEvent, type KeyboardEvent } from 'react'
 import { useShallow } from 'zustand/react/shallow'
+import { isPaneSearchShortcut } from '../keyboard/shortcuts'
 import { useTerminalSearchStore } from '../store/terminalSearchStore'
 import { openGlobalSearch } from '../terminal/globalSearch'
 import { changeSearchQuery, closePaneSearch, findInPane, isQueryValid, SearchDirection, searchOptionOf, searchResultLabel, toggleSearchOption } from '../terminal/paneSearch'
@@ -8,7 +9,6 @@ import { IconName } from './iconName'
 import { SearchOptionToggles } from './SearchOptionToggles'
 
 const BAR_BUTTON = 'flex h-5 min-w-5 shrink-0 cursor-pointer items-center justify-center rounded px-1 text-tily-muted hover:bg-tily-green-hover hover:text-tily-ink focus:outline-none'
-const SEARCH_AGAIN_CODE = 'KeyF'
 
 const handleButtonPointerDown = (event: React.PointerEvent<HTMLButtonElement>) => event.preventDefault()
 const handlePrevious = () => findInPane(SearchDirection.Previous)
@@ -43,7 +43,7 @@ export function PaneSearchBar() {
     } else if (event.key === 'Escape') {
       event.preventDefault()
       closePaneSearch()
-    } else if (event.ctrlKey && event.shiftKey && event.code === SEARCH_AGAIN_CODE) {
+    } else if (isPaneSearchShortcut(event.nativeEvent)) {
       event.preventDefault()
       inputRef.current?.select()
     }
