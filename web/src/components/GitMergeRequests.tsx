@@ -4,7 +4,7 @@ import { ForgeKind, type ForgeRemote, type MergeRequest } from '../bridge/forgeM
 import { listMergeRequests, openMergeRequest, refreshMergeRequests, requestBranchMergeRequests, toggleMergeRequests } from '../forge/mergeRequestActions'
 import { filterActive, filterMergeRequests } from '../forge/mergeRequestFilter'
 import { openMergeRequestForm } from '../forge/mergeRequestFormActions'
-import { kindNoun, MERGE_REQUEST_LINK_HINT, sectionTitle, STATE_FILTER_LABELS } from '../forge/mergeRequestLabels'
+import { kindNoun, sectionTitle } from '../forge/mergeRequestLabels'
 import { branchKey, useForgeStore } from '../store/forgeStore'
 import { BranchEditMergeRequestButton } from './BranchEditMergeRequestButton'
 import { Icon } from './Icon'
@@ -52,9 +52,8 @@ export function GitMergeRequests({ root, branch }: GitMergeRequestsProps) {
       openMergeRequest(listPageOf(forge), event.shiftKey)
     }
   }
-  const emptyMessage = filterActive(filter)
-    ? `Aucune ${noun} ne correspond aux filtres.`
-    : `Aucune ${noun} (${STATE_FILTER_LABELS[filter.state].toLowerCase()}).`
+  const emptyMessage = filterActive(filter) ? `Aucune ${noun} ne correspond aux filtres.` : `Aucune ${noun} ouverte.`
+  const listLabel = forge ? `Toutes les ${noun} sur ${forge.host}` : ''
 
   return (
     <div className="flex max-h-[45%] shrink-0 flex-col border-t border-tily-line">
@@ -73,6 +72,11 @@ export function GitMergeRequests({ root, branch }: GitMergeRequestsProps) {
         <span className="ml-auto" />
         {branch && <MergeRequestPill path={root} branch={branch} className="min-w-0 text-[11px]" />}
         {branch && <BranchEditMergeRequestButton path={root} branch={branch} />}
+        {forge && (
+          <button type="button" className={PANEL_HEADER_BUTTON} data-tip={listLabel} aria-label={listLabel} onClick={handleOpenList}>
+            <Icon name={forge.kind === ForgeKind.GitHub ? IconName.GitHub : IconName.GitLab} />
+          </button>
+        )}
         <button type="button" className={PANEL_HEADER_BUTTON} data-tip={branch ? `Créer une ${noun} depuis « ${branch} »` : `Créer une ${noun}`} aria-label={`Créer une ${noun}`} onClick={handleCreate}>
           <Icon name={IconName.Plus} />
         </button>
@@ -85,8 +89,8 @@ export function GitMergeRequests({ root, branch }: GitMergeRequestsProps) {
           {error && <p className="px-[12px] pb-[6px] text-[12px] break-words text-tily-error">{error}</p>}
           {list && (
             <>
-              <MergeRequestFilters path={root} items={list.items} currentUser={list.currentUser} />
-              <div className="min-h-0 overflow-y-auto px-[2px] pb-[4px]" role="list" aria-label={sectionTitle(forge?.kind)}>
+              <MergeRequestFilters items={list.items} currentUser={list.currentUser} />
+              <div className="flex min-h-0 flex-col gap-[2px] overflow-y-auto px-[2px] py-[4px]" role="list" aria-label={sectionTitle(forge?.kind)}>
                 {items.length === 0 ? (
                   <p className="px-[10px] py-[4px] text-[12px] text-tily-muted italic">{emptyMessage}</p>
                 ) : (
@@ -98,11 +102,6 @@ export function GitMergeRequests({ root, branch }: GitMergeRequestsProps) {
                 )}
                 {list.truncated && <p className="px-[10px] py-[4px] text-[11px] text-tily-muted">{`Seules les ${list.items.length} ${noun} les plus récentes sont chargées.`}</p>}
               </div>
-              {forge && (
-                <button type="button" className="mx-[10px] mb-[6px] cursor-pointer self-start text-[11px] text-tily-muted hover:text-tily-ink hover:underline" data-tip={MERGE_REQUEST_LINK_HINT} onClick={handleOpenList}>
-                  {`Toutes les ${noun} sur ${forge.host}`}
-                </button>
-              )}
             </>
           )}
           {!list && !error && current?.loading && <p className="px-[12px] pb-[6px] text-[12px] text-tily-muted">{`Lecture des ${noun}…`}</p>}

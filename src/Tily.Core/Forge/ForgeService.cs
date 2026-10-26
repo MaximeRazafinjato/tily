@@ -48,11 +48,11 @@ public sealed class ForgeService
 
     public IForgeProvider ProviderFor(ForgeRemoteModel remote) => _providers[remote.Kind];
 
-    public MergeRequestListModel List(string path, MergeRequestStateFilter state)
+    public MergeRequestListModel List(string path)
     {
         var remote = Detect(path);
         var provider = ProviderFor(remote);
-        var items = provider.List(remote, path, new MergeRequestQueryModel(state, ListLimit));
+        var items = provider.List(remote, path, new MergeRequestQueryModel(ListLimit));
         return new MergeRequestListModel(remote, items, items.Count >= ListLimit, CurrentUser(provider, remote, path));
     }
 
@@ -263,7 +263,7 @@ public sealed class ForgeService
 
         try
         {
-            var items = ProviderFor(remote).List(remote, path, new MergeRequestQueryModel(MergeRequestStateFilter.Open, BranchLimit, branch))
+            var items = ProviderFor(remote).List(remote, path, new MergeRequestQueryModel(BranchLimit, branch))
                 .Where(item => item.SourceBranch == branch)
                 .ToList();
             return new BranchMergeRequestsModel(remote, items, null, items.Count == 0 && !IsBaseBranch(path, branch));

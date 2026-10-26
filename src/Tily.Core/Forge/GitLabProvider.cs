@@ -11,7 +11,7 @@ public sealed partial class GitLabProvider(IForgeCommandRunner runner) : IForgeP
 
     public IReadOnlyList<MergeRequestModel> List(ForgeRemoteModel remote, string directory, MergeRequestQueryModel query)
     {
-        var path = $"projects/{Uri.EscapeDataString(remote.Project)}/merge_requests?state={StateArgument(query.State)}&per_page={query.Limit.ToString(CultureInfo.InvariantCulture)}&order_by=updated_at&sort=desc";
+        var path = $"projects/{Uri.EscapeDataString(remote.Project)}/merge_requests?state=opened&per_page={query.Limit.ToString(CultureInfo.InvariantCulture)}&order_by=updated_at&sort=desc";
         if (query.SourceBranch is { } branch)
         {
             path += $"&source_branch={Uri.EscapeDataString(branch)}";
@@ -211,14 +211,6 @@ public sealed partial class GitLabProvider(IForgeCommandRunner runner) : IForgeP
         var name = ForgeJson.Text(label, "name");
         return name.Length > 0 ? new ForgeLabelModel(name, ForgeJson.Text(label, "color"), ForgeJson.Text(label, "description")) : null;
     }
-
-    private static string StateArgument(MergeRequestStateFilter state) => state switch
-    {
-        MergeRequestStateFilter.Merged => "merged",
-        MergeRequestStateFilter.Closed => "closed",
-        MergeRequestStateFilter.All => "all",
-        _ => "opened"
-    };
 
     private static MergeRequestModel Read(JsonElement item)
     {
