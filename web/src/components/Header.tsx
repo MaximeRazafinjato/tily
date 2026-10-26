@@ -26,7 +26,7 @@ export function Header({ workspaceName, renaming, sidebarCollapsed, leaderActive
   const settingsTip = useShortcutTip('Paramètres', Command.Settings)
   const sidebarLabel = sidebarCollapsed ? 'Afficher les workspaces' : 'Masquer les workspaces'
   return (
-    <header className="relative flex h-[42px] shrink-0 items-center gap-4 border-b border-tily-line bg-tily-panel px-3 text-tily-ink">
+    <header className="relative flex h-[34px] shrink-0 items-center gap-4 border-b border-tily-line bg-tily-panel px-3 text-tily-ink">
       <button
         type="button"
         aria-label={sidebarLabel}

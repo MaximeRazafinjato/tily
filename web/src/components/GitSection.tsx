@@ -7,18 +7,20 @@ interface GitSectionProps {
   count: number
   expanded: boolean
   nested?: boolean
+  tip?: string
   actions?: ReactNode
   onToggle: () => void
   children: ReactNode
 }
 
-export function GitSection({ title, count, expanded, nested = false, actions, onToggle, children }: GitSectionProps) {
+export function GitSection({ title, count, expanded, nested = false, tip, actions, onToggle, children }: GitSectionProps) {
   return (
     <div className={`flex flex-col ${nested ? '' : 'mt-[6px] first:mt-0'}`}>
       <div className={`flex h-[26px] shrink-0 items-center gap-[4px] pr-[4px] ${nested ? 'pl-[16px]' : 'pl-[6px]'}`}>
         <button
           type="button"
           aria-expanded={expanded}
+          data-tip={tip}
           className={`flex min-w-0 flex-1 cursor-pointer items-center gap-[4px] rounded text-left ${nested ? 'text-[12px] text-tily-ink-soft' : 'text-[11px] font-semibold tracking-[0.06em] text-tily-ink uppercase'} hover:text-tily-ink`}
           onClick={onToggle}
         >

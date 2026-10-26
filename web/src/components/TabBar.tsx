@@ -220,7 +220,7 @@ export function TabBar({ workspace, shells, renamingTabId, panelView, onTogglePa
               <div
                 data-drop-workspace={workspace.id}
                 data-drop-tab={tab.id}
-                className={`flex min-w-[100px] items-center rounded-t-md border border-b-0 ${active ? 'border-tily-line bg-tily-panel text-tily-green-deep' : 'border-transparent text-tily-muted hover:bg-tily-green-hover'} ${draggingTabId === tab.id ? 'opacity-50' : ''}`}
+                className={`group flex min-w-[100px] items-center rounded-t-md border border-b-0 ${active ? 'border-tily-line bg-tily-panel text-tily-green-deep' : 'border-transparent text-tily-muted hover:bg-tily-green-hover'} ${draggingTabId === tab.id ? 'opacity-50' : ''}`}
                 onAuxClick={handleAuxClick}
                 onContextMenu={handleTabContextMenu}
               >
@@ -243,7 +243,7 @@ export function TabBar({ workspace, shells, renamingTabId, panelView, onTogglePa
                     {tab.owner && <AgentOwnerMark owner={tab.owner} />}
                   </button>
                 )}
-                <button type="button" className="flex shrink-0 cursor-pointer items-center self-stretch px-2 hover:text-tily-error" aria-label="Fermer l’onglet" data-tip="Fermer l’onglet" onClick={handleClose}>
+                <button type="button" className={`flex shrink-0 cursor-pointer items-center self-stretch px-2 hover:text-tily-error ${active ? '' : 'opacity-0 group-hover:opacity-100 focus-visible:opacity-100'}`} aria-label="Fermer l’onglet" data-tip="Fermer l’onglet" onClick={handleClose}>
                   <Icon name={IconName.Close} size={10} />
                 </button>
               </div>

@@ -2,6 +2,7 @@ import { memo, useEffect, useRef, type MouseEvent } from 'react'
 import { goBack, navigateBrowser, openDevTools, reloadBrowser, setBrowserViewport } from '../browser/browserActions'
 import { focusBrowser, snapshotShown } from '../browser/browserLayer'
 import { usePaneHeaderTips } from './paneHeaderTips'
+import { REVEALED_ON_HOVER } from './paneHeaderStyles'
 import { BrowserViewport } from '../model/browser'
 import { SplitAxis, type Pane } from '../model/session'
 import { useBrowserStore } from '../store/browserStore'
@@ -108,6 +109,7 @@ export const BrowserPaneView = memo(function BrowserPaneView({ pane, active, zoo
   const tips = usePaneHeaderTips()
   const sectionRef = useRef<HTMLElement>(null)
   const mobile = (state?.viewport ?? pane.viewport) === BrowserViewport.Mobile
+  const revealed = active ? '' : REVEALED_ON_HOVER
 
   useEffect(() => {
     const focusInPane = Boolean(sectionRef.current?.contains(document.activeElement))
@@ -153,7 +155,7 @@ export const BrowserPaneView = memo(function BrowserPaneView({ pane, active, zoo
       data-pane-id={pane.id}
       className={`grid h-full min-h-0 grid-cols-1 grid-rows-[24px_1fr] overflow-hidden rounded-md border bg-tily-terminal ${active ? 'border-tily-green' : 'border-tily-line'}`}
     >
-      <header className="@container flex items-center gap-1 bg-tily-panel px-2 text-[11px] text-tily-muted select-none" onMouseDown={handleHeaderMouseDown} onDoubleClick={handleHeaderDoubleClick}>
+      <header className="group @container flex items-center gap-1 bg-tily-panel px-2 text-[11px] text-tily-muted select-none" onMouseDown={handleHeaderMouseDown} onDoubleClick={handleHeaderDoubleClick}>
         <span className="shrink-0 text-tily-ink" aria-hidden="true">
           <GlobeIcon />
         </span>
@@ -171,17 +173,17 @@ export const BrowserPaneView = memo(function BrowserPaneView({ pane, active, zoo
             {errors}
           </button>
         )}
-        <button type="button" className={`${SECONDARY_BUTTON} ${mobile ? 'text-tily-green' : ''}`} data-tip={viewportLabel} aria-label={viewportLabel} aria-pressed={mobile} onClick={handleToggleViewport}>
+        <button type="button" className={`${SECONDARY_BUTTON} ${mobile ? 'text-tily-green' : revealed}`} data-tip={viewportLabel} aria-label={viewportLabel} aria-pressed={mobile} onClick={handleToggleViewport}>
           {mobile ? <DesktopIcon /> : <MobileIcon />}
         </button>
-        <button type="button" className={SECONDARY_BUTTON} data-tip="Outils de développement" aria-label="Outils de développement" onClick={handleDevTools}>
+        <button type="button" className={`${SECONDARY_BUTTON} ${revealed}`} data-tip="Outils de développement" aria-label="Outils de développement" onClick={handleDevTools}>
           <DevToolsIcon />
         </button>
-        <span className="mx-1 h-3 w-px bg-tily-line @max-[280px]:hidden" aria-hidden="true" />
-        <button type="button" className={HEADER_BUTTON} data-tip={tips.splitSideBySide} aria-label="Split côte à côte" onClick={ignoringRepeatedClicks(handleSplitSideBySide)}>
+        <span className={`mx-1 h-3 w-px bg-tily-line @max-[280px]:hidden ${revealed}`} aria-hidden="true" />
+        <button type="button" className={`${HEADER_BUTTON} ${revealed}`} data-tip={tips.splitSideBySide} aria-label="Split côte à côte" onClick={ignoringRepeatedClicks(handleSplitSideBySide)}>
           <SplitIcon horizontal />
         </button>
-        <button type="button" className={HEADER_BUTTON} data-tip={tips.splitTopBottom} aria-label="Split haut / bas" onClick={ignoringRepeatedClicks(handleSplitTopBottom)}>
+        <button type="button" className={`${HEADER_BUTTON} ${revealed}`} data-tip={tips.splitTopBottom} aria-label="Split haut / bas" onClick={ignoringRepeatedClicks(handleSplitTopBottom)}>
           <SplitIcon horizontal={false} />
         </button>
         {zoomed && (
@@ -189,7 +191,7 @@ export const BrowserPaneView = memo(function BrowserPaneView({ pane, active, zoo
             <UnzoomIcon />
           </button>
         )}
-        <button type="button" className={`${HEADER_BUTTON} hover:text-tily-error`} data-tip={tips.close} aria-label="Fermer le pane" onClick={ignoringRepeatedClicks(handleClose)}>
+        <button type="button" className={`${HEADER_BUTTON} hover:text-tily-error ${revealed}`} data-tip={tips.close} aria-label="Fermer le pane" onClick={ignoringRepeatedClicks(handleClose)}>
           <CloseIcon />
         </button>
       </header>

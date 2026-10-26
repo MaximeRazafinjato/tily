@@ -51,7 +51,7 @@ export const toggleRightPanel = (): void => {
   }
 }
 
-export const showPanelView = (view: RightPanelView): void => {
+const showPanelView = (view: RightPanelView): void => {
   if (view === RightPanelView.Git) {
     useGitStore.getState().setGraphOpen(true)
   }
