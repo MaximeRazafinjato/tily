@@ -38,11 +38,11 @@ public static class ShortcutRules
         var shift = ShortcutChord.HasModifier(chord, ShortcutChord.Shift);
         if (ctrl && !alt && !shift && ShortcutChord.IsLetter(key) && key != PaletteLetter)
         {
-            return $"{shown} est réservé au shell : Ctrl + lettre seule reste au terminal.";
+            return $"{shown} est réservé au shell : Ctrl+lettre seule reste au terminal.";
         }
 
         return !ctrl && !alt && !ShortcutChord.IsFunctionKey(key) && (!shift || ShortcutChord.IsPrintable(key))
-            ? $"{shown} n’est pas utilisable : un raccourci direct passe par Ctrl ou Alt, sauf touche de fonction (F1 à F24) ou Maj + touche non imprimable."
+            ? $"{shown} n’est pas utilisable : un raccourci direct passe par Ctrl ou Alt, sauf touche de fonction (F1 à F24) ou Maj+touche non imprimable."
             : null;
     }
 

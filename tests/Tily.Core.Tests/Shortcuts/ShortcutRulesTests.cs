@@ -38,15 +38,15 @@ public sealed class ShortcutRulesTests
 
         var result = ShortcutRules.Check(provided);
 
-        Assert.Equal("Ctrl + Maj + D est attribué à la fois à « newTab » et à « splitSideBySide ».", result.Error);
+        Assert.Equal("Ctrl+Maj+D est attribué à la fois à « newTab » et à « splitSideBySide ».", result.Error);
     }
 
     [Theory]
-    [InlineData("Ctrl+C", "Ctrl + C est réservé au shell : Ctrl + lettre seule reste au terminal.")]
-    [InlineData("Ctrl+Shift+V", "Ctrl + Maj + V est réservé : il colle dans le terminal.")]
-    [InlineData("Alt+F4", "Alt + F4 est réservé : il ferme Tily.")]
-    [InlineData("Shift+D", "Maj + D n’est pas utilisable : un raccourci direct passe par Ctrl ou Alt, sauf touche de fonction (F1 à F24) ou Maj + touche non imprimable.")]
-    [InlineData("PageUp", "PgUp n’est pas utilisable : un raccourci direct passe par Ctrl ou Alt, sauf touche de fonction (F1 à F24) ou Maj + touche non imprimable.")]
+    [InlineData("Ctrl+C", "Ctrl+C est réservé au shell : Ctrl+lettre seule reste au terminal.")]
+    [InlineData("Ctrl+Shift+V", "Ctrl+Maj+V est réservé : il colle dans le terminal.")]
+    [InlineData("Alt+F4", "Alt+F4 est réservé : il ferme Tily.")]
+    [InlineData("Shift+D", "Maj+D n’est pas utilisable : un raccourci direct passe par Ctrl ou Alt, sauf touche de fonction (F1 à F24) ou Maj+touche non imprimable.")]
+    [InlineData("PageUp", "PgUp n’est pas utilisable : un raccourci direct passe par Ctrl ou Alt, sauf touche de fonction (F1 à F24) ou Maj+touche non imprimable.")]
     public void DirectProblem_WhenChordReserved_ThenExplainsWhy(string chord, string expected)
     {
         var problem = ShortcutRules.DirectProblem(chord);
@@ -84,7 +84,7 @@ public sealed class ShortcutRulesTests
 
         var result = ShortcutRules.Check(provided);
 
-        Assert.Equal("Ctrl + Alt + B est déjà la touche Leader.", result.Error);
+        Assert.Equal("Ctrl+Alt+B est déjà la touche Leader.", result.Error);
     }
 
     [Fact]

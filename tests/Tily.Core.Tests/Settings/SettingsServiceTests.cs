@@ -502,7 +502,7 @@ public sealed class SettingsServiceTests : IDisposable
 
         var result = service.Save(settings);
 
-        Assert.Equal((false, "Ctrl + Maj + C est réservé : il copie la sélection du terminal.", false), (result.IsValid, result.Error, File.Exists(Path.Combine(_directory, ShortcutSettingsRepository.FileName))));
+        Assert.Equal((false, "Ctrl+Maj+C est réservé : il copie la sélection du terminal.", false), (result.IsValid, result.Error, File.Exists(Path.Combine(_directory, ShortcutSettingsRepository.FileName))));
     }
 
     [Fact]

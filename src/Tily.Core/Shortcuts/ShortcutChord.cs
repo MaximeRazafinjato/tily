@@ -60,7 +60,7 @@ public static class ShortcutChord
     public static bool IsFunctionKey(string key) => key.Length > 1 && key[0] == 'F' && int.TryParse(key[1..], out var number) && number is >= 1 and <= MaxFunctionKey;
 
     public static string Display(string chord) =>
-        string.Join(" + ", chord.Split(Separator).Select(part => DisplayNames.TryGetValue(part, out var name) ? name : part));
+        string.Join("+", chord.Split(Separator).Select(part => DisplayNames.TryGetValue(part, out var name) ? name : part));
 
     private static (bool Ctrl, bool Alt, bool Shift, string Key)? Parse(string? text)
     {
