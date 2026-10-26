@@ -16,9 +16,11 @@ public sealed record GitOutputModel(int ExitCode, string Output, string Error)
 public sealed partial class GitRunner
 {
     private const string GitExecutable = "git.exe";
+    private const string LauncherDirectory = "cmd";
+    private const string ShellSystem = "MINGW64";
     private static readonly TimeSpan DefaultTimeout = TimeSpan.FromMinutes(10);
     private static readonly UTF8Encoding Utf8 = new(false);
-    private static readonly Lazy<string?> InstalledGit = new(FindGit);
+    private static readonly Lazy<GitInstallationModel?> InstalledGit = new(() => FindGit() is { } launcher ? GitInstallationModel.Of(launcher) : null);
     private static readonly string[] CommonArguments = ["-c", "core.quotepath=false", "-c", "color.ui=false", "--no-optional-locks"];
 
     private readonly IReadOnlyDictionary<string, string?> _environment;
@@ -66,7 +68,8 @@ public sealed partial class GitRunner
             throw new GitCommandException($"Dossier introuvable : {directory}", string.Empty);
         }
 
-        var info = new ProcessStartInfo(InstalledGit.Value ?? throw new GitCommandException("Git est introuvable : installez Git pour Windows ou ajoutez git.exe au PATH.", string.Empty))
+        var installation = InstalledGit.Value ?? throw new GitCommandException("Git est introuvable : installez Git pour Windows ou ajoutez git.exe au PATH.", string.Empty);
+        var info = new ProcessStartInfo(installation.Executable)
         {
             WorkingDirectory = directory,
             UseShellExecute = false,
@@ -91,6 +94,13 @@ public sealed partial class GitRunner
         foreach (var argument in arguments)
         {
             info.ArgumentList.Add(argument);
+        }
+
+        if (installation.SearchPath is { } searchPath)
+        {
+            info.Environment["PATH"] = $"{searchPath}{Path.PathSeparator}{Environment.GetEnvironmentVariable("PATH")}";
+            info.Environment["MSYSTEM"] = ShellSystem;
+            info.Environment["PLINK_PROTOCOL"] = Environment.GetEnvironmentVariable("PLINK_PROTOCOL") ?? "ssh";
         }
 
         info.Environment["GIT_TERMINAL_PROMPT"] = "0";
@@ -153,6 +163,30 @@ public sealed partial class GitRunner
         }
 
         return null;
+    }
+
+    private sealed record GitInstallationModel(string Executable, string? SearchPath)
+    {
+        public static GitInstallationModel Of(string launcher)
+        {
+            var directory = Path.GetDirectoryName(launcher);
+            var top = Path.GetDirectoryName(directory);
+            if (top is null || !string.Equals(Path.GetFileName(directory), LauncherDirectory, StringComparison.OrdinalIgnoreCase))
+            {
+                return new GitInstallationModel(launcher, null);
+            }
+
+            var binaries = Path.Combine(top, ShellSystem.ToLowerInvariant(), "bin");
+            var executable = Path.Combine(binaries, GitExecutable);
+            var tools = Path.Combine(top, "usr", "bin");
+            if (!File.Exists(executable) || !Directory.Exists(tools))
+            {
+                return new GitInstallationModel(launcher, null);
+            }
+
+            var home = Environment.GetEnvironmentVariable("HOME") ?? Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+            return new GitInstallationModel(executable, string.Join(Path.PathSeparator, binaries, tools, Path.Combine(home, "bin")));
+        }
     }
 
     [GeneratedRegex(@"\x1B\[[0-?]*[ -/]*[@-~]")]
