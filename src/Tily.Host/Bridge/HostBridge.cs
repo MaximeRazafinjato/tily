@@ -372,15 +372,15 @@ public sealed class HostBridge : IDisposable
             return;
         }
 
-        Notify(paneId, [command.Title ?? "Tily", command.Body, command.Location], done ? settings.DoneSound : settings.Sound, settings, done);
+        Notify(paneId, [command.Title ?? "Tily", command.Body], done ? settings.DoneSound : settings.Sound, settings, done);
     }
 
     private void TestAttention(string paneId, BridgeCommandModel command)
     {
         var settings = (command.Notifications?.Deserialize<NotificationSettingsModel>(JsonOptions) ?? _settings.Notifications).Normalized();
         string?[] lines = command.Kind == AttentionDone
-            ? ["Tily : test de fin", "Voici l’apparence d’un agent qui a terminé.", command.Location]
-            : ["Tily : test de notification", "Voici l’apparence d’une demande d’attention.", command.Location];
+            ? ["Tily › Test", "Terminé"]
+            : ["Tily › Test", "Autorisation : Bash"];
         Notify(paneId, lines, command.Kind == AttentionDone ? settings.DoneSound : settings.Sound, settings, true);
     }
 

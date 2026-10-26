@@ -49,8 +49,7 @@ public sealed class AgentStateRepository
             return null;
         }
 
-        var message = string.IsNullOrWhiteSpace(file.Message) ? null : file.Message.Trim();
-        return new AgentStateModel(file.Agent.Trim().ToLowerInvariant(), state, message, SingleLine(file.Detail)) { UpdatedAtUtc = writtenAtUtc };
+        return new AgentStateModel(file.Agent.Trim().ToLowerInvariant(), state, SingleLine(file.Message), SingleLine(file.Detail)) { UpdatedAtUtc = writtenAtUtc };
     }
 
     private static string? SingleLine(string? detail)

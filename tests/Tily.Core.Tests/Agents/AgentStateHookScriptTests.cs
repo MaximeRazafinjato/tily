@@ -17,16 +17,24 @@ public sealed class AgentStateHookScriptTests : IDisposable
     {
         var state = Run("{ \"hook_event_name\": \"PermissionRequest\", \"tool_name\": \"Bash\", \"tool_input\": { \"command\": \"git push --force origin main\", \"description\": \"Pousser\" } }");
 
-        Assert.Equal("Autorisation demandée : Bash", state["message"]!.GetValue<string>());
+        Assert.Equal("Autorisation : Bash", state["message"]!.GetValue<string>());
         Assert.Equal("git push --force origin main", state["detail"]!.GetValue<string>());
     }
 
     [Fact]
-    public void Run_WhenQuestionAsked_ThenWritesFirstQuestionWithAccents()
+    public void Run_WhenQuestionAsked_ThenWritesFirstQuestionAsMessageWithAccents()
     {
         var state = Run("{ \"hook_event_name\": \"PreToolUse\", \"tool_name\": \"AskUserQuestion\", \"tool_input\": { \"questions\": [ { \"question\": \"Quelle stratégie adopter à l’étape 2 ?\" } ] } }");
 
-        Assert.Equal("Quelle stratégie adopter à l’étape 2 ?", state["detail"]!.GetValue<string>());
+        Assert.Equal("Quelle stratégie adopter à l’étape 2 ?", state["message"]!.GetValue<string>());
+    }
+
+    [Fact]
+    public void Run_WhenPermissionRequestedForQuestion_ThenWritesQuestionAsMessage()
+    {
+        var state = Run("{ \"hook_event_name\": \"PermissionRequest\", \"tool_name\": \"AskUserQuestion\", \"tool_input\": { \"questions\": [ { \"question\": \"Quelle base utiliser ?\" } ] } }");
+
+        Assert.Equal("Quelle base utiliser ?", state["message"]!.GetValue<string>());
     }
 
     [Fact]
