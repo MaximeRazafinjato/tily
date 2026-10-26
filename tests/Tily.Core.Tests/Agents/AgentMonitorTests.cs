@@ -39,6 +39,17 @@ public sealed class AgentMonitorTests : IDisposable
     }
 
     [Fact]
+    public void Resolve_WhenClaudeReportsMultilineQuestion_ThenMessageIsSingleLine()
+    {
+        var started = DateTime.UtcNow.AddMinutes(-1);
+        File.WriteAllText(_states.FilePathFor("pane-a"), "{ \"agent\": \"claude\", \"state\": \"waiting\", \"message\": \"Quelle base ?\\n  Choisir   une option\" }");
+
+        var message = _monitor.Resolve([new PaneProbeModel("pane-a", started, ["node"])]).Single().Message;
+
+        Assert.Equal("Quelle base ? Choisir une option", message);
+    }
+
+    [Fact]
     public void Resolve_WhenDetailTooLong_ThenDetailIsTruncatedWithEllipsis()
     {
         var started = DateTime.UtcNow.AddMinutes(-1);

@@ -20,7 +20,6 @@ public sealed class BridgeCommandModel
     public string? Field { get; init; }
     public string? Title { get; init; }
     public string? Body { get; init; }
-    public string? Location { get; init; }
     public string? Name { get; init; }
     public string? Kind { get; init; }
     public string? Parent { get; init; }

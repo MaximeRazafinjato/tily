@@ -227,7 +227,7 @@ export type WebToHostMessage =
   | { type: 'appearance.fontSize'; fontSize: number }
   | { type: 'settings.export' }
   | { type: 'settings.import' }
-  | { type: 'attention.raise'; pane: string; kind: AttentionKind; title: string; body: string; location: string }
+  | { type: 'attention.raise'; pane: string; kind: AttentionKind; title: string; body: string }
   | { type: 'attention.test'; pane: string; kind: AttentionKind; notifications: NotificationSettings }
   | { type: 'attention.flash' }
   | { type: 'agents.installHooks' }
