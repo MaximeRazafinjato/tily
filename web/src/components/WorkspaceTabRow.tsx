@@ -128,7 +128,7 @@ export function WorkspaceTabRow({ workspaceId, tab, siblings, active, renaming, 
             </span>
             <TruncatedName name={tab.name} siblings={siblings} className="flex-1" />
             {tab.owner && <AgentOwnerMark owner={tab.owner} />}
-            {customShell && <span className="shrink-0 font-mono text-[10.5px] text-tily-muted @max-[260px]:hidden">{SHELL_LABELS[customShell] ?? customShell}</span>}
+            {customShell && <span className="shrink-0 text-[11px] text-tily-muted/70 @max-[260px]:hidden">{SHELL_LABELS[customShell] ?? customShell}</span>}
           </button>
         )}
         <button type="button" className={PANEL_HOVER_BUTTON} data-tip={inRepository ? WORKTREE_TIP : NO_REPOSITORY_TIP} aria-label={`Créer un worktree depuis l’onglet ${tab.name}`} aria-disabled={!inRepository} onClick={handleCreateWorktree}>

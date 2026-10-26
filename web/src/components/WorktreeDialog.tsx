@@ -122,7 +122,7 @@ export function WorktreeDialog({ draft, sources, plan, planPending, busy, failur
                 <Icon name={IconName.Folder} />
               </button>
             </div>
-            {plan && !sameFolder(plan.repository, draft.repository) && <span className={`${SETTINGS_HINT} truncate font-mono`}>{plan.repository}</span>}
+            {plan && !sameFolder(plan.repository, draft.repository) && <span className={`${SETTINGS_HINT} truncate`}>{plan.repository}</span>}
             {differsFromDefault && (
               <label className={CHECKBOX_LABEL}>
                 <input type="checkbox" checked={draft.remember} onChange={handleRememberChange} />

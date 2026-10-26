@@ -31,7 +31,7 @@ export function MergeRequestPill({ path, branch, className = '' }: MergeRequestP
   return (
     <button
       type="button"
-      className={`flex shrink-0 cursor-pointer items-center gap-[3px] rounded font-mono hover:underline ${statusTone(first)} ${className}`}
+      className={`flex shrink-0 cursor-pointer items-center gap-[3px] rounded hover:underline ${statusTone(first)} ${className}`}
       data-tip={tip}
       aria-label={`${noun} ${first.reference} : ${first.title}`}
       onClick={handleClick}

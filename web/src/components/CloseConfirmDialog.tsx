@@ -45,7 +45,7 @@ export function CloseConfirmDialog({ confirmation, onConfirm, onCancel }: CloseC
             {confirmation.panes.map((pane) => (
               <li key={pane.paneId} className="rounded border border-tily-line bg-tily-paper px-3 py-2">
                 <div className="truncate text-[12px] text-tily-ink">{pane.label}</div>
-                <div className="font-mono text-[11px] text-tily-muted">{pane.processes.join(', ')}</div>
+                <div className="text-[11px] text-tily-muted">{pane.processes.join(', ')}</div>
               </li>
             ))}
           </ul>

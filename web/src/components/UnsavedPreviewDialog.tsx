@@ -41,7 +41,7 @@ export function UnsavedPreviewDialog() {
         </div>
         <div className="flex flex-col gap-2 px-4 py-4">
           <p className="text-[12px] text-tily-ink">Le fichier contient des modifications non enregistrées.</p>
-          <p className="truncate font-mono text-[11px] text-tily-muted">{path}</p>
+          <p className="truncate text-[11px] text-tily-muted">{path}</p>
         </div>
         <div className="flex items-center justify-end gap-2 border-t border-tily-line px-4 py-3">
           <button type="button" className={SECONDARY} data-tip="Échap" onClick={cancelPendingAction}>

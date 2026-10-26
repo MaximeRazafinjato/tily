@@ -34,17 +34,17 @@ export const MergeRequestRow = memo(function MergeRequestRow({ path, kind, item,
       >
         <span className="flex min-w-0 items-baseline gap-[6px] text-[12px]">
           <Icon name={IconName.MergeRequest} className={`shrink-0 self-center ${statusTone(item)}`} />
-          <span className="shrink-0 font-mono text-tily-muted">{item.reference}</span>
-          {item.draft && <span className="shrink-0 rounded border border-tily-line px-[3px] text-[10px] text-tily-muted">Brouillon</span>}
+          <span className="shrink-0 text-tily-muted">{item.reference}</span>
+          {item.draft && <span className="shrink-0 rounded border border-tily-line px-[3px] text-[11px] text-tily-muted">Brouillon</span>}
           <span className="min-w-0 truncate text-tily-ink">{item.title}</span>
         </span>
         <span className="flex min-w-0 items-baseline gap-[6px] pl-[18px] text-[11px] text-tily-muted">
           <span className={`shrink-0 ${statusTone(item)}`}>{statusText(item)}</span>
-          <span className="min-w-0 truncate font-mono">{`${item.sourceBranch} → ${item.targetBranch}`}</span>
+          <span className="min-w-0 truncate">{`${item.sourceBranch} → ${item.targetBranch}`}</span>
           <span className="ml-auto shrink-0">{updatedText(item)}</span>
         </span>
         {(item.labels.length > 0 || assignees.length > 0) && (
-          <span className="flex min-w-0 flex-wrap items-center gap-[4px] pl-[18px] text-[10px]">
+          <span className="flex min-w-0 flex-wrap items-center gap-[4px] pl-[18px] text-[11px]">
             {item.labels.slice(0, VISIBLE_LABELS).map((label) => (
               <span key={label} className="max-w-[140px] truncate rounded-full border border-tily-line px-[6px] text-tily-ink-soft">
                 {label}

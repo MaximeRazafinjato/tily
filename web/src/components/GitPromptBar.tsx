@@ -54,7 +54,7 @@ export function GitPromptBar({ prompt }: GitPromptBarProps) {
     <div className="mx-[8px] mb-[6px] flex flex-col gap-[6px] rounded border border-tily-line bg-tily-panel px-[10px] py-[8px]">
       <label className="flex flex-col gap-[4px] text-[11px] text-tily-muted">
         <span className="truncate">{prompt.label}</span>
-        <input ref={inputRef} type="text" defaultValue={prompt.initial} maxLength={NAME_MAX_LENGTH} spellCheck={false} className={`${GIT_INPUT} font-mono`} onKeyDown={handleKeyDown} />
+        <input ref={inputRef} type="text" defaultValue={prompt.initial} maxLength={NAME_MAX_LENGTH} spellCheck={false} className={`${GIT_INPUT}`} onKeyDown={handleKeyDown} />
       </label>
       <div className="flex items-center gap-[6px]">
         {prompt.kind === GitPromptKind.NewBranch ? (

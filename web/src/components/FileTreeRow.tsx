@@ -74,7 +74,7 @@ export const FileTreeRow = memo(function FileTreeRow({ entry, parent, depth, sel
         <span className={`min-w-0 truncate ${markView && !selected ? markView.className : ''}`}>{entry.name}</span>
       )}
       {markView && !renaming && (
-        <span className={`ml-auto w-[12px] shrink-0 text-center font-mono text-[11px] font-semibold ${markView.className}`} data-tip={markView.label}>
+        <span className={`ml-auto w-[12px] shrink-0 text-center text-[11px] font-semibold ${markView.className}`} data-tip={markView.label}>
           {markView.letter}
         </span>
       )}

@@ -220,19 +220,19 @@ export function TabBar({ workspace, shells, renamingTabId, panelView, onTogglePa
               <div
                 data-drop-workspace={workspace.id}
                 data-drop-tab={tab.id}
-                className={`flex min-w-[100px] items-center rounded-t-md border border-b-0 ${active ? 'border-tily-line bg-tily-panel text-tily-green-deep' : 'border-transparent text-tily-muted hover:bg-tily-green-hover'} ${draggingTabId === tab.id ? 'opacity-50' : ''}`}
+                className={`group flex min-w-[100px] items-center rounded-t-md border border-b-0 ${active ? 'border-tily-line bg-tily-panel text-tily-green-deep' : 'border-transparent text-tily-muted hover:bg-tily-green-hover'} ${draggingTabId === tab.id ? 'opacity-50' : ''}`}
                 onAuxClick={handleAuxClick}
                 onContextMenu={handleTabContextMenu}
               >
                 {tab.id === renamingTabId ? (
-                  <InlineNameEditor value={tab.name} label="Nom de l’onglet" className="mx-1 my-1 min-w-0 flex-1 text-xs" onCommit={onCommitRename} onCancel={onCancelRename} />
+                  <InlineNameEditor value={tab.name} label="Nom de l’onglet" className="mx-1 my-1 min-w-0 flex-1 text-[12px]" onCommit={onCommitRename} onCancel={onCancelRename} />
                 ) : (
                   <button
                     type="button"
                     role="tab"
                     aria-selected={active}
                     data-tip={`${tab.name} · ${activePane(tab).path} · ${paneCountLabel(panesOf(tab.tree).length)}`}
-                    className="flex min-w-0 flex-1 cursor-pointer items-center gap-1.5 px-3 py-2 text-left text-xs"
+                    className="flex min-w-0 flex-1 cursor-pointer items-center gap-1.5 px-3 py-2 text-left text-[12px]"
                     onClick={handleSelect}
                     onDoubleClick={handleStartRename}
                     onPointerDown={handlePointerDown}
@@ -243,7 +243,7 @@ export function TabBar({ workspace, shells, renamingTabId, panelView, onTogglePa
                     {tab.owner && <AgentOwnerMark owner={tab.owner} />}
                   </button>
                 )}
-                <button type="button" className="flex shrink-0 cursor-pointer items-center self-stretch px-2 hover:text-tily-error" aria-label="Fermer l’onglet" data-tip="Fermer l’onglet" onClick={handleClose}>
+                <button type="button" className={`flex shrink-0 cursor-pointer items-center self-stretch px-2 hover:text-tily-error ${active ? '' : 'opacity-0 group-hover:opacity-100 focus-visible:opacity-100'}`} aria-label="Fermer l’onglet" data-tip="Fermer l’onglet" onClick={handleClose}>
                   <Icon name={IconName.Close} size={10} />
                 </button>
               </div>

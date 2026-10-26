@@ -175,9 +175,9 @@ export function FilePreviewDrawer() {
           ) : preview.kind === PreviewKind.Markdown && !showSource && html !== null ? (
             <div className="tily-markdown text-tily-ink" dangerouslySetInnerHTML={{ __html: html }} />
           ) : html !== null ? (
-            <pre className="font-mono text-[12.5px] leading-[1.5] whitespace-pre-wrap text-tily-ink" dangerouslySetInnerHTML={{ __html: html }} />
+            <pre className="font-mono text-[12px] leading-[1.5] whitespace-pre-wrap text-tily-ink" dangerouslySetInnerHTML={{ __html: html }} />
           ) : (
-            <pre className="font-mono text-[12.5px] leading-[1.5] whitespace-pre-wrap text-tily-ink">{preview.content}</pre>
+            <pre className="font-mono text-[12px] leading-[1.5] whitespace-pre-wrap text-tily-ink">{preview.content}</pre>
           )}
         </div>
       )}

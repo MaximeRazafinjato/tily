@@ -13,7 +13,7 @@ interface GitHeaderProps {
   busy: string | null
 }
 
-const HEAD_LABEL = 'flex max-w-max min-w-0 flex-1 items-baseline gap-[4px] font-mono text-tily-green-deep'
+const HEAD_LABEL = 'flex max-w-max min-w-0 flex-1 items-baseline gap-[4px] text-tily-green-deep'
 
 const undoTip = ({ undo }: GitState): string => {
   if (!undo) {

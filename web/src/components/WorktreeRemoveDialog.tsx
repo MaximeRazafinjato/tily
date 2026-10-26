@@ -61,7 +61,7 @@ export function WorktreeRemoveDialog({ removal }: WorktreeRemoveDialogProps) {
         </div>
         <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-4 py-4">
           {requestedBy && <p className="text-[12px] text-tily-ink">{`Demandé par ${requestedBy}. Sans réponse dans les 2 minutes, la demande est refusée.`}</p>}
-          <p className={`${SETTINGS_HINT} font-mono`}>{path}</p>
+          <p className={`${SETTINGS_HINT}`}>{path}</p>
           <p className="text-[12px] text-tily-warning">Le dossier est supprimé avec ses modifications non commitées.</p>
           {panes.length > 0 && (
             <>

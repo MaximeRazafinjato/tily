@@ -11,9 +11,9 @@ import { isMenuKey } from './workspacePanel'
 
 interface GitRefRowProps {
   rowKey: string
-  icon: IconName
   name: string
   meta?: ReactNode
+  metaIcon?: IconName
   metaTip?: string
   tip?: string
   current?: boolean
@@ -28,7 +28,7 @@ interface GitRefRowProps {
   onMenu: (x: number, y: number) => void
 }
 
-export function GitRefRow({ rowKey, icon, name, meta, metaTip, tip, current = false, selected, depth = 0, focusable, handle, refName, onFocus, onActivate, onSelect, onMenu }: GitRefRowProps) {
+export function GitRefRow({ rowKey, name, meta, metaIcon, metaTip, tip, current = false, selected, depth = 0, focusable, handle, refName, onFocus, onActivate, onSelect, onMenu }: GitRefRowProps) {
   const dropTarget = useGitStore((store) => handle !== undefined && sameRef(store.drag?.target, handle))
   const pending = useGitStore((store) => refName !== undefined && store.busy !== null && store.busyRefs.includes(refName))
   const handleClick = (event: MouseEvent) => {
@@ -81,13 +81,22 @@ export function GitRefRow({ rowKey, icon, name, meta, metaTip, tip, current = fa
       onPointerDown={handlePointerDown}
       onKeyDown={handleKeyDown}
     >
-      {pending ? <Spinner className="text-tily-green" /> : <Icon name={icon} className="shrink-0 text-tily-muted" />}
-      <span className={`min-w-0 flex-1 truncate ${current ? 'font-semibold' : ''}`}>{name}</span>
-      {meta && (
-        <span className="shrink-0 font-mono text-[11px] text-tily-muted" data-tip={metaTip}>
-          {meta}
-        </span>
-      )}
+      <span className="flex w-[12px] shrink-0 translate-y-px justify-center text-tily-green">
+        {pending ? <Spinner /> : current && <Icon name={IconName.Check} />}
+      </span>
+      <span className="flex min-w-0 flex-1 items-baseline gap-[6px]">
+        <span className={`min-w-0 flex-1 truncate ${current ? 'font-semibold' : ''}`}>{name}</span>
+        {metaIcon && (
+          <span className="flex shrink-0 translate-y-px self-center text-tily-muted" data-tip={metaTip}>
+            <Icon name={metaIcon} />
+          </span>
+        )}
+        {meta && (
+          <span className="max-w-[45%] min-w-0 truncate text-[11px] text-tily-muted" data-tip={metaTip}>
+            {meta}
+          </span>
+        )}
+      </span>
       <button type="button" tabIndex={-1} className={`${ROW_ACTION} opacity-0 group-focus-within:opacity-100 group-hover:opacity-100`} aria-label={`Actions de ${name}`} data-tip="Actions (Maj+F10)" onClick={handleMoreClick}>
         <Icon name={IconName.More} />
       </button>

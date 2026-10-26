@@ -43,7 +43,7 @@ export function WorktreeFolderSettings({ worktrees, folders, projectsRoot, onCha
                   <span className={`${SETTINGS_LABEL} shrink-0`} data-tip={entry.project}>
                     {folderName(entry.project)}
                   </span>
-                  <span className={`${SETTINGS_HINT} min-w-0 flex-1 truncate font-mono`} data-tip={entry.folder}>
+                  <span className={`${SETTINGS_HINT} min-w-0 flex-1 truncate`} data-tip={entry.folder}>
                     {entry.folder}
                   </span>
                   <button type="button" className={REMOVE} aria-label={removeLabel} data-tip={removeLabel} onClick={handleRemove}>
