@@ -1,5 +1,5 @@
 import { bridge } from '../bridge/bridge'
-import type { BranchMergeRequests, MergeRequestList, MergeRequestStateFilter } from '../bridge/forgeMessages'
+import type { BranchMergeRequests, MergeRequestList } from '../bridge/forgeMessages'
 import { BrowserPlacement, openBrowser } from '../browser/browserActions'
 import { branchKey, useForgeStore } from '../store/forgeStore'
 import { useGitStore } from '../store/gitStore'
@@ -8,9 +8,8 @@ let lastRequest = 0
 
 export const listMergeRequests = (path: string): void => {
   lastRequest += 1
-  const { filter, startListing } = useForgeStore.getState()
-  startListing(path, lastRequest)
-  bridge.send({ type: 'forge.list', request: lastRequest, path, state: filter.state })
+  useForgeStore.getState().startListing(path, lastRequest)
+  bridge.send({ type: 'forge.list', request: lastRequest, path })
 }
 
 export const receiveMergeRequestList = (request: number, list: MergeRequestList | undefined, error: string | undefined): void =>
@@ -32,11 +31,6 @@ export const refreshMergeRequests = (path: string, branch: string | null): void 
 export const toggleMergeRequests = (): void => {
   const { expanded, setExpanded } = useForgeStore.getState()
   setExpanded(!expanded)
-}
-
-export const changeMergeRequestState = (path: string, state: MergeRequestStateFilter): void => {
-  useForgeStore.getState().setFilter({ state })
-  listMergeRequests(path)
 }
 
 export const toggleMergeRequestLabel = (label: string): void => {

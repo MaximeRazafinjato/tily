@@ -15,6 +15,8 @@ export enum IconName {
   Fetch = 'fetch',
   File = 'file',
   Folder = 'folder',
+  GitHub = 'gitHub',
+  GitLab = 'gitLab',
   Graph = 'graph',
   Info = 'info',
   Local = 'local',

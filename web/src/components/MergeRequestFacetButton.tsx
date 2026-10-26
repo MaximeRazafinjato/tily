@@ -48,7 +48,7 @@ export function MergeRequestFacetButton({ label, options, selected, emptyMessage
         type="button"
         aria-haspopup="menu"
         aria-expanded={open}
-        className={`flex h-[22px] cursor-pointer items-center gap-[4px] rounded border px-[6px] text-[11px] hover:bg-tily-green-hover ${count > 0 ? 'border-tily-green text-tily-green-deep' : 'border-tily-line text-tily-ink-soft'}`}
+        className={`flex h-[24px] cursor-pointer items-center gap-[4px] rounded border px-[6px] text-[11px] hover:bg-tily-green-hover ${count > 0 ? 'border-tily-green text-tily-green-deep' : 'border-tily-line text-tily-ink-soft'}`}
         data-tip={count > 0 ? `${label} : ${selected.join(', ')} (au moins un)` : `Filtrer par ${label.toLowerCase()}`}
         onPointerDown={handlePointerDown}
         onClick={handleClick}

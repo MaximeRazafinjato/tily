@@ -17,15 +17,6 @@ public enum MergeRequestState
     [JsonStringEnumMemberName("closed")] Closed
 }
 
-[JsonConverter(typeof(JsonStringEnumConverter<MergeRequestStateFilter>))]
-public enum MergeRequestStateFilter
-{
-    [JsonStringEnumMemberName("open")] Open,
-    [JsonStringEnumMemberName("merged")] Merged,
-    [JsonStringEnumMemberName("closed")] Closed,
-    [JsonStringEnumMemberName("all")] All
-}
-
 [JsonConverter(typeof(JsonStringEnumConverter<MergeRequestReview>))]
 public enum MergeRequestReview
 {
@@ -56,7 +47,7 @@ public sealed record MergeRequestModel(
     DateTimeOffset CreatedAt,
     DateTimeOffset UpdatedAt);
 
-public sealed record MergeRequestQueryModel(MergeRequestStateFilter State, int Limit, string? SourceBranch = null);
+public sealed record MergeRequestQueryModel(int Limit, string? SourceBranch = null);
 
 public sealed record MergeRequestListModel(ForgeRemoteModel Forge, IReadOnlyList<MergeRequestModel> Items, bool Truncated, string? CurrentUser);
 
@@ -68,15 +59,3 @@ public sealed record ForgeOutputModel(int ExitCode, string Output, string Error)
 }
 
 public sealed class ForgeException(string message) : Exception(message);
-
-public static class MergeRequestStateFilters
-{
-    public static MergeRequestStateFilter Parse(string? value) => value switch
-    {
-        null or "" or "open" => MergeRequestStateFilter.Open,
-        "merged" => MergeRequestStateFilter.Merged,
-        "closed" => MergeRequestStateFilter.Closed,
-        "all" => MergeRequestStateFilter.All,
-        _ => throw new ForgeException($"État de MR/PR inconnu : {value}")
-    };
-}

@@ -9,13 +9,6 @@ export enum MergeRequestState {
   Closed = 'closed',
 }
 
-export enum MergeRequestStateFilter {
-  Open = 'open',
-  Merged = 'merged',
-  Closed = 'closed',
-  All = 'all',
-}
-
 export enum MergeRequestReview {
   None = 'none',
   Approved = 'approved',
@@ -147,7 +140,7 @@ export type ForgeHostMessage =
   | { type: 'forge.updated'; request: number; path: string; source?: string; updated?: MergeRequestUpdated; error?: string }
 
 export type ForgeWebMessage =
-  | { type: 'forge.list'; request: number; path: string; state: MergeRequestStateFilter }
+  | { type: 'forge.list'; request: number; path: string }
   | { type: 'forge.branch'; path: string; branch: string; force: boolean }
   | { type: 'forge.form'; request: number; path: string; branch?: string; number?: number }
   | { type: 'forge.compare'; request: number; path: string; branch: string; target: string; number?: number }

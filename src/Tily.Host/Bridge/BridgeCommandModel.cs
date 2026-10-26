@@ -32,7 +32,6 @@ public sealed class BridgeCommandModel
     public string? NewName { get; init; }
     public string? Mode { get; init; }
     public string? Scope { get; init; }
-    public string? State { get; init; }
     public string? Source { get; init; }
     public string? Repository { get; init; }
     public string? Project { get; init; }

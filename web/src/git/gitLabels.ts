@@ -50,6 +50,7 @@ export const OPERATION_LABELS: Record<GitOperationKind, string> = {
 const SECONDS_PER_DAY = 86400
 const RELATIVE_DAYS = 7
 const relativeFormat = new Intl.RelativeTimeFormat('fr', { numeric: 'auto' })
+const shortRelativeFormat = new Intl.RelativeTimeFormat('fr', { numeric: 'auto', style: 'short' })
 const RELATIVE_STEPS: [Intl.RelativeTimeFormatUnit, number][] = [
   ['second', 60],
   ['minute', 60],
@@ -74,7 +75,8 @@ export const headSummary = (head: GitHead): string => {
   return head.unborn ? `${head.branch ?? 'main'} · aucun commit` : (head.branch ?? 'HEAD')
 }
 
-export const relativeDate = (unixSeconds: number): string => {
+export const relativeDate = (unixSeconds: number, short = false): string => {
+  const format = short ? shortRelativeFormat : relativeFormat
   const now = Date.now() / 1000
   let delta = unixSeconds - now
   if (Math.abs(delta) >= SECONDS_PER_DAY * RELATIVE_DAYS) {
@@ -84,11 +86,11 @@ export const relativeDate = (unixSeconds: number): string => {
   }
   for (const [unit, size] of RELATIVE_STEPS) {
     if (Math.abs(delta) < size) {
-      return relativeFormat.format(Math.round(delta), unit)
+      return format.format(Math.round(delta), unit)
     }
     delta /= size
   }
-  return relativeFormat.format(Math.round(delta), 'week')
+  return format.format(Math.round(delta), 'week')
 }
 
 export const fullDate = (unixSeconds: number): string => new Date(unixSeconds * 1000).toLocaleString('fr-FR', { dateStyle: 'long', timeStyle: 'short' })

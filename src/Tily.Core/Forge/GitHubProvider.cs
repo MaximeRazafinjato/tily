@@ -9,7 +9,7 @@ public sealed class GitHubProvider(IForgeCommandRunner runner) : IForgeProvider
 
     public IReadOnlyList<MergeRequestModel> List(ForgeRemoteModel remote, string directory, MergeRequestQueryModel query)
     {
-        List<string> arguments = ["pr", "list", "--repo", $"{remote.Host}/{remote.Project}", "--state", StateArgument(query.State), "--limit", query.Limit.ToString(CultureInfo.InvariantCulture), "--json", Fields];
+        List<string> arguments = ["pr", "list", "--repo", $"{remote.Host}/{remote.Project}", "--state", "open", "--limit", query.Limit.ToString(CultureInfo.InvariantCulture), "--json", Fields];
         if (query.SourceBranch is { } branch)
         {
             arguments.AddRange(["--head", branch]);
@@ -223,14 +223,6 @@ public sealed class GitHubProvider(IForgeCommandRunner runner) : IForgeProvider
         var color = ForgeJson.Text(label, "color");
         return name.Length > 0 ? new ForgeLabelModel(name, color.Length > 0 ? $"#{color.TrimStart('#')}" : string.Empty, ForgeJson.Text(label, "description")) : null;
     }
-
-    private static string StateArgument(MergeRequestStateFilter state) => state switch
-    {
-        MergeRequestStateFilter.Merged => "merged",
-        MergeRequestStateFilter.Closed => "closed",
-        MergeRequestStateFilter.All => "all",
-        _ => "open"
-    };
 
     private static MergeRequestModel Read(JsonElement item)
     {

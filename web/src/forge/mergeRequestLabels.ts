@@ -1,12 +1,5 @@
-import { ForgeKind, MergeRequestReview, MergeRequestState, MergeRequestStateFilter, type ForgeUser, type MergeRequest } from '../bridge/forgeMessages'
+import { ForgeKind, MergeRequestReview, MergeRequestState, type ForgeUser, type MergeRequest } from '../bridge/forgeMessages'
 import { relativeDate } from '../git/gitLabels'
-
-export const STATE_FILTER_LABELS: Record<MergeRequestStateFilter, string> = {
-  [MergeRequestStateFilter.Open]: 'Ouvertes',
-  [MergeRequestStateFilter.Merged]: 'Fusionnées',
-  [MergeRequestStateFilter.Closed]: 'Fermées',
-  [MergeRequestStateFilter.All]: 'Toutes',
-}
 
 const STATE_LABELS: Record<MergeRequestState, string> = {
   [MergeRequestState.Open]: 'Ouverte',
@@ -52,6 +45,14 @@ export const statusText = (item: MergeRequest): string => {
   return review ? `${STATE_LABELS[item.state]}, ${review}` : STATE_LABELS[item.state]
 }
 
+export const reviewBadge = (item: MergeRequest): string | null => {
+  if (item.draft) {
+    return 'Brouillon'
+  }
+  const review = REVIEW_LABELS[item.review]
+  return review ? `${review.charAt(0).toUpperCase()}${review.slice(1)}` : null
+}
+
 export const statusTone = (item: MergeRequest): string => {
   if (item.state === MergeRequestState.Merged) {
     return 'text-tily-forge-merged'
@@ -62,7 +63,7 @@ export const statusTone = (item: MergeRequest): string => {
   return OPEN_TONES[item.review]
 }
 
-export const updatedText = (item: MergeRequest): string => relativeDate(Date.parse(item.updatedAt) / 1000)
+export const updatedText = (item: MergeRequest): string => relativeDate(Date.parse(item.updatedAt) / 1000, true)
 
 const userList = (users: ForgeUser[]): string => users.map((user) => user.name).join(', ')
 

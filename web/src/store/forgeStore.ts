@@ -1,8 +1,7 @@
 import { create } from 'zustand'
-import { MergeRequestStateFilter, type BranchMergeRequests, type ForgeKind, type MergeRequest, type MergeRequestList } from '../bridge/forgeMessages'
+import type { BranchMergeRequests, ForgeKind, MergeRequest, MergeRequestList } from '../bridge/forgeMessages'
 
 export interface MergeRequestFilter {
-  state: MergeRequestStateFilter
   labels: string[]
   assignees: string[]
   text: string
@@ -38,7 +37,7 @@ interface ForgeState {
   setMenu: (menu: MergeRequestMenuRequest | null) => void
 }
 
-const DEFAULT_FILTER: MergeRequestFilter = { state: MergeRequestStateFilter.Open, labels: [], assignees: [], text: '' }
+const DEFAULT_FILTER: MergeRequestFilter = { labels: [], assignees: [], text: '' }
 
 export const branchKey = (path: string, branch: string): string => `${path.toLowerCase()}\n${branch}`
 
@@ -54,7 +53,7 @@ export const useForgeStore = create<ForgeState>()((set) => ({
       const samePath = state.listing?.path.toLowerCase() === path.toLowerCase()
       return {
         listing: { path, request, loading: true, list: samePath ? (state.listing?.list ?? null) : null, error: null },
-        filter: samePath ? state.filter : { ...DEFAULT_FILTER, state: state.filter.state },
+        filter: samePath ? state.filter : DEFAULT_FILTER,
       }
     }),
   finishListing: (request, list, error) =>
