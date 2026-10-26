@@ -77,6 +77,7 @@ public sealed class BridgeCommandModel
     public bool Confirmed { get; init; }
     public bool RememberFolder { get; init; }
     public bool Install { get; init; }
+    public bool Claude { get; init; }
     public bool Database { get; init; }
     public bool Remember { get; init; }
     public bool KeepBranch { get; init; }

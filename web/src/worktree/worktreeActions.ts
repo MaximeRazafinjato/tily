@@ -3,7 +3,7 @@ import { CANCELLED_REPLY, dispatchReply, newAgentRequest } from '../bridge/reque
 import { PickTarget } from '../bridge/messages'
 import { WorktreeBranchMode, WorktreeOperation, type WorktreePlan, type WorktreeSources } from '../bridge/worktreeMessages'
 import { focusActivePane } from '../explorer/fileExplorerActions'
-import { activePane, activeTab, activeWorkspace, DEFAULT_SHELL, panesOf } from '../model/session'
+import { activePane, activeTab, activeWorkspace, createPane, DEFAULT_SHELL, panesOf, SplitAxis } from '../model/session'
 import { useAgentStore } from '../store/agentStore'
 import { useHostStore } from '../store/hostStore'
 import { useSessionStore } from '../store/sessionStore'
@@ -41,7 +41,7 @@ const openDraft = (folder: string, preset: DraftPreset, source: { path: string }
   clearTimeout(planTimer)
   setPicker(null)
   setCreateFailure(null)
-  setDraft({ project: folder, repository: '', remember: false, branch: '', mode: WorktreeBranchMode.New, base: '', folder: null, rememberFolder: false, install: true, database: true, ...preset })
+  setDraft({ project: folder, repository: '', remember: false, branch: '', mode: WorktreeBranchMode.New, base: '', folder: null, rememberFolder: false, install: true, claude: true, database: true, ...preset })
   bridge.send({ type: 'worktrees.sources', request: requestSources(), ...source })
 }
 
@@ -102,7 +102,7 @@ export const submitWorktree = (): void => {
   setCreateFailure(null)
   const request = newAgentRequest()
   queueWorktreeTask({ request, operation: WorktreeOperation.Create, fromDialog: true }, 'Création du worktree')
-  bridge.send({ type: 'worktrees.create', request, repository: draft.repository, branch: draft.branch, mode: draft.mode, base: draft.base || undefined, install: draft.install, database: draft.database, project: draft.project, remember: draft.remember, folder: draft.folder ?? undefined, rememberFolder: draft.rememberFolder && folderChanged(draft, plan) })
+  bridge.send({ type: 'worktrees.create', request, repository: draft.repository, branch: draft.branch, mode: draft.mode, base: draft.base || undefined, install: draft.install, claude: draft.claude, database: draft.database, project: draft.project, remember: draft.remember, folder: draft.folder ?? undefined, rememberFolder: draft.rememberFolder && folderChanged(draft, plan) })
 }
 
 export const openWorktreePicker = (kind: WorktreePickerKind): void => {
@@ -140,12 +140,29 @@ export const openWorktree = (path: string, inActiveWorkspace = false): void => {
   }
 }
 
-export const openCreatedWorktree = (path: string, name: string, install: string | undefined): void => {
+const startBelow = (paneId: string, path: string, command: string): void => {
+  const { insertPaneBeside, selectPane } = useSessionStore.getState()
+  const pane = createPane(path, DEFAULT_SHELL)
+  insertPaneBeside(paneId, SplitAxis.Vertical, pane)
+  selectPane(paneId)
+  terminalRegistry.runAtStart(pane.id, command)
+}
+
+export const openCreatedWorktree = (path: string, name: string, install: string | undefined, claude: string | undefined): void => {
   const { newWorkspace } = useSessionStore.getState()
   const workspaceId = newWorkspace(name, path, DEFAULT_SHELL)
   const workspace = useSessionStore.getState().session?.workspaces.find((candidate) => candidate.id === workspaceId)
-  if (workspace && install) {
-    terminalRegistry.runAtStart(activeTab(workspace).active, install)
+  if (!workspace) {
+    return
+  }
+  const paneId = activeTab(workspace).active
+  if (claude) {
+    terminalRegistry.runAtStart(paneId, claude)
+  }
+  if (install && claude) {
+    startBelow(paneId, path, install)
+  } else if (install) {
+    terminalRegistry.runAtStart(paneId, install)
   }
 }
 
