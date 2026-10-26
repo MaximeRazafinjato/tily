@@ -1,6 +1,6 @@
 import { bridge } from '../bridge/bridge'
 import type { PaneActivity } from '../bridge/messages'
-import { allPanes, folderName, panesOf, type Session } from '../model/session'
+import { allPanes, paneLocation, panesOf, type Session } from '../model/session'
 import { useSessionStore } from '../store/sessionStore'
 import { useUiStore, type PaneActivityView } from '../store/uiStore'
 import { closeApplication } from './textPersistence'
@@ -24,7 +24,7 @@ const describePane = (session: Session | null, paneId: string): string => {
     for (const tab of workspace.tabs) {
       const pane = panesOf(tab.tree).find((candidate) => candidate.id === paneId)
       if (pane) {
-        return `${workspace.name} › ${tab.name} › ${folderName(pane.path)}`
+        return paneLocation(workspace.name, tab.name, pane.path)
       }
     }
   }

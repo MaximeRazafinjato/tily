@@ -2,8 +2,10 @@ import { useEffect, useRef, useState, type ChangeEvent, type PointerEvent } from
 import type { WorktreeRemoval } from '../store/worktreeStore'
 import { cancelWorktreeRemoval, changeWorktreeRemoval, confirmWorktreeRemoval } from '../worktree/worktreeActions'
 import { keepTabInside } from './focusTrap'
-import { SETTINGS_BUTTON, SETTINGS_HINT, SETTINGS_SECONDARY } from './settingsStyles'
+import { InfoTip } from './InfoTip'
+import { SETTINGS_BUTTON, SETTINGS_SECONDARY } from './settingsStyles'
 import { WorktreeFailureDetails } from './WorktreeFailureDetails'
+import { WorktreePathLabel } from './WorktreePathLabel'
 
 interface WorktreeRemoveDialogProps {
   removal: WorktreeRemoval
@@ -12,6 +14,8 @@ interface WorktreeRemoveDialogProps {
 const DANGER = `${SETTINGS_BUTTON} border-tily-error text-tily-error hover:bg-tily-green-hover aria-disabled:cursor-default aria-disabled:opacity-50`
 const ARM_DELAY_MS = 600
 const CHECK_LABEL = 'flex items-center gap-2 text-[12px] text-tily-ink'
+const ROW_LABEL = 'flex min-h-[28px] items-center text-[12px] text-tily-muted'
+const ROW_VALUE = 'flex min-h-[28px] min-w-0 items-center'
 
 const handleBackdropPointerDown = (event: PointerEvent<HTMLDivElement>) => {
   if (event.target === event.currentTarget) {
@@ -59,38 +63,71 @@ export function WorktreeRemoveDialog({ removal }: WorktreeRemoveDialogProps) {
         <div className="flex items-baseline justify-between border-b border-tily-line px-4 py-3">
           <h2 className="truncate text-[15px] font-semibold text-tily-ink">{title}</h2>
         </div>
-        <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-4 py-4">
-          {requestedBy && <p className="text-[12px] text-tily-ink">{`Demandé par ${requestedBy}. Sans réponse dans les 2 minutes, la demande est refusée.`}</p>}
-          <p className={`${SETTINGS_HINT}`}>{path}</p>
-          <p className="text-[12px] text-tily-warning">Le dossier est supprimé avec ses modifications non commitées.</p>
-          {panes.length > 0 && (
+        <div className="grid min-h-0 flex-1 grid-cols-[auto_minmax(0,1fr)] items-start gap-x-4 gap-y-4 overflow-y-auto px-4 py-4">
+          {requestedBy && (
             <>
-              <ul className="flex flex-col gap-1">
-                {panes.map((pane) => (
-                  <li key={pane.paneId} className="flex items-center gap-2 rounded border border-tily-line bg-tily-paper px-3 py-1.5 text-[12px] text-tily-ink">
-                    <span className="min-w-0 flex-1 truncate">{pane.label}</span>
-                    {pane.agent && <span className="shrink-0 text-[11px] text-tily-warning">agent actif</span>}
-                  </li>
-                ))}
-              </ul>
-              <label className={CHECK_LABEL}>
-                <input type="checkbox" checked={closePanes} onChange={handleClosePanesChange} />
-                Fermer ces onglets et panes (leurs programmes sont arrêtés)
-              </label>
-              {!closePanes && <p className="text-[11px] text-tily-warning">Un shell ouvert dans le dossier le verrouille : la suppression échouera probablement.</p>}
+              <span className={ROW_LABEL}>Demandé par</span>
+              <span className={`${ROW_VALUE} gap-1.5 text-[12px] text-tily-ink`}>
+                {requestedBy}
+                <InfoTip text="Sans réponse dans les 2 minutes, la demande est refusée." />
+              </span>
             </>
           )}
+          <span className={ROW_LABEL}>Dossier</span>
+          <div className="flex min-w-0 flex-col gap-1">
+            <span className={ROW_VALUE}>
+              <WorktreePathLabel path={path} />
+            </span>
+            <span className="text-[11px] text-tily-warning">Supprimé avec ses modifications non commitées.</span>
+          </div>
           {branch && (
-            <label className={CHECK_LABEL}>
-              <input type="checkbox" checked={keepBranch} onChange={handleKeepBranchChange} />
-              {`Garder la branche « ${branch} »`}
-            </label>
+            <>
+              <span className={ROW_LABEL}>Branche</span>
+              <span className={`${ROW_VALUE} gap-4`}>
+                <span className="min-w-0 truncate text-[12px] text-tily-ink">{branch}</span>
+                <label className={`${CHECK_LABEL} shrink-0`}>
+                  <input type="checkbox" checked={keepBranch} onChange={handleKeepBranchChange} />
+                  Garder
+                </label>
+              </span>
+            </>
           )}
-          <label className={CHECK_LABEL}>
-            <input type="checkbox" checked={dropDatabase} onChange={handleDropDatabaseChange} />
-            Supprimer la base répliquée (jamais celle du dépôt principal)
-          </label>
-          {failure && <WorktreeFailureDetails failure={failure} />}
+          {panes.length > 0 && (
+            <>
+              <span className={ROW_LABEL}>Panes</span>
+              <div className="flex min-w-0 flex-col gap-2">
+                <ul className="flex flex-col divide-y divide-tily-line rounded border border-tily-line bg-tily-paper">
+                  {panes.map((pane) => (
+                    <li key={pane.paneId} className="flex min-h-[28px] items-center gap-2 px-3 py-1 text-[12px] text-tily-ink">
+                      <span className="min-w-0 flex-1 truncate">{pane.label}</span>
+                      {pane.agent && <span className="shrink-0 text-[11px] text-tily-warning">agent actif</span>}
+                    </li>
+                  ))}
+                </ul>
+                <span className="flex items-center gap-1.5">
+                  <label className={CHECK_LABEL}>
+                    <input type="checkbox" checked={closePanes} onChange={handleClosePanesChange} />
+                    Fermer ces onglets et panes
+                  </label>
+                  <InfoTip text="Leurs programmes sont arrêtés." />
+                </span>
+                {!closePanes && <p className="text-[11px] text-tily-warning">Un shell ouvert verrouille le dossier : la suppression échouera sans doute.</p>}
+              </div>
+            </>
+          )}
+          <span className={ROW_LABEL}>Base</span>
+          <span className={`${ROW_VALUE} gap-1.5`}>
+            <label className={CHECK_LABEL}>
+              <input type="checkbox" checked={dropDatabase} onChange={handleDropDatabaseChange} />
+              Supprimer la réplique
+            </label>
+            <InfoTip text="Base répliquée pour ce worktree, jamais celle du dépôt principal." />
+          </span>
+          {failure && (
+            <div className="col-span-2">
+              <WorktreeFailureDetails failure={failure} />
+            </div>
+          )}
         </div>
         <div className="flex items-center justify-end gap-2 border-t border-tily-line px-4 py-3">
           <button ref={cancelRef} type="button" className={SETTINGS_SECONDARY} data-tip={requestedBy ? 'Entrée ou Échap' : 'Échap'} onClick={cancelWorktreeRemoval}>
