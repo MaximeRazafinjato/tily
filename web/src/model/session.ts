@@ -117,6 +117,7 @@ export const CLOSED_TABS_MAX = 5
 export const FAVORITES_MAX = 50
 export const NOTE_MAX_CHARS = 100_000
 const NOTE_PREVIEW_CHARS = 80
+const LOCATION_SEPARATOR = ' › '
 export const SPLIT_RATIO_MIN = 0.15
 export const SPLIT_RATIO_MAX = 0.85
 export const SPLIT_RATIO_DEFAULT = 0.5
@@ -154,6 +155,9 @@ export const folderName = (path: string): string => {
   const segment = trimmed.split(/[\\/]/).pop()
   return segment && segment.length > 0 ? segment : trimmed
 }
+
+export const paneLocation = (workspaceName: string, tabName: string, path: string): string =>
+  [workspaceName, tabName, folderName(path)].filter((segment, index, segments) => segment !== segments[index - 1]).join(LOCATION_SEPARATOR)
 
 export const createPane = (path: string, shell: string): Pane => ({ id: newId(), path, shell })
 

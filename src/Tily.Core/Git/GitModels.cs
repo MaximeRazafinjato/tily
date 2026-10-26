@@ -115,7 +115,8 @@ public sealed record GitCommitModel(
     string Subject,
     IReadOnlyList<GitRefLabelModel> Refs,
     GitGraphRowModel Graph,
-    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] bool Stash = false);
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] bool Stash = false,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] bool Pushable = false);
 
 public sealed record GitHistoryModel(string Root, GitHistoryScope Scope, IReadOnlyList<GitCommitModel> Commits, bool HasMore, GitGraphRowModel WorkingTree);
 

@@ -85,6 +85,67 @@ public sealed class GitSyncCommandsTests : IDisposable
     }
 
     [Fact]
+    public void PushUpTo_WhenBranchNotCurrent_ThenPublishesItWithoutCheckout()
+    {
+        _sandbox.Git("switch", "-q", "-c", "fonction");
+        var tip = _sandbox.Commit("Fonction", ("f.txt", "f\n"));
+        _sandbox.Git("switch", "-q", "main");
+
+        var outcome = GitSyncCommands.PushUpTo(_sandbox.Repository, "fonction", null);
+
+        Assert.Equal(("Branche « fonction » publiée sur origin.", tip, "main"), (outcome.Message, _sandbox.GitIn(_remote, "rev-parse", "fonction").Trim(), _sandbox.Branch()));
+    }
+
+    [Fact]
+    public void PushUpTo_WhenCommitBeforeTip_ThenPushesOnlyUpToIt()
+    {
+        GitSyncCommands.Push(_sandbox.Repository, false, false, false);
+        var first = _sandbox.Commit("Premier", ("b.txt", "b\n"));
+        _sandbox.Commit("Second", ("c.txt", "c\n"));
+
+        var outcome = GitSyncCommands.PushUpTo(_sandbox.Repository, "main", first);
+
+        Assert.Equal(($"Push vers origin/main jusqu’à {first[..7]} terminé.", first), (outcome.Message, _sandbox.GitIn(_remote, "rev-parse", "main").Trim()));
+    }
+
+    [Fact]
+    public void PushUpTo_WhenUnpublishedBranchUpToCommit_ThenPublishesAndTracks()
+    {
+        _sandbox.Git("switch", "-q", "-c", "fonction");
+        var first = _sandbox.Commit("Premier", ("b.txt", "b\n"));
+        _sandbox.Commit("Second", ("c.txt", "c\n"));
+
+        var outcome = GitSyncCommands.PushUpTo(_sandbox.Repository, "fonction", first);
+
+        Assert.Equal(($"Branche « fonction » publiée sur origin jusqu’à {first[..7]}.", "origin/fonction", 1), (outcome.Message, _sandbox.Repository.Status().Head.Upstream, _sandbox.Repository.Status().Head.Ahead));
+    }
+
+    [Fact]
+    public void PushUpTo_WhenCommitNotOnBranch_ThenRefuses()
+    {
+        _sandbox.Git("switch", "-q", "-c", "fonction");
+        var other = _sandbox.Commit("Ailleurs", ("b.txt", "b\n"));
+        _sandbox.Git("switch", "-q", "main");
+
+        var exception = Assert.Throws<GitCommandException>(() => GitSyncCommands.PushUpTo(_sandbox.Repository, "main", other));
+
+        Assert.Equal($"Le commit {other[..7]} n’est pas sur la branche « main ».", exception.Message);
+    }
+
+    [Fact]
+    public void PushUpTo_WhenRemoteMovedAheadOfOtherBranch_ThenRefusedWithoutOfferingForce()
+    {
+        GitSyncCommands.Push(_sandbox.Repository, false, false, false);
+        PushFromOtherClone("b.txt");
+        _sandbox.Commit("Local", ("c.txt", "c\n"));
+        _sandbox.Git("switch", "-q", "-c", "autre");
+
+        var exception = Assert.Throws<GitCommandException>(() => GitSyncCommands.PushUpTo(_sandbox.Repository, "main", null));
+
+        Assert.Equal("Push refusé : la branche distante contient des commits absents de « main ». Faites un checkout de « main » puis un pull pour les intégrer.", exception.Message);
+    }
+
+    [Fact]
     public void Pull_WhenBranchesDiverged_ThenMergesAndUndoRestores()
     {
         GitSyncCommands.Push(_sandbox.Repository, false, false, false);

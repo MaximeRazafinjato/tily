@@ -4,6 +4,7 @@ public static class GitSyncCommands
 {
     private const string HeadsPrefix = "refs/heads/";
     private const string Origin = "origin";
+    private static readonly PushAdviceModel ForceAdvice = new("votre branche", "un pull", true);
 
     public static GitOutcomeModel Push(GitRepository repository, bool force, bool confirmed, bool forceAllowed)
     {
@@ -23,7 +24,23 @@ public static class GitSyncCommands
     public static GitOutcomeModel PushBranch(GitRepository repository, string branch) =>
         PushRef(repository, branch, $"{HeadsPrefix}{branch}", false);
 
-    private static GitOutcomeModel PushRef(GitRepository repository, string branch, string source, bool force)
+    public static GitOutcomeModel PushUpTo(GitRepository repository, string? name, string? commit)
+    {
+        var branch = GitNames.RequireBranchName(repository, name);
+        var tip = repository.Resolve($"{HeadsPrefix}{branch}") ?? throw new GitCommandException($"La branche « {branch} » n’existe plus.", string.Empty);
+        var sha = commit is null ? tip : repository.RequireCommit(commit);
+        if (sha != tip && !repository.IsAncestor(sha, tip))
+        {
+            throw new GitCommandException($"Le commit {GitRepository.Short(sha)} n’est pas sur la branche « {branch} ».", string.Empty);
+        }
+
+        var advice = branch == repository.CurrentBranch()
+            ? ForceAdvice with { ForceOffered = false }
+            : new PushAdviceModel($"« {branch} »", $"un checkout de « {branch} » puis un pull", false);
+        return sha == tip ? PushRef(repository, branch, $"{HeadsPrefix}{branch}", false, advice) : PushRef(repository, branch, sha, false, advice, sha);
+    }
+
+    private static GitOutcomeModel PushRef(GitRepository repository, string branch, string source, bool force, PushAdviceModel? advice = null, string? upTo = null)
     {
         var target = Target(repository, branch);
         var arguments = new List<string> { "push", "--porcelain" };
@@ -44,13 +61,32 @@ public static class GitSyncCommands
         {
             throw force
                 ? new GitCommandException("Push forcé refusé : la branche distante a changé depuis le dernier fetch. Faites un fetch, vérifiez le graphe puis réessayez.", output.Details)
-                : new GitPushRejectedException(branch, Rejection(rejected), output.Details);
+                : advice is null
+                    ? new GitPushRejectedException(branch, Rejection(rejected, ForceAdvice), output.Details)
+                    : new GitCommandException(Rejection(rejected, advice), output.Details);
         }
 
         GitRepository.Require(output, "Le push a échoué.");
         var destination = $"{target.Remote}/{target.Destination[HeadsPrefix.Length..]}";
+        if (upTo is not null)
+        {
+            return PartialOutcome(repository, branch, target, destination, GitRepository.Short(upTo));
+        }
+
         var message = force ? $"Push forcé vers {destination} (--force-with-lease)." : target.Publish ? $"Branche « {branch} » publiée sur {target.Remote}." : $"Push vers {destination} terminé.";
         return new GitOutcomeModel(message);
+    }
+
+    private static GitOutcomeModel PartialOutcome(GitRepository repository, string branch, PushTargetModel target, string destination, string upTo)
+    {
+        if (!target.Publish)
+        {
+            return new GitOutcomeModel($"Push vers {destination} jusqu’à {upTo} terminé.");
+        }
+
+        return repository.Run("branch", $"--set-upstream-to={destination}", branch).Succeeded
+            ? new GitOutcomeModel($"Branche « {branch} » publiée sur {target.Remote} jusqu’à {upTo}.")
+            : new GitOutcomeModel($"Branche « {branch} » publiée sur {target.Remote} jusqu’à {upTo}, mais elle ne suit pas encore {destination} : un push de toute la branche le configurera.", true);
     }
 
     public static GitOutcomeModel Pull(GitRepository repository)
@@ -152,17 +188,20 @@ public static class GitSyncCommands
             string.Empty);
     }
 
-    private static string Rejection(string line)
+    private static string Rejection(string line, PushAdviceModel advice)
     {
         var start = line.LastIndexOf('(');
         var reason = start >= 0 ? line[(start + 1)..].TrimEnd(')', ' ', '\r') : string.Empty;
+        var force = advice.ForceOffered ? ", ou forcez le push" : string.Empty;
         return reason switch
         {
-            "fetch first" => "Push refusé : la branche distante contient des commits absents de votre branche. Faites un pull pour les intégrer, ou forcez le push.",
-            "non-fast-forward" => "Push refusé : votre branche et la branche distante ont divergé (historique réécrit ?). Faites un pull pour les réconcilier, ou forcez le push.",
+            "fetch first" => $"Push refusé : la branche distante contient des commits absents de {advice.Branch}. Faites {advice.Pull} pour les intégrer{force}.",
+            "non-fast-forward" => $"Push refusé : {advice.Branch} et la branche distante ont divergé (historique réécrit ?). Faites {advice.Pull} pour les réconcilier{force}.",
             _ => $"Push refusé ({reason})."
         };
     }
 
     private sealed record PushTargetModel(string Remote, string Destination, bool Publish);
+
+    private sealed record PushAdviceModel(string Branch, string Pull, bool ForceOffered);
 }

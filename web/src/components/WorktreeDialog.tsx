@@ -39,6 +39,7 @@ const handleExistingMode = () => changeWorktreeDraft({ mode: WorktreeBranchMode.
 const handleBranchChange = (event: ChangeEvent<HTMLInputElement>) => changeWorktreeDraft({ branch: event.target.value })
 const handleBaseChange = (event: ChangeEvent<HTMLSelectElement>) => changeWorktreeDraft({ base: event.target.value })
 const handleInstallChange = (event: ChangeEvent<HTMLInputElement>) => changeWorktreeDraft({ install: event.target.checked })
+const handleClaudeChange = (event: ChangeEvent<HTMLInputElement>) => changeWorktreeDraft({ claude: event.target.checked })
 const handleRepositoryChange = (event: ChangeEvent<HTMLSelectElement>) => changeWorktreeDraft({ repository: event.target.value })
 const handleRememberChange = (event: ChangeEvent<HTMLInputElement>) => changeWorktreeDraft({ remember: event.target.checked })
 const handleDatabaseChange = (event: ChangeEvent<HTMLInputElement>) => changeWorktreeDraft({ database: event.target.checked })
@@ -167,6 +168,13 @@ export function WorktreeDialog({ draft, sources, plan, planPending, busy, failur
           <span className={ROW_LABEL}>Options</span>
           <fieldset className="min-w-0" disabled={busy}>
             <div className="flex min-h-[28px] flex-wrap items-center gap-x-4 gap-y-1">
+              <span className="flex items-center gap-1.5">
+                <label className={CHECKBOX_LABEL}>
+                  <input type="checkbox" checked={draft.claude} onChange={handleClaudeChange} />
+                  Claude Code
+                </label>
+                <InfoTip text="claude démarre dans le terminal du worktree ; pnpm install tourne alors dans un pane en dessous." />
+              </span>
               <span className="flex items-center gap-1.5">
                 <label className={CHECKBOX_LABEL}>
                   <input type="checkbox" checked={draft.install} onChange={handleInstallChange} />

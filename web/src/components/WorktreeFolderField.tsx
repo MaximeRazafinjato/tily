@@ -1,12 +1,11 @@
 import { useState, type ChangeEvent } from 'react'
 import type { WorktreePlan } from '../bridge/worktreeMessages'
-import { folderName } from '../model/session'
 import type { WorktreeDraft } from '../store/worktreeStore'
 import { changeWorktreeDraft, changeWorktreeFolder, folderChanged, pickWorktreeFolder } from '../worktree/worktreeActions'
-import { parentFolder } from '../worktree/worktreePaths'
 import { SETTINGS_BROWSE, SETTINGS_INPUT } from './settingsStyles'
 import { Icon } from './Icon'
 import { IconName } from './iconName'
+import { WorktreePathLabel } from './WorktreePathLabel'
 
 interface WorktreeFolderFieldProps {
   draft: WorktreeDraft
@@ -30,10 +29,7 @@ export function WorktreeFolderField({ draft, plan, project, checkboxLabel }: Wor
   return (
     <div className="flex min-w-0 flex-col gap-1.5">
       <span className="flex min-h-[28px] min-w-0 items-center gap-2">
-        <span className="flex min-w-0 flex-1 items-baseline gap-2 text-[12px]" data-tip={finalPath || undefined}>
-          <span className="shrink-0 text-tily-ink">{finalPath ? folderName(finalPath) : '—'}</span>
-          <span className="truncate text-[11px] text-tily-muted">{parentFolder(finalPath)}</span>
-        </span>
+        <WorktreePathLabel path={finalPath} />
         {!expanded && (
           <button type="button" className={`${SETTINGS_BROWSE} h-[24px]`} aria-label={EDIT_LABEL} data-tip={EDIT_LABEL} onClick={handleEdit}>
             <Icon name={IconName.Pencil} />

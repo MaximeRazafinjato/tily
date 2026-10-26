@@ -135,7 +135,8 @@ public sealed class WorktreeFeed
             Progress(CreateOperation, request, "Randomisation des ports…");
             var ports = Ports(creation.Path);
             var install = WorktreeCreator.InstallCommandFor(creation.Path, command.Install);
-            _post(new { type = "worktrees.created", request, path = creation.Path, name = creation.Name, branch = creation.Branch, install });
+            var claude = command.Claude ? WorktreeCreator.ClaudeCommand : null;
+            _post(new { type = "worktrees.created", request, path = creation.Path, name = creation.Name, branch = creation.Branch, install, claude });
             _changed();
             List<WorktreeStepModel> steps = [.. creation.Steps, ports];
             if (command.Remember)

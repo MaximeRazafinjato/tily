@@ -56,7 +56,7 @@ export type WorktreeHostMessage =
   | { type: 'worktrees.planned'; request: number; plan: WorktreePlan }
   | { type: 'worktrees.listed'; request: number; root?: string; worktrees?: Worktree[]; error?: string }
   | { type: 'worktrees.progress'; request?: number; operation: WorktreeOperation; message: string }
-  | { type: 'worktrees.created'; request?: number; path: string; name: string; branch: string; install?: string }
+  | { type: 'worktrees.created'; request?: number; path: string; name: string; branch: string; install?: string; claude?: string }
   | { type: 'worktrees.done'; request?: number; operation: WorktreeOperation; message: string; warnings: string[] }
   | { type: 'worktrees.failed'; request?: number; operation: WorktreeOperation; step: string; message: string; output?: string; lockedBy?: string[] }
   | { type: 'worktrees.purging'; name: string; files: number; elapsedMs: number }
@@ -74,6 +74,7 @@ export type WorktreeWebMessage =
       mode: WorktreeBranchMode
       base?: string
       install: boolean
+      claude?: boolean
       database: boolean
       project: string
       remember: boolean
