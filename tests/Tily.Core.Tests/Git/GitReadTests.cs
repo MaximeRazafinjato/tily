@@ -123,6 +123,41 @@ public sealed class GitReadTests : IDisposable
     }
 
     [Fact]
+    public void ReadHistory_WhenAheadOfUpstream_ThenMarksCommitsPushableAsFastForward()
+    {
+        _sandbox.CreateRemote();
+        _sandbox.Commit("Racine", ("a.txt", "a\n"));
+        _sandbox.Git("switch", "-q", "-c", "côté");
+        _sandbox.Commit("Côté", ("c.txt", "c\n"));
+        _sandbox.Git("switch", "-q", "main");
+        _sandbox.Commit("Publié", ("b.txt", "b\n"));
+        _sandbox.Git("push", "-q", "-u", "origin", "main");
+        _sandbox.Git("merge", "-q", "--no-ff", "-m", "Fusion", "côté");
+        _sandbox.Commit("Local", ("d.txt", "d\n"));
+        var state = GitStateReader.Read(_sandbox.Repository, null, _ => false);
+
+        var history = GitHistoryReader.Read(_sandbox.Repository, GitHistoryScope.All, 10, state);
+
+        Assert.Equal(["Local", "Fusion"], history.Commits.Where(commit => commit.Pushable).Select(commit => commit.Subject));
+    }
+
+    [Fact]
+    public void ReadHistory_WhenBranchUnpublished_ThenMarksCommitsAbsentFromRemotes()
+    {
+        _sandbox.CreateRemote();
+        _sandbox.Commit("Publié", ("a.txt", "a\n"));
+        _sandbox.Git("push", "-q", "-u", "origin", "main");
+        _sandbox.Git("switch", "-q", "-c", "fonction");
+        _sandbox.Commit("Premier", ("b.txt", "b\n"));
+        _sandbox.Commit("Second", ("c.txt", "c\n"));
+        var state = GitStateReader.Read(_sandbox.Repository, null, _ => false);
+
+        var history = GitHistoryReader.Read(_sandbox.Repository, GitHistoryScope.Current, 10, state);
+
+        Assert.Equal(["Second", "Premier"], history.Commits.Where(commit => commit.Pushable).Select(commit => commit.Subject));
+    }
+
+    [Fact]
     public void ReadHistory_WhenMoreCommitsThanCount_ThenHasMore()
     {
         _sandbox.Commit("Un", ("a.txt", "1"));

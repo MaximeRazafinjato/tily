@@ -10,6 +10,7 @@ const BUSY_LABELS: Record<string, (ref: string | null, count: number) => string>
   'git.autoFetch': () => 'Fetch en cours…',
   'git.pull': () => 'Pull en cours…',
   'git.push': () => 'Push en cours…',
+  'git.pushBranch': (ref) => `Push de ${quoted(ref)} en cours…`,
   'git.commit': () => 'Commit en cours…',
   'git.merge': (ref) => `Merge de ${quoted(ref)} en cours…`,
   'git.rebase': (ref) => `Rebase sur ${quoted(ref)} en cours…`,
@@ -45,6 +46,8 @@ export const busyRefsOf = (message: GitWebMessage): string[] => {
     case 'git.rebase':
     case 'git.remoteBranchDelete':
       return [message.reference]
+    case 'git.pushBranch':
+      return [message.branch]
     case 'git.refsDelete':
       return [...message.branches, ...message.remoteBranches, ...message.tags, ...message.stashes]
     default:
