@@ -47,7 +47,7 @@ function McpConsentContent({ request, waiting }: { request: McpConsentRequest; w
   return (
     <div className="absolute inset-0 z-40 flex items-start justify-center bg-tily-paper/60 pt-[12vh]">
       <div role="alertdialog" aria-label={TITLE} className="flex max-h-[76vh] w-[560px] max-w-[94vw] flex-col rounded-lg border border-tily-line bg-tily-panel shadow-xl" onKeyDown={keepTabInside}>
-        <div className="flex items-center justify-between border-b border-tily-line px-4 py-3">
+        <div className="flex items-baseline justify-between border-b border-tily-line px-4 py-3">
           <h2 className="text-[15px] font-semibold text-tily-ink">{TITLE}</h2>
           <span className="text-[11px] text-tily-muted">Entrée ou Échap refuse</span>
         </div>

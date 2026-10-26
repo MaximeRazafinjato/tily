@@ -36,7 +36,7 @@ export function MergeRequestFacetButton({ label, options, selected, emptyMessage
   const items: ActionMenuItem[] = options.map((option) => ({
     id: option.id,
     label: option.label,
-    detail: selected.includes(option.id) ? <Icon name={IconName.Check} className="shrink-0 text-tily-green-deep" /> : <span className="size-[12px] shrink-0" />,
+    detail: selected.includes(option.id) ? <Icon name={IconName.Check} className="shrink-0 self-center text-tily-green-deep" /> : <span className="size-[12px] shrink-0 self-center" />,
     run: () => onToggle(option.id),
   }))
   const count = selected.length
@@ -54,7 +54,7 @@ export function MergeRequestFacetButton({ label, options, selected, emptyMessage
         onClick={handleClick}
       >
         <span>{count > 0 ? `${label} · ${count}` : label}</span>
-        <Icon name={IconName.Chevron} size={9} className="rotate-90" />
+        <Icon name={IconName.Chevron} size={10} className="rotate-90" />
       </button>
       {open && <ActionMenu label={`Filtrer par ${label.toLowerCase()}`} items={items} emptyMessage={emptyMessage} scrollable onClose={handleClose} />}
     </div>

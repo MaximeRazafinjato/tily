@@ -61,7 +61,7 @@ const EditorIcon = () => (
 
 const FolderIcon = () => (
   <svg {...ICON_PROPS} aria-hidden="true">
-    <path d="M1.5 3.5h3l1 1h5v5.5h-9z" />
+    <path d="M1.5 2.75h3l1 1h5v5.5h-9z" />
   </svg>
 )
 
@@ -181,12 +181,22 @@ export const PaneView = memo(function PaneView({ pane, active, zoomed, onToggleZ
         onMouseDown={handleHeaderMouseDown}
         onDoubleClick={handleHeaderDoubleClick}
       >
-        <span className="mr-1 min-w-[2em] truncate font-semibold text-tily-ink">{pane.shell}</span>
-        {agent && <AgentBadge agent={agent} />}
-        {pane.owner && <AgentOwnerMark owner={pane.owner} />}
-        <span className="flex min-w-0 flex-1 font-mono whitespace-nowrap text-tily-green" data-tip={pane.path}>
-          {parent && <span className="min-w-[1.2em] truncate">{parent}</span>}
-          <span className={parent ? 'max-w-[calc(100%_-_1.2em)] shrink-0 truncate' : 'truncate'}>{folder}</span>
+        <span className="flex min-w-0 flex-1 items-baseline gap-1">
+          <span className="mr-1 min-w-[2em] truncate font-semibold text-tily-ink">{pane.shell}</span>
+          {agent && (
+            <span className="flex min-w-0 self-center">
+              <AgentBadge agent={agent} />
+            </span>
+          )}
+          {pane.owner && (
+            <span className="flex min-w-0 self-center">
+              <AgentOwnerMark owner={pane.owner} />
+            </span>
+          )}
+          <span className="flex min-w-0 flex-1 font-mono whitespace-nowrap text-tily-green" data-tip={pane.path}>
+            {parent && <span className="min-w-[1.2em] truncate">{parent}</span>}
+            <span className={parent ? 'max-w-[calc(100%_-_1.2em)] shrink-0 truncate' : 'truncate'}>{folder}</span>
+          </span>
         </span>
         {branchLabel && (
           <button

@@ -32,13 +32,13 @@ export const MergeRequestRow = memo(function MergeRequestRow({ path, kind, item,
         onClick={handleClick}
         onContextMenu={handleContextMenu}
       >
-        <span className="flex min-w-0 items-center gap-[6px] text-[12px]">
-          <Icon name={IconName.MergeRequest} className={`shrink-0 ${statusTone(item)}`} />
+        <span className="flex min-w-0 items-baseline gap-[6px] text-[12px]">
+          <Icon name={IconName.MergeRequest} className={`shrink-0 self-center ${statusTone(item)}`} />
           <span className="shrink-0 font-mono text-tily-muted">{item.reference}</span>
           {item.draft && <span className="shrink-0 rounded border border-tily-line px-[3px] text-[10px] text-tily-muted">Brouillon</span>}
           <span className="min-w-0 truncate text-tily-ink">{item.title}</span>
         </span>
-        <span className="flex min-w-0 items-center gap-[6px] pl-[18px] text-[11px] text-tily-muted">
+        <span className="flex min-w-0 items-baseline gap-[6px] pl-[18px] text-[11px] text-tily-muted">
           <span className={`shrink-0 ${statusTone(item)}`}>{statusText(item)}</span>
           <span className="min-w-0 truncate font-mono">{`${item.sourceBranch} → ${item.targetBranch}`}</span>
           <span className="ml-auto shrink-0">{updatedText(item)}</span>

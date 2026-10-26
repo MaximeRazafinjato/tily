@@ -1,5 +1,7 @@
 import type { ChangeEvent } from 'react'
 import { NotificationSound } from '../bridge/messages'
+import { Icon } from './Icon'
+import { IconName } from './iconName'
 import { SETTINGS_BROWSE, SETTINGS_HINT, SETTINGS_INPUT, SETTINGS_LABEL, SETTINGS_SECONDARY } from './settingsStyles'
 
 interface SoundSettingProps {
@@ -51,7 +53,7 @@ export function SoundSetting({ label, sound, placeholder, testTip, onChange, onP
         <span className="flex gap-1">
           <input type="text" className={SETTINGS_INPUT} value={sound} placeholder={placeholder} spellCheck={false} onChange={handlePathChange} />
           <button type="button" className={SETTINGS_BROWSE} aria-label={PICK_TIP} data-tip={PICK_TIP} onClick={onPick}>
-            …
+            <Icon name={IconName.More} />
           </button>
         </span>
       )}

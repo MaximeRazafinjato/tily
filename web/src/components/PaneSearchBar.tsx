@@ -53,7 +53,7 @@ export function PaneSearchBar() {
   const valid = isQueryValid(query, options)
 
   return (
-    <div role="search" aria-label="Rechercher dans le terminal" className="absolute top-1 right-3 z-10 flex items-center gap-1 rounded-md border border-tily-line bg-tily-panel px-1.5 py-1 text-[12px] shadow-lg">
+    <div role="search" aria-label="Rechercher dans le terminal" className="absolute top-1 right-3 z-10 flex items-baseline gap-1 rounded-md border border-tily-line bg-tily-panel px-1.5 py-1 text-[12px] shadow-lg">
       <input
         ref={inputRef}
         type="text"
@@ -67,19 +67,19 @@ export function PaneSearchBar() {
         onKeyDown={handleKeyDown}
       />
       <SearchOptionToggles options={options} onToggle={toggleSearchOption} />
-      <span role="status" className={`min-w-16 px-1 text-center text-[11px] whitespace-nowrap ${valid ? 'text-tily-muted' : 'text-tily-error'}`}>
+      <span role="status" className={`min-w-16 px-1 text-center text-[11px] whitespace-nowrap tabular-nums ${valid ? 'text-tily-muted' : 'text-tily-error'}`}>
         {label}
       </span>
-      <button type="button" tabIndex={-1} className={BAR_BUTTON} aria-label="Occurrence précédente" data-tip="Occurrence précédente, vers le haut (Entrée)" onPointerDown={handleButtonPointerDown} onClick={handlePrevious}>
+      <button type="button" tabIndex={-1} className={`${BAR_BUTTON} translate-y-px self-center`} aria-label="Occurrence précédente" data-tip="Occurrence précédente, vers le haut (Entrée)" onPointerDown={handleButtonPointerDown} onClick={handlePrevious}>
         <Icon name={IconName.Chevron} size={10} className="-rotate-90" />
       </button>
-      <button type="button" tabIndex={-1} className={BAR_BUTTON} aria-label="Occurrence suivante" data-tip="Occurrence suivante, vers le bas (Maj + Entrée)" onPointerDown={handleButtonPointerDown} onClick={handleNext}>
+      <button type="button" tabIndex={-1} className={`${BAR_BUTTON} translate-y-[0.5px] self-center`} aria-label="Occurrence suivante" data-tip="Occurrence suivante, vers le bas (Maj + Entrée)" onPointerDown={handleButtonPointerDown} onClick={handleNext}>
         <Icon name={IconName.Chevron} size={10} className="rotate-90" />
       </button>
       <button type="button" tabIndex={-1} className={`${BAR_BUTTON} text-[11px]`} aria-label="Chercher dans tous les terminaux" data-tip="Chercher dans tous les terminaux (Alt + Entrée)" onPointerDown={handleButtonPointerDown} onClick={openGlobalSearch}>
         Tous
       </button>
-      <button type="button" tabIndex={-1} className={`${BAR_BUTTON} hover:text-tily-error`} aria-label="Fermer la recherche" data-tip="Fermer la recherche (Échap)" onPointerDown={handleButtonPointerDown} onClick={closePaneSearch}>
+      <button type="button" tabIndex={-1} className={`${BAR_BUTTON} translate-y-[0.5px] self-center hover:text-tily-error`} aria-label="Fermer la recherche" data-tip="Fermer la recherche (Échap)" onPointerDown={handleButtonPointerDown} onClick={closePaneSearch}>
         <Icon name={IconName.Close} size={10} />
       </button>
     </div>

@@ -2,6 +2,8 @@ import type { ChangeEvent } from 'react'
 import type { WorktreeProjectFolder, WorktreeSettings } from '../bridge/worktreeMessages'
 import { folderName } from '../model/session'
 import { InfoTip } from './InfoTip'
+import { Icon } from './Icon'
+import { IconName } from './iconName'
 import { SETTINGS_BROWSE, SETTINGS_HINT, SETTINGS_INPUT, SETTINGS_LABEL, SETTINGS_ROW, SETTINGS_SECONDARY } from './settingsStyles'
 
 interface WorktreeFolderSettingsProps {
@@ -31,7 +33,7 @@ export function WorktreeFolderSettings({ worktrees, folders, projectsRoot, onCha
         <span className="flex gap-1">
           <input id={FOLDER_ID} type="text" className={SETTINGS_INPUT} value={worktrees.folder} placeholder={`${projectsRoot}${PATH_SEPARATOR}worktrees`} spellCheck={false} onChange={handleFolderChange} />
           <button type="button" className={SETTINGS_BROWSE} aria-label="Choisir le dossier des worktrees" data-tip="Choisir le dossier des worktrees" onClick={onPickFolder}>
-            …
+            <Icon name={IconName.More} />
           </button>
         </span>
       </div>

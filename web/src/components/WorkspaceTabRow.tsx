@@ -32,7 +32,7 @@ interface WorkspaceTabRowProps {
 
 const MIDDLE_BUTTON = 1
 const JOIN_TARGET = '[data-join]'
-const LEAD = 'flex w-[14px] shrink-0 justify-center text-tily-muted'
+const LEAD = 'flex w-[14px] shrink-0 translate-y-px items-center justify-center text-tily-muted'
 const SHELL_LABELS: Record<string, string> = { pwsh: 'pwsh', cmd: 'cmd', gitbash: 'bash' }
 const SHELL_NAMES: Record<string, string> = { pwsh: 'PowerShell 7', cmd: 'Invite de commandes', gitbash: 'Git Bash' }
 

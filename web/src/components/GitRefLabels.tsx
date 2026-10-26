@@ -18,7 +18,7 @@ export function GitRefLabels({ refs, color, width, remotes, handlers }: GitRefLa
     <div className="flex h-full shrink-0 items-center gap-[4px] overflow-hidden pl-[6px]" style={{ width }}>
       {first && <GitRefPill label={first} text={refLabelText(first, remotes)} color={color} onMenu={handlers.openLabelMenu} onActivate={handlers.activateLabel} />}
       {hidden.length > 0 && (
-        <span className="shrink-0 rounded bg-tily-paper px-[4px] text-[10.5px] text-tily-muted" data-tip={hidden.map((label) => refLabelText(label, remotes)).join(', ')}>
+        <span className="shrink-0 rounded bg-tily-paper px-[4px] text-[11px] text-tily-muted" data-tip={hidden.map((label) => refLabelText(label, remotes)).join(', ')}>
           {`+${hidden.length}`}
         </span>
       )}
