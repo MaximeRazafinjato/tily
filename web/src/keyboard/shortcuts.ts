@@ -60,6 +60,8 @@ export const isPaletteShortcut = (event: KeyboardEvent): boolean => directComman
 
 export const isPaneSearchShortcut = (event: KeyboardEvent): boolean => directCommand(event) === Command.SearchPane
 
+export const isCommandShortcut = (event: KeyboardEvent, command: Command): boolean => directCommand(event) === command
+
 const exitLeader = (): void => {
   clearTimeout(leaderTimer)
   useHostStore.getState().setLeaderActive(false)

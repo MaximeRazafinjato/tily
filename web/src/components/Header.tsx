@@ -1,5 +1,4 @@
 import type { ReactNode } from 'react'
-import { EditableName } from './EditableName'
 import { Icon } from './Icon'
 import { IconName } from './iconName'
 import { InlineNameEditor } from './InlineNameEditor'
@@ -17,12 +16,11 @@ interface HeaderProps {
   navigation: ReactNode
   onToggleSidebar: () => void
   onOpenSettings: () => void
-  onStartRename: () => void
   onCommitRename: (name: string) => void
   onCancelRename: () => void
 }
 
-export function Header({ workspaceName, renaming, sidebarCollapsed, leaderActive, navigation, onToggleSidebar, onOpenSettings, onStartRename, onCommitRename, onCancelRename }: HeaderProps) {
+export function Header({ workspaceName, renaming, sidebarCollapsed, leaderActive, navigation, onToggleSidebar, onOpenSettings, onCommitRename, onCancelRename }: HeaderProps) {
   const sidebarShortcut = useShortcutText(Command.ToggleSidebar)
   const settingsTip = useShortcutTip('Paramètres', Command.Settings)
   const applicationName = useHostStore((state) => state.applicationName)
@@ -44,10 +42,8 @@ export function Header({ workspaceName, renaming, sidebarCollapsed, leaderActive
           (sidebarCollapsed || renaming) &&
           (workspaceName === null ? (
             <span className="text-[15px] text-tily-muted">Aucun workspace</span>
-          ) : renaming ? (
-            <InlineNameEditor value={workspaceName} label="Nom du workspace" className="w-64 text-[15px]" onCommit={onCommitRename} onCancel={onCancelRename} />
           ) : (
-            <EditableName name={workspaceName} className="text-[15px]" onClick={onStartRename} />
+            renaming && <InlineNameEditor value={workspaceName} label="Nom du workspace" className="w-64 text-[15px]" onCommit={onCommitRename} onCancel={onCancelRename} />
           ))}
       </div>
       {navigation && <div className={leaderActive ? 'hidden' : 'contents'}>{navigation}</div>}

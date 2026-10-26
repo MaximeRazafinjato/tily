@@ -14,6 +14,7 @@ import {
   refreshFolders,
   renameEntry,
 } from '../explorer/fileExplorerActions'
+import { Command, isCommandShortcut } from '../keyboard/shortcuts'
 import { NO_TYPED_TEXT, typeAheadIndex, typeAheadText, type TypedText } from '../keyboard/typeAhead'
 import { RightPanelView } from '../model/session'
 import { togglePanelView } from '../panel/rightPanel'
@@ -155,9 +156,9 @@ export function FileTree({ root, rows, expanded, selectedPath, renamingPath, dra
     const current = entries[selectedIndex]
     const entry = current?.entry
     const typed = typeAheadText(typedRef.current, event)
-    if (event.ctrlKey && event.shiftKey && event.key.toLowerCase() === 'e') {
+    if (isCommandShortcut(event.nativeEvent, Command.ToggleExplorer)) {
       togglePanelView(RightPanelView.Files, true)
-    } else if (event.ctrlKey && event.shiftKey && event.key.toLowerCase() === 'g') {
+    } else if (isCommandShortcut(event.nativeEvent, Command.ToggleGit)) {
       togglePanelView(RightPanelView.Git, true)
     } else if (event.key === 'ArrowDown') {
       selectAndFocus(entries[selectedIndex < 0 ? 0 : Math.min(selectedIndex + 1, entries.length - 1)])
