@@ -1,6 +1,6 @@
 import type { GitRefLabel } from '../bridge/gitMessages'
 import { refLabelText } from '../git/gitLabels'
-import { laneBar, type GitGraphRowHandlers } from './gitGraphStyles'
+import { GRAPH_ROW_HEIGHT, laneStroke, type GitGraphRowHandlers } from './gitGraphStyles'
 import { GitRefPill } from './GitRefPill'
 
 interface GitRefLabelsProps {
@@ -22,7 +22,11 @@ export function GitRefLabels({ refs, color, width, remotes, handlers }: GitRefLa
           {`+${hidden.length}`}
         </span>
       )}
-      {first && <span className={`h-[1.5px] min-w-[6px] flex-1 ${laneBar(color)}`} />}
+      {first && (
+        <svg className="h-full min-w-[6px] flex-1" aria-hidden="true">
+          <line x1={0} x2="100%" y1={GRAPH_ROW_HEIGHT / 2} y2={GRAPH_ROW_HEIGHT / 2} strokeWidth={1.5} className={laneStroke(color)} />
+        </svg>
+      )}
     </div>
   )
 }
