@@ -65,13 +65,10 @@ public sealed class AgentMonitorTests : IDisposable
     {
         var agents = _monitor.Resolve([
             new PaneProbeModel("pane-claude", DateTime.UtcNow, ["claude"]),
-            new PaneProbeModel("pane-codex", DateTime.UtcNow, ["codex"]),
             new PaneProbeModel("pane-ping", DateTime.UtcNow, ["ping"])
         ]);
 
-        Assert.Equal(
-            [new PaneAgentModel("pane-claude", "claude", AgentState.Unknown, null), new PaneAgentModel("pane-codex", "codex", AgentState.Unknown, null)],
-            agents);
+        Assert.Equal([new PaneAgentModel("pane-claude", "claude", AgentState.Unknown, null)], agents);
     }
 
     [Fact]

@@ -8,7 +8,7 @@ public sealed class AgentMonitor
     public AgentMonitor(AgentStateRepository states, ClaudeSessionRegistry? registry = null)
     {
         _states = states;
-        _adapters = [new ClaudeCodeAdapter(registry), new CodexAdapter()];
+        _adapters = [new ClaudeCodeAdapter(registry)];
     }
 
     public IReadOnlyList<PaneAgentModel> Resolve(IEnumerable<PaneProbeModel> probes)
