@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent } from 'react'
 import { filterSearchItems, type SearchItem } from '../palette/searchFilter'
 import { keepTabInside } from './focusTrap'
+import { Icon } from './Icon'
+import { IconName } from './iconName'
 
 interface SearchDialogProps<T extends SearchItem> {
   label: string
@@ -128,11 +130,11 @@ export function SearchDialog<T extends SearchItem>({ label, placeholder, emptyMe
                     aria-pressed={item.favorite}
                     aria-label={item.favorite ? 'Retirer des favoris' : 'Ajouter aux favoris'}
                     data-tip={item.favorite ? 'Retirer des favoris (Ctrl + Entrée)' : 'Ajouter aux favoris (Ctrl + Entrée)'}
-                    className={`shrink-0 cursor-pointer rounded px-1.5 py-1 text-[13px] leading-none hover:bg-tily-green-hover focus:outline-none ${item.favorite ? 'text-tily-warning' : 'text-tily-muted opacity-50 hover:opacity-100'}`}
+                    className={`flex size-6 shrink-0 translate-y-px cursor-pointer items-center justify-center self-center rounded hover:bg-tily-green-hover focus:outline-none ${item.favorite ? 'text-tily-warning' : 'text-tily-muted opacity-50 hover:opacity-100'}`}
                     onPointerDown={handleResultPointerDown}
                     onClick={handleToggleFavorite}
                   >
-                    {item.favorite ? '★' : '☆'}
+                    <Icon name={IconName.Star} className={item.favorite ? 'fill-current' : undefined} />
                   </button>
                 )}
               </div>

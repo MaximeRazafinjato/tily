@@ -13,7 +13,7 @@ interface GitHeaderProps {
   busy: string | null
 }
 
-const HEAD_LABEL = 'flex max-w-max min-w-0 flex-2 items-center gap-[4px] font-mono text-tily-green-deep'
+const HEAD_LABEL = 'flex max-w-max min-w-0 flex-2 items-baseline gap-[4px] font-mono text-tily-green-deep'
 
 const undoTip = ({ undo }: GitState): string => {
   if (!undo) {
@@ -35,7 +35,7 @@ export function GitHeader({ state, busy }: GitHeaderProps) {
   }
   const headLabel = (
     <>
-      <Icon name={IconName.Branch} className="shrink-0" />
+      <Icon name={IconName.Branch} className="shrink-0 -translate-y-[0.5px] self-center" />
       <span className="truncate">{headSummary(head)}</span>
     </>
   )
@@ -51,26 +51,28 @@ export function GitHeader({ state, busy }: GitHeaderProps) {
   return (
     <div className="flex shrink-0 flex-col gap-[4px] px-[10px] pb-[6px]">
       <div className="flex min-w-0 items-center gap-[8px] pl-[2px] text-[12px]">
-        <span className="max-w-max min-w-0 flex-1 truncate font-semibold text-tily-ink" data-tip={state.root}>
-          {state.name}
+        <span className="flex min-w-0 items-baseline gap-[8px]">
+          <span className="max-w-max min-w-0 flex-1 truncate font-semibold text-tily-ink" data-tip={state.root}>
+            {state.name}
+          </span>
+          {copiedBranch ? (
+            <button type="button" className={`${HEAD_LABEL} cursor-pointer hover:underline`} data-tip={`Copier la branche « ${copiedBranch} »`} aria-label="Copier la branche Git" onClick={handleCopyBranch}>
+              {headLabel}
+            </button>
+          ) : (
+            <span className={HEAD_LABEL} data-tip={headSummary(head)}>
+              {headLabel}
+            </span>
+          )}
+          {head.upstream && (head.ahead > 0 || head.behind > 0) && (
+            <GitAheadBehind ahead={head.ahead} behind={head.behind} tip={trackingTip} />
+          )}
+          {!head.upstream && head.branch && !head.unborn && (
+            <span className="shrink-0 text-[11px] text-tily-muted" data-tip="Aucune branche distante suivie : Push la publie">
+              non publiée
+            </span>
+          )}
         </span>
-        {copiedBranch ? (
-          <button type="button" className={`${HEAD_LABEL} cursor-pointer hover:underline`} data-tip={`Copier la branche « ${copiedBranch} »`} aria-label="Copier la branche Git" onClick={handleCopyBranch}>
-            {headLabel}
-          </button>
-        ) : (
-          <span className={HEAD_LABEL} data-tip={headSummary(head)}>
-            {headLabel}
-          </span>
-        )}
-        {head.upstream && (head.ahead > 0 || head.behind > 0) && (
-          <GitAheadBehind ahead={head.ahead} behind={head.behind} tip={trackingTip} />
-        )}
-        {!head.upstream && head.branch && !head.unborn && (
-          <span className="shrink-0 text-[11px] text-tily-muted" data-tip="Aucune branche distante suivie : Push la publie">
-            non publiée
-          </span>
-        )}
         <span className="ml-auto" />
         <GitToolButton icon={IconName.Graph} label="Graphe" tip={graphOpen ? 'Masquer le graphe et revenir aux terminaux' : 'Afficher le graphe des branches et des commits à la place des terminaux'} pressed={graphOpen} onClick={toggleGitGraph} />
       </div>

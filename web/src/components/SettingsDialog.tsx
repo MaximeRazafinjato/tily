@@ -4,6 +4,8 @@ import type { WorktreeProjectFolder, WorktreeSettings } from '../bridge/worktree
 import { revealInExplorer } from '../explorer/fileExplorerActions'
 import { useHostStore } from '../store/hostStore'
 import { AppearanceSettingsSection } from './AppearanceSettingsSection'
+import { Icon } from './Icon'
+import { IconName } from './iconName'
 import { keepTabInside } from './focusTrap'
 import { InfoTip } from './InfoTip'
 import { McpSettingsSection } from './McpSettingsSection'
@@ -182,7 +184,7 @@ export function SettingsDialog({ snapshot, pickedPath, imported, onClose, onSave
   const handlePickWorktreeFolder = () => onPick(WORKTREE_FOLDER_FIELD, PickTarget.Folder)
   const renderBrowse = (onClick: () => void, tip: string) => (
     <button type="button" className={BROWSE} aria-label={tip} data-tip={tip} onClick={onClick}>
-      …
+      <Icon name={IconName.More} />
     </button>
   )
   const handleEditorChange = (event: ChangeEvent<HTMLInputElement>) => updateDraft({ editor: event.target.value })
@@ -389,7 +391,7 @@ export function SettingsDialog({ snapshot, pickedPath, imported, onClose, onSave
   return (
     <div className="absolute inset-0 z-30 flex items-start justify-center bg-tily-paper/60 pt-[6vh]" onPointerDown={handleBackdropPointerDown} onMouseDown={handleBackdropMouseDown}>
       <div ref={dialogRef} role="dialog" aria-label="Paramètres" className="flex max-h-[86vh] w-[640px] max-w-[94vw] flex-col rounded-lg border border-tily-line bg-tily-panel shadow-xl" onKeyDown={handleKeyDown}>
-        <div className="flex items-center justify-between border-b border-tily-line px-4 py-3">
+        <div className="flex items-baseline justify-between border-b border-tily-line px-4 py-3">
           <h2 className="text-[15px] font-semibold text-tily-ink">
             Paramètres
             {version && <span className="ml-2 text-[12px] font-normal text-tily-muted">{`Tily ${version}`}</span>}

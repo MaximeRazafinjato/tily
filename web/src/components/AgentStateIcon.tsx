@@ -55,7 +55,7 @@ const renderShape = (state: AgentState) => {
 export function AgentStateIcon({ state, tip, size = 12 }: AgentStateIconProps) {
   const label = tip ?? STATE_LABELS[state]
   return (
-    <span role="img" aria-label={label} data-tip={label} className={`inline-flex shrink-0 translate-y-px items-center ${STATE_COLOR_CLASSES[state]}`}>
+    <span role="img" aria-label={label} data-tip={label} className={`inline-flex shrink-0 items-center ${STATE_COLOR_CLASSES[state]}`}>
       <svg {...ICON_PROPS} width={size} height={size} aria-hidden="true">
         {renderShape(state)}
       </svg>

@@ -119,7 +119,7 @@ export const WorkspaceItem = memo(function WorkspaceItem({ workspace, workspaceN
           className="flex size-[20px] shrink-0 cursor-pointer items-center justify-center rounded text-tily-muted hover:text-tily-ink"
           onClick={handleToggle}
         >
-          <Icon name={IconName.Chevron} size={10} className={`transition-transform duration-[120ms] ease-out ${expanded ? 'rotate-90' : ''}`} />
+          <Icon name={IconName.Chevron} size={10} className={`translate-y-[0.5px] transition-transform duration-[120ms] ease-out ${expanded ? 'rotate-90' : ''}`} />
         </button>
         {renaming ? (
           <span className="flex min-w-0 flex-1" onClick={stopPropagation} onContextMenu={stopPropagation}>

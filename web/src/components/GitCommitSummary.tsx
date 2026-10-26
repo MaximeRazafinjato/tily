@@ -70,7 +70,7 @@ export function GitCommitSummary({ details, error, selected, stash }: GitCommitS
       <div className="flex shrink-0 flex-col gap-[6px] border-b border-tily-line px-[12px] py-[8px]">
         <p className="text-[12.5px] font-semibold break-words text-tily-ink">{subjectOf(details.message)}</p>
         {body && <pre className="max-h-[160px] overflow-auto font-sans text-[12px] whitespace-pre-wrap text-tily-ink-soft">{body}</pre>}
-        <div className="flex flex-wrap items-center gap-x-[12px] gap-y-[2px] text-[11px] text-tily-muted">
+        <div className="flex flex-wrap items-baseline gap-x-[12px] gap-y-[2px] text-[11px] text-tily-muted">
           <button type="button" className="cursor-pointer font-mono text-tily-green-deep hover:underline" data-tip="Copier le SHA" onClick={handleCopySha}>
             {details.sha.slice(0, 12)}
           </button>

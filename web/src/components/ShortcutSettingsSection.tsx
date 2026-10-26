@@ -49,7 +49,7 @@ export function ShortcutSettingsSection({ sectionClassName, shortcuts, defaults,
         <h3 className={sectionClassName}>Raccourcis clavier</h3>
         <InfoTip text="Cliquez sur un raccourci puis appuyez sur la combinaison voulue ; Échap annule. Un raccourci déjà pris passe à la nouvelle commande. Un raccourci direct passe par Ctrl ou Alt (Ctrl + lettre seule reste au shell, sauf Ctrl + P) ; après le Leader, une touche seule, avec Maj au besoin." />
       </div>
-      <div className="grid grid-cols-[minmax(0,1fr)_150px_150px_20px] items-center gap-2">
+      <div className="grid grid-cols-[minmax(0,1fr)_150px_150px_20px] items-baseline gap-2">
         <span className={SETTINGS_LABEL}>Touche Leader</span>
         <ShortcutCapture chord={shortcuts.leader} label="Touche Leader" read={chordOf} onCapture={handleLeader} />
         <select id={TIMEOUT_ID} className={SETTINGS_INPUT} aria-label="Délai du Leader" data-tip="Délai après lequel le Leader expire et la saisie revient au terminal" value={shortcuts.leaderTimeoutSeconds} onChange={handleTimeoutChange}>

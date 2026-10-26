@@ -67,7 +67,7 @@ export function ActionMenu({ label, items, emptyMessage, header, align = 'left',
           role="menuitem"
           tabIndex={-1}
           disabled={item.disabled}
-          className="flex w-full cursor-pointer items-center gap-3 rounded px-3 py-2 text-left text-xs text-tily-ink hover:bg-tily-green-hover focus:bg-tily-green-soft focus:text-tily-green-deep focus:outline-none disabled:cursor-default disabled:text-tily-muted disabled:opacity-60 disabled:hover:bg-transparent"
+          className="flex w-full cursor-pointer items-baseline gap-3 rounded px-3 py-2 text-left text-xs text-tily-ink hover:bg-tily-green-hover focus:bg-tily-green-soft focus:text-tily-green-deep focus:outline-none disabled:cursor-default disabled:text-tily-muted disabled:opacity-60 disabled:hover:bg-transparent"
           onClick={item.run}
         >
           <span className="min-w-0 flex-1 truncate">{item.label}</span>

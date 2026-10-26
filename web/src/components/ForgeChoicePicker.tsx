@@ -148,7 +148,7 @@ export function ForgeChoicePicker({ label, options, selected, multiple, emptyMes
             {colorDot(options.find((option) => option.id === id)?.color)}
             <span className="truncate">{optionLabel(options, id)}</span>
             <button type="button" className="cursor-pointer rounded p-[1px] text-tily-muted hover:text-tily-ink" aria-label={`Retirer ${optionLabel(options, id)}`} disabled={disabled} onClick={() => onToggle(id)}>
-              <Icon name={IconName.Close} size={9} />
+              <Icon name={IconName.Close} size={9} className="translate-y-[0.5px]" />
             </button>
           </span>
         ))}
@@ -161,7 +161,7 @@ export function ForgeChoicePicker({ label, options, selected, multiple, emptyMes
           className="flex h-[22px] cursor-pointer items-center gap-[4px] rounded border border-dashed border-tily-line px-[6px] text-[11px] text-tily-ink-soft hover:bg-tily-green-hover disabled:cursor-default disabled:opacity-50"
           onClick={handleOpen}
         >
-          <Icon name={multiple || selected.length === 0 ? IconName.Plus : IconName.Pencil} size={9} />
+          <Icon name={multiple || selected.length === 0 ? IconName.Plus : IconName.Pencil} size={9} className="translate-y-[0.5px]" />
           {multiple || selected.length === 0 ? 'Ajouter' : 'Changer'}
         </button>
       </div>

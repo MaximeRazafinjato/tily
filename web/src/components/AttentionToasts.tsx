@@ -2,6 +2,8 @@ import { AgentState } from '../bridge/messages'
 import { longestWaitingFirst, waitedFor, type WaitingPane } from '../agents/agentSummary'
 import { useAgentStore } from '../store/agentStore'
 import { AgentStateIcon } from './AgentStateIcon'
+import { Icon } from './Icon'
+import { IconName } from './iconName'
 import { useClock } from './useClock'
 
 const CLOCK_INTERVAL_MS = 30_000
@@ -32,8 +34,8 @@ export function AttentionToasts({ waiting, onJoin, onDismiss }: AttentionToastsP
               <span aria-hidden="true" className="shrink-0 text-[11px] text-tily-muted">
                 {waitedFor(now - (since[pane.paneId] ?? now))}
               </span>
-              <button type="button" className="shrink-0 cursor-pointer rounded px-1.5 text-[13px] leading-none text-tily-muted hover:bg-tily-green-hover hover:text-tily-ink" aria-label="Ignorer cette notification" data-tip="Ignorer jusqu’au prochain changement d’état" onClick={handleDismiss}>
-                ×
+              <button type="button" className="flex size-[18px] shrink-0 translate-y-[0.5px] cursor-pointer items-center justify-center rounded text-tily-muted hover:bg-tily-green-hover hover:text-tily-ink" aria-label="Ignorer cette notification" data-tip="Ignorer jusqu’au prochain changement d’état" onClick={handleDismiss}>
+                <Icon name={IconName.Close} size={10} />
               </button>
             </div>
             <p className="mt-1.5 line-clamp-3 break-words text-tily-muted">{pane.detail}</p>

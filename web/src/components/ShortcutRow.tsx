@@ -2,6 +2,8 @@ import type { ShortcutBinding } from '../bridge/messages'
 import type { CommandEntry } from '../keyboard/commandCatalog'
 import { chordOf, leaderKeyOf } from '../keyboard/keyChords'
 import { ShortcutField } from '../store/shortcutStore'
+import { Icon } from './Icon'
+import { IconName } from './iconName'
 import { ShortcutCapture } from './ShortcutCapture'
 import { SETTINGS_LABEL } from './settingsStyles'
 
@@ -13,7 +15,7 @@ interface ShortcutRowProps {
   onReset: (entry: CommandEntry) => void
 }
 
-const RESET = 'w-5 shrink-0 cursor-pointer rounded text-[12px] text-tily-muted hover:bg-tily-green-hover hover:text-tily-ink'
+const RESET = 'flex size-5 shrink-0 cursor-pointer items-center justify-center self-center rounded text-tily-muted hover:bg-tily-green-hover hover:text-tily-ink'
 
 const readLeaderKey = (event: KeyboardEvent): string | null => (event.ctrlKey || event.altKey ? chordOf(event) : leaderKeyOf(event))
 
@@ -25,7 +27,7 @@ export function ShortcutRow({ entry, binding, isDefault, onAssign, onReset }: Sh
   const handleReset = () => onReset(entry)
 
   return (
-    <li className="grid grid-cols-[minmax(0,1fr)_150px_150px_20px] items-center gap-2">
+    <li className="grid grid-cols-[minmax(0,1fr)_150px_150px_20px] items-baseline gap-2">
       <span className={`${SETTINGS_LABEL} truncate`} title={entry.label}>
         {entry.label}
       </span>
@@ -35,7 +37,7 @@ export function ShortcutRow({ entry, binding, isDefault, onAssign, onReset }: Sh
         <span />
       ) : (
         <button type="button" className={RESET} aria-label={`Rétablir les raccourcis de « ${entry.label} »`} data-tip="Rétablir les raccourcis par défaut" onClick={handleReset}>
-          ↺
+          <Icon name={IconName.Undo} />
         </button>
       )}
     </li>

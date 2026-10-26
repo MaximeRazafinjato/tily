@@ -1,5 +1,7 @@
 import type { ReactNode } from 'react'
 import { EditableName } from './EditableName'
+import { Icon } from './Icon'
+import { IconName } from './iconName'
 import { InlineNameEditor } from './InlineNameEditor'
 import { Command } from '../keyboard/commands'
 import { useShortcutText, useShortcutTip, withShortcut } from '../keyboard/shortcutLabels'
@@ -22,15 +24,17 @@ interface HeaderProps {
 export function Header({ workspaceName, renaming, sidebarCollapsed, leaderActive, navigation, onToggleSidebar, onOpenSettings, onStartRename, onCommitRename, onCancelRename }: HeaderProps) {
   const sidebarShortcut = useShortcutText(Command.ToggleSidebar)
   const settingsTip = useShortcutTip('Paramètres', Command.Settings)
+  const sidebarLabel = sidebarCollapsed ? 'Afficher les workspaces' : 'Masquer les workspaces'
   return (
     <header className="relative flex h-[42px] shrink-0 items-center gap-4 border-b border-tily-line bg-tily-panel px-3 text-tily-ink">
       <button
         type="button"
-        className="cursor-pointer rounded border border-tily-line px-2 text-lg leading-tight text-tily-muted hover:bg-tily-green-hover hover:text-tily-ink"
-        data-tip={withShortcut(sidebarCollapsed ? 'Afficher les workspaces' : 'Masquer les workspaces', sidebarShortcut)}
+        aria-label={sidebarLabel}
+        className="flex h-[26px] cursor-pointer items-center rounded border border-tily-line px-2 text-tily-muted hover:bg-tily-green-hover hover:text-tily-ink"
+        data-tip={withShortcut(sidebarLabel, sidebarShortcut)}
         onClick={onToggleSidebar}
       >
-        ☰
+        <Icon name={IconName.Menu} size={14} />
       </button>
       <div className="flex min-w-0 items-baseline gap-4">
         <span className="text-[17px] font-semibold text-tily-green">Tily</span>
@@ -49,11 +53,11 @@ export function Header({ workspaceName, renaming, sidebarCollapsed, leaderActive
         <UpdateButton />
         <button
           type="button"
-          className="flex cursor-pointer items-center gap-1.5 rounded border border-tily-line px-2 text-tily-muted hover:bg-tily-green-hover hover:text-tily-ink"
+          className="flex h-[26px] cursor-pointer items-center gap-1.5 rounded border border-tily-line px-2 text-tily-muted hover:bg-tily-green-hover hover:text-tily-ink"
           data-tip={settingsTip}
           onClick={onOpenSettings}
         >
-          <span className="text-lg leading-tight">⚙</span>
+          <Icon name={IconName.Settings} className="translate-y-px" />
           <span className="text-xs">Paramètres</span>
         </button>
       </div>

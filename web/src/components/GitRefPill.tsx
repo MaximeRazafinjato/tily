@@ -66,10 +66,10 @@ export function GitRefPill({ label, text, color, onMenu, onActivate }: GitRefPil
       onDoubleClick={handleDoubleClick}
     >
       {pending && <Spinner size={10} />}
-      {label.current && <Icon name={IconName.Check} size={11} className="shrink-0" />}
+      {label.current && <Icon name={IconName.Check} size={11} className="shrink-0 translate-y-px" />}
       <span className="min-w-0 truncate">{text}</span>
-      {icon && <Icon name={icon} size={11} className="shrink-0 opacity-80" />}
-      {label.remotes.length > 0 && <Icon name={IconName.Remote} size={11} className="shrink-0 opacity-80" />}
+      {icon && <Icon name={icon} size={11} className="shrink-0 translate-y-px opacity-80" />}
+      {label.remotes.length > 0 && <Icon name={IconName.Remote} size={11} className="shrink-0 translate-y-px opacity-80" />}
     </span>
   )
 }

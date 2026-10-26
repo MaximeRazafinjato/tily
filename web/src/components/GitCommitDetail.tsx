@@ -29,8 +29,10 @@ export function GitCommitDetail({ state, busy }: GitCommitDetailProps) {
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="flex h-[30px] shrink-0 items-center gap-[8px] border-y border-tily-line pr-[6px] pl-[12px]">
-        <span className={SECTION_TITLE}>{stash ? 'Stash' : 'Commit'}</span>
-        <span className="min-w-0 truncate font-mono text-[11px] text-tily-green-deep">{stash ? `stash@{${stash.index}}` : shortSha(commit)}</span>
+        <span className="flex min-w-0 items-baseline gap-[8px]">
+          <span className={SECTION_TITLE}>{stash ? 'Stash' : 'Commit'}</span>
+          <span className="min-w-0 truncate font-mono text-[11px] text-tily-green-deep">{stash ? `stash@{${stash.index}}` : shortSha(commit)}</span>
+        </span>
         <span className="flex-1" />
         <button type="button" className={PANEL_HEADER_BUTTON} aria-label="Revenir aux modifications" data-tip="Revenir aux modifications (ligne WIP du graphe)" onClick={selectWorkingTree}>
           <Icon name={IconName.Close} />
