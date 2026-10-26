@@ -35,10 +35,8 @@ export function GitMergeRequests({ root, branch }: GitMergeRequestsProps) {
     }
   }, [root, branch])
   useEffect(() => {
-    if (expanded) {
-      listMergeRequests(root)
-    }
-  }, [expanded, root])
+    listMergeRequests(root)
+  }, [root])
 
   const current = listing && listing.path.toLowerCase() === root.toLowerCase() ? listing : null
   const list = current?.list ?? null
