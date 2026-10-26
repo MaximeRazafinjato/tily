@@ -66,7 +66,9 @@ export default function App() {
     const { markFailed, markExited, markPathMissing, markAlive } = usePaneStore.getState()
     const subscriptions = [
       bridge.on('app.hello', (message) => {
-        setHello(message.version, message.shells, message.home, message.persistence)
+        document.documentElement.dataset.channel = message.channel
+        setHello(message.version, message.name, message.shells, message.home, message.persistence)
+        terminalRegistry.setChannel(message.channel)
         useShortcutStore.getState().setShortcuts(message.shortcuts)
         useStatusLogStore.getState().load(message.statusLog)
         terminalRegistry.configure(message.persistence.linesPerPane)

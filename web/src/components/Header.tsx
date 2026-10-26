@@ -7,6 +7,7 @@ import { Command } from '../keyboard/commands'
 import { useShortcutText, useShortcutTip, withShortcut } from '../keyboard/shortcutLabels'
 import { LeaderHints } from './LeaderHints'
 import { UpdateButton } from './UpdateButton'
+import { useHostStore } from '../store/hostStore'
 
 interface HeaderProps {
   workspaceName: string | null
@@ -24,6 +25,7 @@ interface HeaderProps {
 export function Header({ workspaceName, renaming, sidebarCollapsed, leaderActive, navigation, onToggleSidebar, onOpenSettings, onStartRename, onCommitRename, onCancelRename }: HeaderProps) {
   const sidebarShortcut = useShortcutText(Command.ToggleSidebar)
   const settingsTip = useShortcutTip('Paramètres', Command.Settings)
+  const applicationName = useHostStore((state) => state.applicationName)
   const sidebarLabel = sidebarCollapsed ? 'Afficher les workspaces' : 'Masquer les workspaces'
   return (
     <header className="relative flex h-[34px] shrink-0 items-center gap-4 border-b border-tily-line bg-tily-panel px-3 text-tily-ink">
@@ -37,7 +39,7 @@ export function Header({ workspaceName, renaming, sidebarCollapsed, leaderActive
         <Icon name={IconName.Menu} size={14} />
       </button>
       <div className="flex min-w-0 items-baseline gap-4">
-        <span className="text-[15px] font-semibold text-tily-green">Tily</span>
+        <span className="text-[15px] font-semibold text-tily-green">{applicationName}</span>
         {!navigation &&
           (sidebarCollapsed || renaming) &&
           (workspaceName === null ? (

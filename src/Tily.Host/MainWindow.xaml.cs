@@ -1,3 +1,4 @@
+using Tily.Core.Updates;
 using Tily.Host.Bridge;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
@@ -11,10 +12,11 @@ public sealed partial class MainWindow : Window
 {
     private const string VirtualHost = "tily.example";
     private const string DevServerVariable = "TILY_WEB_DEV_URL";
-    private static readonly Color Paper = Color.FromArgb(255, 0x17, 0x19, 0x1B);
-    private static readonly Color Ink = Color.FromArgb(255, 0xD8, 0xDB, 0xD7);
-    private static readonly Color Muted = Color.FromArgb(255, 0x84, 0x8B, 0x87);
-    private static readonly Color Hover = Color.FromArgb(255, 0x24, 0x28, 0x2A);
+    private static readonly bool Beta = ReleaseChannels.Current == ReleaseChannel.Beta;
+    private static readonly Color Paper = Beta ? Color.FromArgb(255, 0x14, 0x18, 0x1E) : Color.FromArgb(255, 0x17, 0x19, 0x1B);
+    private static readonly Color Ink = Beta ? Color.FromArgb(255, 0xD4, 0xD8, 0xDE) : Color.FromArgb(255, 0xD8, 0xDB, 0xD7);
+    private static readonly Color Muted = Beta ? Color.FromArgb(255, 0x7D, 0x85, 0x92) : Color.FromArgb(255, 0x84, 0x8B, 0x87);
+    private static readonly Color Hover = Beta ? Color.FromArgb(255, 0x20, 0x26, 0x2F) : Color.FromArgb(255, 0x24, 0x28, 0x2A);
     private readonly HostBridge _bridge;
     private readonly string _startUrl = ResolveStartUrl();
     private bool _closeConfirmed;

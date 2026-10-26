@@ -17,6 +17,8 @@ public static class ReleaseChannels
     public const ReleaseChannel Current = ReleaseChannel.Stable;
 #endif
 
+    public static string Identifier(ReleaseChannel channel) => channel == ReleaseChannel.Beta ? "beta" : "stable";
+
     public static string ApplicationName(ReleaseChannel channel) => channel == ReleaseChannel.Beta ? "Tily Beta" : "Tily";
 
     public static string ApplicationUserModelId(ReleaseChannel channel) => channel == ReleaseChannel.Beta ? "MaximeRazafinjato.Tily.Beta" : "MaximeRazafinjato.Tily";
