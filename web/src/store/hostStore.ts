@@ -12,6 +12,7 @@ interface HostState {
   shells: ShellProfile[]
   home: string
   version: string
+  applicationName: string
   status: { text: string; level: StatusLevel; at: string }
   leaderActive: boolean
   projects: Project[]
@@ -26,7 +27,7 @@ interface HostState {
   importedPreferences: ImportedPreferences | null
   setImportedPreferences: (imported: ImportedPreferences) => void
   applySettings: (snapshot: SettingsSnapshot, shells: ShellProfile[], persistence: PersistenceSettings) => void
-  setHello: (version: string, shells: ShellProfile[], home: string, persistence: PersistenceSettings) => void
+  setHello: (version: string, applicationName: string, shells: ShellProfile[], home: string, persistence: PersistenceSettings) => void
   setUnsaved: (unsaved: boolean) => void
   setStatus: (text: string, level?: StatusLevel) => void
   setLeaderActive: (active: boolean) => void
@@ -39,6 +40,7 @@ export const useHostStore = create<HostState>()((set) => ({
   shells: [],
   home: '',
   version: '',
+  applicationName: 'Tily',
   status: { text: 'Connexion à l’hôte…', level: StatusLevel.Info, at: '' },
   leaderActive: false,
   projects: [],
@@ -53,7 +55,7 @@ export const useHostStore = create<HostState>()((set) => ({
   importedPreferences: null,
   setImportedPreferences: (importedPreferences) => set({ importedPreferences }),
   applySettings: (settingsSnapshot, shells, persistence) => set({ settingsSnapshot, shells, persistence }),
-  setHello: (version, shells, home, persistence) => set({ connected: true, version, shells, home, persistence }),
+  setHello: (version, applicationName, shells, home, persistence) => set({ connected: true, version, applicationName, shells, home, persistence }),
   setUnsaved: (unsaved) => set({ unsaved }),
   setStatus: (text, level = StatusLevel.Info) => set({ status: { text, level, at: new Date().toISOString() } }),
   setLeaderActive: (leaderActive) => set({ leaderActive }),

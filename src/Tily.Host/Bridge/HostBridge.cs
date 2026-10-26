@@ -11,6 +11,7 @@ using Tily.Core.Shell;
 using Tily.Core.Shortcuts;
 using Tily.Core.StatusLog;
 using Tily.Core.Terminal;
+using Tily.Core.Updates;
 using Tily.Core.Worktrees;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml.Controls;
@@ -457,6 +458,8 @@ public sealed class HostBridge : IDisposable
         {
             type = "app.hello",
             version = ApplicationVersion,
+            name = WindowTitle.ApplicationName,
+            channel = ReleaseChannels.Identifier(ReleaseChannels.Current),
             session,
             shells = ShellCatalog.Profiles(_shellPaths),
             home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),

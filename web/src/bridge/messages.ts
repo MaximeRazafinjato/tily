@@ -170,6 +170,11 @@ export enum AgentState {
   Unknown = 'unknown',
 }
 
+export enum ReleaseChannel {
+  Stable = 'stable',
+  Beta = 'beta',
+}
+
 export interface PaneAgent {
   paneId: string
   agent: string
@@ -182,7 +187,7 @@ export interface PaneAgent {
 
 export type HostToWebMessage =
   | { type: 'appearance.changed'; fontSize: number }
-  | { type: 'app.hello'; version: string; session: Session; shells: ShellProfile[]; home: string; text: Record<string, string>; persistence: PersistenceSettings; appearance: AppearanceSettings; shortcuts: ShortcutSettings; statusLog: StatusLogEntry[]; recovery?: string }
+  | { type: 'app.hello'; version: string; name: string; channel: ReleaseChannel; session: Session; shells: ShellProfile[]; home: string; text: Record<string, string>; persistence: PersistenceSettings; appearance: AppearanceSettings; shortcuts: ShortcutSettings; statusLog: StatusLogEntry[]; recovery?: string }
   | { type: 'app.closing'; activity: PaneActivity[] }
   | { type: 'session.saved' }
   | { type: 'session.saveFailed'; message: string }
