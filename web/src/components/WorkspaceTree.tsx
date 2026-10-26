@@ -40,7 +40,7 @@ export function WorkspaceTree({ session, renamingWorkspaceId, renamingTabId, act
   )
   const agents = useAgentStore((state) => state.agents)
   const openProjectTip = useShortcutTip('Ouvrir un projet', Command.Projects)
-  const createWorktreeTip = useShortcutTip('Créer un worktree depuis un projet', Command.CreateWorktree)
+  const createWorktreeTip = useShortcutTip('Créer un worktree', Command.CreateWorktree)
   const newWorkspaceTip = useShortcutTip('Nouveau workspace', Command.NewWorkspace)
   const [menu, setMenu] = useState<PanelMenuRequest | null>(null)
   const namesKey = session.workspaces.map((workspace) => workspace.name).join(NAME_SEPARATOR)

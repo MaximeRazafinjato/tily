@@ -143,6 +143,12 @@ const SHAPES: Record<IconName, ReactNode> = {
     </>
   ),
   [IconName.Remote]: <path d="M3.3 9.5H3a2.2 2.2 0 0 1-.3-4.4 3.3 3.3 0 0 1 6.3-.9 2.4 2.4 0 0 1 .2 4.8Z" />,
+  [IconName.RemoteOff]: (
+    <>
+      <path d="M3.3 9.5H3a2.2 2.2 0 0 1-.3-4.4 3.3 3.3 0 0 1 6.3-.9 2.4 2.4 0 0 1 .2 4.8Z" />
+      <path d="M1.5 1.5l9 9" />
+    </>
+  ),
   [IconName.Settings]: (
     <>
       <circle cx="6" cy="6" r="3.2" />

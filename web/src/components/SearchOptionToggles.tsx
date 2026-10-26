@@ -13,9 +13,9 @@ interface ToggleDescription {
 }
 
 const TOGGLES: ToggleDescription[] = [
-  { option: SearchOption.CaseSensitive, text: 'Aa', label: 'Respecter la casse', keys: 'Alt + C' },
-  { option: SearchOption.WholeWord, text: 'ab', label: 'Mot entier', keys: 'Alt + W' },
-  { option: SearchOption.Regex, text: '.*', label: 'Expression régulière', keys: 'Alt + R' },
+  { option: SearchOption.CaseSensitive, text: 'Aa', label: 'Respecter la casse', keys: 'Alt+C' },
+  { option: SearchOption.WholeWord, text: 'ab', label: 'Mot entier', keys: 'Alt+W' },
+  { option: SearchOption.Regex, text: '.*', label: 'Expression régulière', keys: 'Alt+R' },
 ]
 
 const TOGGLE_BUTTON = 'flex h-5 min-w-5 shrink-0 cursor-pointer items-center justify-center rounded px-1 font-mono text-[11px] leading-none focus:outline-none'

@@ -26,13 +26,12 @@ export function CreateMergeRequestButton({ path, branch, className = '' }: Creat
   return (
     <button
       type="button"
-      className={`flex shrink-0 cursor-pointer items-center gap-[3px] rounded font-mono text-tily-muted hover:text-tily-ink hover:underline ${className}`}
-      data-tip={`Créer une ${noun} depuis « ${branch} »`}
+      className={`flex h-5 w-5 shrink-0 cursor-pointer items-center justify-center rounded text-tily-muted hover:bg-tily-green-hover hover:text-tily-ink ${className}`}
+      data-tip={`Créer une ${noun}`}
       aria-label={`Créer une ${noun} depuis ${branch}`}
       onClick={handleClick}
     >
-      <Icon name={IconName.Plus} size={9} className="shrink-0" />
-      <span>{noun}</span>
+      <Icon name={IconName.MergeRequest} />
     </button>
   )
 }

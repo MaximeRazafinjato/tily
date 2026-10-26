@@ -116,9 +116,9 @@ export const refLabelTip = (label: GitRefLabel): string => {
     case GitRefKind.Tag:
       return `Tag ${label.name}`
     case GitRefKind.Remote:
-      return `Branche distante ${label.name} · double-clic : checkout d’une branche locale qui la suit`
+      return `Branche distante ${label.name}`
     default:
-      return `${label.current ? 'Branche courante' : 'Branche locale'} ${label.name}${label.remotes.length > 0 ? ` · à jour avec ${label.remotes.join(', ')}` : ''}${label.current ? '' : ' · double-clic : checkout'}`
+      return `${label.current ? 'Branche courante' : 'Branche locale'} ${label.name}${label.remotes.length > 0 ? ` · à jour avec ${label.remotes.join(', ')}` : ''}`
   }
 }
 

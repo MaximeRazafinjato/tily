@@ -14,7 +14,7 @@ interface GitColumnResizerProps {
 const KEYBOARD_STEP = 10
 const TABBABLE = 0
 const UNTABBABLE = -1
-const NARROWED_TIP = 'Colonne resserrée faute de place : élargissez la fenêtre ou repliez un panneau pour la redimensionner'
+const NARROWED_TIP = 'Colonne resserrée faute de place'
 
 const stopClick = (event: MouseEvent) => event.stopPropagation()
 
@@ -65,7 +65,7 @@ export function GitColumnResizer({ side, width, defaultWidth, label, narrowed, o
       aria-valuenow={width}
       aria-disabled={narrowed}
       tabIndex={narrowed ? UNTABBABLE : TABBABLE}
-      data-tip={narrowed ? NARROWED_TIP : `${label} (glisser ou flèches, double-clic pour la largeur par défaut)`}
+      data-tip={narrowed ? NARROWED_TIP : label}
       className={`group/resizer absolute inset-y-0 z-10 flex w-[7px] justify-center focus-visible:outline-none ${narrowed ? 'cursor-default' : 'cursor-ew-resize'} ${side === ResizerSide.Right ? '-right-[4px]' : '-left-[4px]'}`}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}

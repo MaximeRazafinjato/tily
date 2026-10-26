@@ -8,7 +8,7 @@ export const canCopyDiff = (diff: GitDiff | null): diff is CopyableDiff => Boole
 
 export const copyDiffTip = (diff: GitDiff | null): string => {
   if (canCopyDiff(diff)) {
-    return 'Copier le diff (format unifié, applicable par git apply)'
+    return 'Copier le diff'
   }
   if (diff?.truncated) {
     return 'Diff tronqué à l’affichage : copie impossible'

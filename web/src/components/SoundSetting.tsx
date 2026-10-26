@@ -1,8 +1,9 @@
 import type { ChangeEvent } from 'react'
 import { NotificationSound } from '../bridge/messages'
 import { Icon } from './Icon'
+import { InfoTip } from './InfoTip'
 import { IconName } from './iconName'
-import { SETTINGS_BROWSE, SETTINGS_HINT, SETTINGS_INPUT, SETTINGS_LABEL, SETTINGS_SECONDARY } from './settingsStyles'
+import { SETTINGS_BROWSE, SETTINGS_INPUT, SETTINGS_LABEL, SETTINGS_SECONDARY } from './settingsStyles'
 
 interface SoundSettingProps {
   label: string
@@ -55,9 +56,11 @@ export function SoundSetting({ label, sound, placeholder, testTip, onChange, onP
           <button type="button" className={SETTINGS_BROWSE} aria-label={PICK_TIP} data-tip={PICK_TIP} onClick={onPick}>
             <Icon name={IconName.More} />
           </button>
+          <span className="flex items-center px-1">
+            <InfoTip text="Fichier .wav uniquement (chemin absolu). Un chemin invalide revient au son par défaut à l’enregistrement." />
+          </span>
         </span>
       )}
-      {custom && <span className={SETTINGS_HINT}>Fichier .wav uniquement (chemin absolu). Un chemin invalide revient au son par défaut à l’enregistrement.</span>}
     </label>
   )
 }

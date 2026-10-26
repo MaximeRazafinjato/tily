@@ -6,6 +6,8 @@ import { STATE_FILTER_LABELS } from '../forge/mergeRequestLabels'
 import { useForgeStore } from '../store/forgeStore'
 import { MergeRequestFacetButton } from './MergeRequestFacetButton'
 import { GIT_INPUT } from './rightPanelStyles'
+import { Icon } from './Icon'
+import { IconName } from './iconName'
 
 interface MergeRequestFiltersProps {
   path: string
@@ -64,8 +66,8 @@ export function MergeRequestFilters({ path, items, currentUser }: MergeRequestFi
         <MergeRequestFacetButton label="Labels" options={labels} selected={filter.labels} emptyMessage="Aucun label dans la liste" onToggle={toggleMergeRequestLabel} />
         <MergeRequestFacetButton label="Assignés" options={assignees} selected={filter.assignees} emptyMessage="Aucun assigné dans la liste" onToggle={toggleMergeRequestAssignee} />
         {filterActive(filter) && (
-          <button type="button" className="h-[22px] cursor-pointer rounded px-[6px] text-[11px] text-tily-muted hover:text-tily-ink" onClick={clearMergeRequestFilters}>
-            Effacer les filtres
+          <button type="button" className="flex size-[22px] cursor-pointer items-center justify-center rounded text-tily-muted hover:bg-tily-green-hover hover:text-tily-ink" aria-label="Effacer les filtres" data-tip="Effacer les filtres" onClick={clearMergeRequestFilters}>
+            <Icon name={IconName.Close} />
           </button>
         )}
       </div>

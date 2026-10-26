@@ -3,7 +3,6 @@ import { useShallow } from 'zustand/react/shallow'
 import { EntryKind } from '../bridge/messages'
 import { buildFileTree, RowKind, targetFolder } from '../explorer/fileTree'
 import { refreshFolders, watchFolders } from '../explorer/fileExplorerActions'
-import { folderName } from '../model/session'
 import { useExplorerStore } from '../store/explorerStore'
 import { FileTree } from './FileTree'
 import { Icon } from './Icon'
@@ -38,10 +37,7 @@ export function FileExplorer({ root, onOpenTerminal }: FileExplorerProps) {
 
   return (
     <section aria-label="Explorateur de fichiers" className="flex min-h-0 flex-1 flex-col">
-      <div className="flex h-[30px] shrink-0 items-center gap-[2px] pr-[6px] pl-[12px] text-[11px] font-semibold tracking-[0.06em] text-tily-muted uppercase">
-        <span className="min-w-0 flex-1 truncate" data-tip={root}>
-          {folderName(root)}
-        </span>
+      <div className="flex h-[30px] shrink-0 items-center justify-end gap-[2px] pr-[6px] pl-[12px] text-tily-muted">
         <button type="button" className={PANEL_HEADER_BUTTON} aria-label="Nouveau fichier" data-tip="Nouveau fichier" onClick={handleNewFile}>
           <Icon name={IconName.NewFile} />
         </button>
@@ -51,7 +47,7 @@ export function FileExplorer({ root, onOpenTerminal }: FileExplorerProps) {
         <button type="button" className={PANEL_HEADER_BUTTON} aria-label="Tout replier" data-tip="Tout replier" aria-disabled={!anyExpanded} onClick={handleCollapseAll}>
           <Icon name={IconName.CollapseAll} />
         </button>
-        <button type="button" className={PANEL_HEADER_BUTTON} aria-label="Actualiser" data-tip="Actualiser (F5 dans l’arbre)" onClick={refreshFolders}>
+        <button type="button" className={PANEL_HEADER_BUTTON} aria-label="Actualiser" data-tip="Actualiser (F5)" onClick={refreshFolders}>
           <Icon name={IconName.Refresh} />
         </button>
       </div>

@@ -1,4 +1,4 @@
-import { useState, type KeyboardEvent } from 'react'
+import { useState, type KeyboardEvent, type ReactNode } from 'react'
 import type { GitCommitDetails, GitFileChange } from '../bridge/gitMessages'
 import { CHANGE_CLASSES, CHANGE_LABELS, CHANGE_LETTERS, fileFolder, fileName, fullDate, plural, shortSha } from '../git/gitLabels'
 import { copyToClipboard, showCommitFile } from '../git/gitRequests'
@@ -10,16 +10,25 @@ interface GitCommitSummaryProps {
   error: string | null
   selected: GitFileTarget | null
   stash: boolean
+  heading: ReactNode
+  actions: ReactNode
 }
+
+const CARD = 'mx-[8px] flex shrink-0 flex-col gap-[6px] rounded-md border border-tily-line bg-tily-panel px-[12px] py-[10px]'
 
 const subjectOf = (message: string): string => message.split('\n')[0]
 
 const bodyOf = (message: string): string => message.split('\n').slice(1).join('\n').trim()
 
-export function GitCommitSummary({ details, error, selected, stash }: GitCommitSummaryProps) {
+export function GitCommitSummary({ details, error, selected, stash, heading, actions }: GitCommitSummaryProps) {
   const [focusPath, setFocusPath] = useState<string | null>(null)
   if (!details) {
-    return <p className={`px-[12px] py-[10px] text-[12px] ${error ? 'text-tily-error' : 'text-tily-muted italic'}`}>{error ?? 'Lecture du commit…'}</p>
+    return (
+      <div className={CARD}>
+        {heading}
+        <p className={`text-[12px] ${error ? 'text-tily-error' : 'text-tily-muted italic'}`}>{error ?? 'Lecture du commit…'}</p>
+      </div>
+    )
   }
   const body = bodyOf(details.message)
   const focusable = details.files.find((change) => change.path === focusPath)?.path ?? details.files.find((change) => change.path === selected?.path)?.path ?? details.files[0]?.path
@@ -67,8 +76,9 @@ export function GitCommitSummary({ details, error, selected, stash }: GitCommitS
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div className="flex shrink-0 flex-col gap-[6px] border-b border-tily-line px-[12px] py-[8px]">
-        <p className="text-[12.5px] font-semibold break-words text-tily-ink">{subjectOf(details.message)}</p>
+      <div className={CARD}>
+        {heading}
+        <p className="text-[13.5px] font-semibold break-words text-tily-ink">{subjectOf(details.message)}</p>
         {body && <pre className="max-h-[160px] overflow-auto font-sans text-[12px] whitespace-pre-wrap text-tily-ink-soft">{body}</pre>}
         <div className="flex flex-wrap items-baseline gap-x-[12px] gap-y-[2px] text-[11px] text-tily-muted">
           <button type="button" className="cursor-pointer font-mono text-tily-green-deep hover:underline" data-tip="Copier le SHA" onClick={handleCopySha}>
@@ -79,8 +89,9 @@ export function GitCommitSummary({ details, error, selected, stash }: GitCommitS
           {stash && <span>{`Stash sur ${shortSha(details.parents[0])}`}</span>}
           {!stash && details.parents.length > 1 && <span>{`Merge de ${details.parents.map(shortSha).join(' et ')}`}</span>}
         </div>
+        {actions}
       </div>
-      <p className={`shrink-0 px-[12px] pt-[8px] pb-[4px] ${SECTION_TITLE}`}>{plural(details.files.length, 'fichier modifié', 'fichiers modifiés')}</p>
+      <p className={`shrink-0 px-[12px] pt-[12px] pb-[4px] ${SECTION_TITLE}`}>{plural(details.files.length, 'fichier modifié', 'fichiers modifiés')}</p>
       <div role="listbox" aria-label="Fichiers du commit : Entrée ou clic pour voir le diff" className="min-h-0 flex-1 overflow-auto pb-[4px]" onKeyDown={handleKeyDown}>
         {details.files.map(renderFile)}
       </div>

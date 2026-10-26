@@ -53,7 +53,7 @@ export function UpdateDialog({ info, release }: UpdateDialogProps) {
       )
     }
     return (
-      <button ref={primaryRef} type="button" className={PRIMARY} data-tip="Télécharge l’installeur, vérifie son empreinte, ferme Tily, installe puis relance Tily" onClick={installUpdate}>
+      <button ref={primaryRef} type="button" className={PRIMARY} data-tip="Installer la mise à jour" onClick={installUpdate}>
         {info.status === UpdateStatus.Failed ? 'Réessayer' : 'Installer et redémarrer'}
       </button>
     )

@@ -134,7 +134,7 @@ export function GitGraphTable({ state, layout }: GitGraphTableProps) {
       ref={containerRef}
       role="listbox"
       tabIndex={0}
-      aria-label="Graphe des commits : ↑ / ↓ pour choisir, Entrée pour aller au détail, Maj + F10 pour les actions"
+      aria-label="Graphe des commits : ↑ / ↓ pour choisir, Entrée pour aller au détail, Maj+F10 pour les actions"
       aria-activedescendant={activeKey ? graphRowId(activeKey) : undefined}
       data-git-graph-list=""
       className="group relative min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto focus:outline-none"

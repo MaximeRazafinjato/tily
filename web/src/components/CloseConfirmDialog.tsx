@@ -38,7 +38,6 @@ export function CloseConfirmDialog({ confirmation, onConfirm, onCancel }: CloseC
       <div role="alertdialog" aria-label={confirmation.title} className="flex max-h-[76vh] w-[520px] max-w-[94vw] flex-col rounded-lg border border-tily-line bg-tily-panel shadow-xl" onKeyDown={keepTabInside}>
         <div className="flex items-baseline justify-between border-b border-tily-line px-4 py-3">
           <h2 className="text-[15px] font-semibold text-tily-ink">{confirmation.title}</h2>
-          <span className="text-[11px] text-tily-muted">Entrée arrête · Échap annule</span>
         </div>
         <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-4 py-4">
           <p className="text-[12px] text-tily-warning">Des programmes tournent encore. Ils seront arrêtés de force avec tout leur arbre de processus.</p>
@@ -52,10 +51,10 @@ export function CloseConfirmDialog({ confirmation, onConfirm, onCancel }: CloseC
           </ul>
         </div>
         <div className="flex items-center justify-end gap-2 border-t border-tily-line px-4 py-3">
-          <button type="button" className={SECONDARY} onClick={onCancel}>
+          <button type="button" className={SECONDARY} data-tip="Échap" onClick={onCancel}>
             Annuler
           </button>
-          <button ref={confirmRef} type="button" className={DANGER} onClick={onConfirm}>
+          <button ref={confirmRef} type="button" className={DANGER} data-tip="Entrée" onClick={onConfirm}>
             {confirmation.confirmLabel ?? 'Arrêter et fermer'}
           </button>
         </div>

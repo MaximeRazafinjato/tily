@@ -58,7 +58,6 @@ export function WorktreeRemoveDialog({ removal }: WorktreeRemoveDialogProps) {
       <div role="alertdialog" aria-label={title} className="flex max-h-[76vh] w-[540px] max-w-[94vw] flex-col rounded-lg border border-tily-line bg-tily-panel shadow-xl" onKeyDown={keepTabInside}>
         <div className="flex items-baseline justify-between border-b border-tily-line px-4 py-3">
           <h2 className="truncate text-[15px] font-semibold text-tily-ink">{title}</h2>
-          <span className="shrink-0 pl-3 text-[11px] text-tily-muted">{requestedBy ? 'Entrée ou Échap annule' : 'Entrée supprime · Échap annule'}</span>
         </div>
         <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-4 py-4">
           {requestedBy && <p className="text-[12px] text-tily-ink">{`Demandé par ${requestedBy}. Sans réponse dans les 2 minutes, la demande est refusée.`}</p>}
@@ -94,10 +93,10 @@ export function WorktreeRemoveDialog({ removal }: WorktreeRemoveDialogProps) {
           {failure && <WorktreeFailureDetails failure={failure} />}
         </div>
         <div className="flex items-center justify-end gap-2 border-t border-tily-line px-4 py-3">
-          <button ref={cancelRef} type="button" className={SETTINGS_SECONDARY} onClick={cancelWorktreeRemoval}>
+          <button ref={cancelRef} type="button" className={SETTINGS_SECONDARY} data-tip={requestedBy ? 'Entrée ou Échap' : 'Échap'} onClick={cancelWorktreeRemoval}>
             Annuler
           </button>
-          <button ref={confirmRef} type="button" className={DANGER} aria-disabled={!armed} onClick={handleConfirm}>
+          <button ref={confirmRef} type="button" className={DANGER} aria-disabled={!armed} data-tip={requestedBy ? undefined : 'Entrée'} onClick={handleConfirm}>
             {failure ? 'Réessayer' : 'Supprimer'}
           </button>
         </div>

@@ -37,17 +37,16 @@ export function GitConfirmDialog({ confirmation, onConfirm, onCancel }: GitConfi
           <h2 className="min-w-0 truncate text-[15px] font-semibold text-tily-ink" data-tip={confirmation.title}>
             {confirmation.title}
           </h2>
-          <span className="shrink-0 text-[11px] text-tily-muted">Entrée confirme · Échap annule</span>
         </div>
         <div className="flex flex-col gap-2 px-4 py-4">
           <p className="text-[12px] text-tily-ink">{confirmation.body}</p>
           {confirmation.detail && <p className="max-h-[40vh] overflow-auto text-[11px] whitespace-pre-line text-tily-muted">{confirmation.detail}</p>}
         </div>
         <div className="flex items-center justify-end gap-2 border-t border-tily-line px-4 py-3">
-          <button type="button" className={`${GIT_SECONDARY} py-1.5`} onClick={onCancel}>
+          <button type="button" className={`${GIT_SECONDARY} py-1.5`} data-tip="Échap" onClick={onCancel}>
             Annuler
           </button>
-          <button ref={confirmRef} type="button" className={`${GIT_DANGER} py-1.5`} onClick={onConfirm}>
+          <button ref={confirmRef} type="button" className={`${GIT_DANGER} py-1.5`} data-tip="Entrée" onClick={onConfirm}>
             {confirmation.confirmLabel}
           </button>
         </div>

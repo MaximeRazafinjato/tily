@@ -355,7 +355,7 @@ export function SettingsDialog({ snapshot, pickedPath, imported, onClose, onSave
           </label>
           <InfoTip text="Aussi à la fin d’une commande de plus de 10 s." />
         </span>
-        <SoundSetting label="Son joué à chaque nouvelle attente" sound={settings.notifications.sound} placeholder="C:\Sons\attention.wav" testTip="Joue le son, fait clignoter la barre des tâches et affiche la notification Windows si elle est disponible, avec les réglages ci-dessus, sans enregistrer" onChange={handleSoundChange} onPick={handlePickSound} onTest={handleTestNotification} />
+        <SoundSetting label="Son joué à chaque nouvelle attente" sound={settings.notifications.sound} placeholder="C:\Sons\attention.wav" testTip="Tester la notification" onChange={handleSoundChange} onPick={handlePickSound} onTest={handleTestNotification} />
         <span className={SETTINGS_ROW}>
           <label className="flex items-center gap-2">
             <input type="checkbox" checked={settings.notifications.notifyDone} onChange={handleNotifyDoneChange} />
@@ -363,7 +363,7 @@ export function SettingsDialog({ snapshot, pickedPath, imported, onClose, onSave
           </label>
           <InfoTip text="Même si Tily est la fenêtre active." />
         </span>
-        {settings.notifications.notifyDone && <SoundSetting label="Son joué quand un agent a terminé" sound={settings.notifications.doneSound} placeholder="C:\Sons\termine.wav" testTip="Joue le son de fin et affiche la notification de fin, avec les réglages ci-dessus, sans enregistrer" onChange={handleDoneSoundChange} onPick={handlePickDoneSound} onTest={handleTestDoneNotification} />}
+        {settings.notifications.notifyDone && <SoundSetting label="Son joué quand un agent a terminé" sound={settings.notifications.doneSound} placeholder="C:\Sons\termine.wav" testTip="Tester la notification de fin" onChange={handleDoneSoundChange} onPick={handlePickDoneSound} onTest={handleTestDoneNotification} />}
       </section>
       <section className="flex flex-col gap-2">
         <div className={SETTINGS_ROW}>
@@ -373,11 +373,11 @@ export function SettingsDialog({ snapshot, pickedPath, imported, onClose, onSave
         <span className="flex items-center gap-3">
           <span className={`text-[11px] ${current.agents.hooksInstalled ? 'text-tily-green' : 'text-tily-warning'}`}>{current.agents.hooksInstalled ? 'Hooks de Claude Code installés' : 'Hooks de Claude Code non installés'}</span>
           {current.agents.hooksInstalled ? (
-            <button type="button" className={SECONDARY} data-tip={`Retire les hooks Tily de ${current.agents.settingsFile}, sans toucher au reste`} onClick={onRemoveHooks}>
+            <button type="button" className={SECONDARY} data-tip={`Retirer les hooks Tily de ${current.agents.settingsFile}`} onClick={onRemoveHooks}>
               Retirer les hooks
             </button>
           ) : (
-            <button type="button" className={PRIMARY} data-tip={`Ajoute les hooks Tily dans ${current.agents.settingsFile} en gardant ses autres réglages et hooks ; effet aux prochaines sessions claude`} onClick={onInstallHooks}>
+            <button type="button" className={PRIMARY} data-tip={`Ajouter les hooks Tily dans ${current.agents.settingsFile}`} onClick={onInstallHooks}>
               Installer les hooks
             </button>
           )}
@@ -396,28 +396,27 @@ export function SettingsDialog({ snapshot, pickedPath, imported, onClose, onSave
             Paramètres
             {version && <span className="ml-2 text-[12px] font-normal text-tily-muted">{`Tily ${version}`}</span>}
           </h2>
-          <span className={HINT}>Ctrl + Entrée enregistre · Échap ferme</span>
         </div>
         <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto px-4 py-4">
           {draft && snapshot ? renderBody(draft, snapshot) : <p className={HINT}>Chargement des réglages…</p>}
         </div>
         <div className="flex items-center gap-2 border-t border-tily-line px-4 py-3">
-          <button type="button" className={SECONDARY} data-tip="Lit un fichier de préférences JSON et remplit le formulaire sans rien écrire" onClick={onImport}>
+          <button type="button" className={SECONDARY} data-tip="Importer des préférences JSON" onClick={onImport}>
             Importer…
           </button>
-          <button type="button" className={SECONDARY} data-tip="Écrit la configuration enregistrée (sans les modifications en cours) dans un fichier JSON versionné" onClick={onExport}>
+          <button type="button" className={SECONDARY} data-tip="Exporter la configuration enregistrée" onClick={onExport}>
             Exporter…
           </button>
-          <button type="button" className={SECONDARY} aria-disabled={!snapshot} data-tip="Ouvre l’Explorateur Windows sur le dossier des fichiers de réglages, pour les sauvegarder ou les modifier à la main" onClick={handleRevealFiles}>
+          <button type="button" className={SECONDARY} aria-disabled={!snapshot} data-tip="Ouvrir le dossier des réglages" onClick={handleRevealFiles}>
             Afficher les fichiers
           </button>
           <span role="status" className="ml-auto text-[11px] text-tily-warning">
             {closeHeld && unsaved ? 'Modifications non enregistrées : Enregistrer, ou Annuler pour les abandonner.' : ''}
           </span>
-          <button type="button" className={SECONDARY} onClick={onClose}>
+          <button type="button" className={SECONDARY} data-tip="Échap" onClick={onClose}>
             Annuler
           </button>
-          <button type="button" className={PRIMARY} aria-disabled={!draft || invalidNumber !== undefined} data-tip={invalidNumber ? `${invalidNumber.label} : entre ${invalidNumber.min} et ${invalidNumber.max}` : 'Écrit les fichiers de réglages et applique immédiatement'} onClick={handleSave}>
+          <button type="button" className={PRIMARY} aria-disabled={!draft || invalidNumber !== undefined} data-tip={invalidNumber ? `${invalidNumber.label} : entre ${invalidNumber.min} et ${invalidNumber.max}` : 'Ctrl+Entrée'} onClick={handleSave}>
             Enregistrer
           </button>
         </div>

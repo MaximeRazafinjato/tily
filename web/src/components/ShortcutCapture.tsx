@@ -45,7 +45,7 @@ export function ShortcutCapture({ chord, label, read, onCapture, onClear }: Shor
 
   return (
     <span className="flex min-w-0 items-center gap-0.5">
-      <button type="button" className={capturing ? ACTIVE : IDLE} aria-label={label} data-tip={capturing ? 'Échap annule' : `${label} : cliquer puis appuyer sur la combinaison`} onClick={handleClick} onBlur={handleBlur} onKeyDown={handleKeyDown}>
+      <button type="button" className={capturing ? ACTIVE : IDLE} aria-label={label} data-tip={capturing ? 'Échap annule' : label} onClick={handleClick} onBlur={handleBlur} onKeyDown={handleKeyDown}>
         {capturing ? 'Appuyez…' : chord ? formatChord(chord) : <span className="text-tily-muted">Aucun</span>}
       </button>
       {onClear && chord && !capturing ? (

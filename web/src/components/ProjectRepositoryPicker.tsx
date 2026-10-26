@@ -17,7 +17,7 @@ interface RepositoryItem extends SearchItem {
 
 const BROWSE_ID = 'parcourir'
 const DEFAULT_HINT = 'par défaut · '
-const FOOTER = 'Entrée : ouvrir · Maj + Entrée : nouvel onglet dans le workspace actif · Ctrl + Entrée : ouvrir et utiliser par défaut pour ce projet'
+const FOOTER = 'Entrée : ouvrir · Maj+Entrée : nouvel onglet dans le workspace actif · Ctrl+Entrée : ouvrir et utiliser par défaut pour ce projet'
 
 const run = (item: RepositoryItem, inActiveWorkspace: boolean, remember: boolean): void => {
   if (item.repository) {

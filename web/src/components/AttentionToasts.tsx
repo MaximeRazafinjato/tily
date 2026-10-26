@@ -34,7 +34,7 @@ export function AttentionToasts({ waiting, onJoin, onDismiss }: AttentionToastsP
               <span aria-hidden="true" className="shrink-0 text-[11px] text-tily-muted">
                 {waitedFor(now - (since[pane.paneId] ?? now))}
               </span>
-              <button type="button" className="flex size-[18px] shrink-0 translate-y-[0.5px] cursor-pointer items-center justify-center rounded text-tily-muted hover:bg-tily-green-hover hover:text-tily-ink" aria-label="Ignorer cette notification" data-tip="Ignorer jusqu’au prochain changement d’état" onClick={handleDismiss}>
+              <button type="button" className="flex size-[18px] shrink-0 translate-y-[0.5px] cursor-pointer items-center justify-center rounded text-tily-muted hover:bg-tily-green-hover hover:text-tily-ink" aria-label="Ignorer cette notification" data-tip="Ignorer la notification" onClick={handleDismiss}>
                 <Icon name={IconName.Close} size={10} />
               </button>
             </div>

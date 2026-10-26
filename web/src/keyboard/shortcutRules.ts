@@ -29,10 +29,10 @@ export const directProblem = (chord: string): string | null => {
   const alt = hasAlt(chord)
   const shift = hasShift(chord)
   if (ctrl && !alt && !shift && isLetterKey(key) && key !== PALETTE_LETTER) {
-    return `${shown} est réservé au shell : Ctrl + lettre seule reste au terminal.`
+    return `${shown} est réservé au shell : Ctrl+lettre seule reste au terminal.`
   }
   return !ctrl && !alt && !isFunctionKey(key) && (!shift || isPrintableKey(key))
-    ? `${shown} n’est pas utilisable : un raccourci direct passe par Ctrl ou Alt, sauf touche de fonction (F1 à F24) ou Maj + touche non imprimable.`
+    ? `${shown} n’est pas utilisable : un raccourci direct passe par Ctrl ou Alt, sauf touche de fonction (F1 à F24) ou Maj+touche non imprimable.`
     : null
 }
 

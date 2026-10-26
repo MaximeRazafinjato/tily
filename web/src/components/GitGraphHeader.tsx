@@ -61,7 +61,7 @@ export function GitGraphHeader({ layout, stored, onResize, onMenu }: GitGraphHea
           <span className="truncate">Date</span>
         </span>
       )}
-      <button type="button" className={`${ROW_ACTION} absolute right-[4px]`} aria-label="Colonnes affichées" data-tip="Colonnes affichées (clic droit sur l’en-tête)" onClick={handleMenuClick}>
+      <button type="button" className={`${ROW_ACTION} absolute right-[4px]`} aria-label="Colonnes affichées" data-tip="Colonnes affichées" onClick={handleMenuClick}>
         <Icon name={IconName.Columns} />
       </button>
     </div>

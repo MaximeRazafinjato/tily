@@ -20,6 +20,8 @@ export const ROW_UNSTAGE_BUTTON = `${BOXED_BUTTON} mx-[1px] size-[18px] ${UNSTAG
 
 export const SECTION_TITLE = 'text-[11px] font-semibold tracking-[0.06em] text-tily-muted uppercase'
 
+export const SECTION_HEADING = 'text-[11px] font-semibold tracking-[0.06em] text-tily-ink uppercase'
+
 const GIT_BUTTON = 'cursor-pointer rounded border px-3 py-1 text-[12px] aria-disabled:cursor-default aria-disabled:opacity-50'
 
 export const GIT_PRIMARY = `${GIT_BUTTON} border-tily-green text-tily-green-deep hover:bg-tily-green-soft aria-disabled:hover:bg-transparent`

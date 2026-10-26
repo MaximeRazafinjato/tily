@@ -13,8 +13,8 @@ const SECONDARY_BUTTON = 'cursor-pointer rounded border border-tily-line px-3 py
 
 export function EmptyState({ canRestore, onNewWorkspace, onOpenProject, onRestoreTab }: EmptyStateProps) {
   const newWorkspaceRef = useRef<HTMLButtonElement>(null)
-  const newWorkspaceTip = useShortcutTip('Créer un workspace avec un terminal dans votre dossier utilisateur', Command.NewWorkspace)
-  const openProjectTip = useShortcutTip('Ouvrir un workspace dans un dossier de projet', Command.Projects)
+  const newWorkspaceTip = useShortcutTip('Nouveau workspace', Command.NewWorkspace)
+  const openProjectTip = useShortcutTip('Ouvrir un projet', Command.Projects)
   const restoreTip = useShortcutTip('Rouvrir le dernier onglet fermé', Command.RestoreTab)
   const paletteShortcut = useShortcutText(Command.Palette)
   const leaderText = useLeaderText()

@@ -59,8 +59,8 @@ const itemsFor = ({ entry, parent }: FileMenuRequest, changed: boolean, actions:
     { id: 'new-folder', label: 'Nouveau dossier', run: () => actions.newEntry(folder, EntryKind.Folder) },
     { id: 'rename', label: 'Renommer', detail: <MenuShortcut keys="F2" />, run: () => actions.rename(entry.path) },
     { id: 'delete', label: 'Supprimer', detail: <MenuShortcut keys="Suppr" />, run: () => actions.remove(entry, parent) },
-    { id: 'copy-path', label: 'Copier le chemin', detail: <MenuShortcut keys="Ctrl + C" />, run: () => actions.copyPath(entry.path) },
-    { id: 'copy-relative-path', label: 'Copier le chemin relatif', detail: <MenuShortcut keys="Ctrl + Maj + C" />, run: () => actions.copyRelativePath(entry.path) },
+    { id: 'copy-path', label: 'Copier le chemin', detail: <MenuShortcut keys="Ctrl+C" />, run: () => actions.copyPath(entry.path) },
+    { id: 'copy-relative-path', label: 'Copier le chemin relatif', detail: <MenuShortcut keys="Ctrl+Maj+C" />, run: () => actions.copyRelativePath(entry.path) },
     { id: 'insert-path', label: 'Insérer le chemin dans le terminal', run: () => actions.insertPath(entry.path) },
     { id: 'reveal', label: 'Afficher dans l’Explorateur Windows', run: () => actions.reveal(entry.path) },
   ]

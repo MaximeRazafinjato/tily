@@ -25,7 +25,7 @@ const LINE_BREAK = '\n'
 
 const PASTED_LINE_BREAK = /\r\n|\r|\n/
 const TRAILING_LINE_BREAK = /(\r\n|\r|\n)$/
-const SEVERAL_LINES_NOT_RUN = 'Plusieurs lignes : Ctrl + Maj + Entrée n’exécute qu’une ligne. Ctrl + Entrée les colle avec confirmation.'
+const SEVERAL_LINES_NOT_RUN = 'Plusieurs lignes : Ctrl+Maj+Entrée n’exécute qu’une ligne. Ctrl+Entrée les colle avec confirmation.'
 const PASTE_CANCELLED = 'Collage annulé : rien n’a été envoyé au terminal.'
 
 const reportFailure = (message: string) => (): void => useHostStore.getState().setStatus(message, StatusLevel.Error)

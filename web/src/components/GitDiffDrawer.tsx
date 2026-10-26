@@ -58,7 +58,7 @@ export function GitDiffDrawer() {
         <GitToolButton icon={IconName.Copy} tip={copyDiffTip(diff)} disabled={!canCopyDiff(diff)} onClick={handleCopyDiff} />
         {working && (
           <span className="flex shrink-0 items-center gap-[2px]">
-            <GitToolButton icon={IconName.Editor} tip="Ouvrir dans l’éditeur (Ctrl + clic sur une ligne : à cette ligne)" onClick={handleEdit} />
+            <GitToolButton icon={IconName.Editor} tip="Ouvrir dans l’éditeur" onClick={handleEdit} />
             {working.source === GitDiffSource.Staged ? (
               <GitToolButton icon={IconName.Minus} tip="Unstage" onClick={handleUnstage} />
             ) : (

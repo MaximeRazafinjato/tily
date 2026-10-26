@@ -11,6 +11,6 @@ export interface PaneHeaderTips {
 export const usePaneHeaderTips = (): PaneHeaderTips => ({
   splitSideBySide: useShortcutTip('Split côte à côte', Command.SplitSideBySide),
   splitTopBottom: useShortcutTip('Split haut / bas', Command.SplitTopBottom),
-  reduce: useShortcutTip('Réduire le pane et revoir les autres', Command.TogglePaneZoom),
+  reduce: useShortcutTip('Réduire le pane', Command.TogglePaneZoom),
   close: useShortcutTip('Fermer le pane', Command.ClosePane),
 })

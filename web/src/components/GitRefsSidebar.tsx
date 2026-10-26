@@ -42,6 +42,7 @@ const stashKey = (stash: GitStash) => refKey(STASHES, stash.sha)
 const worktreeKey = (worktree: Worktree) => refKey(WORKTREES, worktree.path)
 const groupKey = (remote: string) => `${REMOTE}:${remote}`
 const folderKey = (scope: string, path: string) => `${scope}/${path}`
+const INITIALLY_COLLAPSED: Record<string, boolean> = { [REMOTE]: true, [TAGS]: true, [STASHES]: true, [WORKTREES]: true }
 
 const branchMeta = (branch: GitBranch): ReactNode => {
   if (branch.gone) {
@@ -55,16 +56,16 @@ const branchTip = (branch: GitBranch): string => {
     return `${branch.name} : la branche distante suivie ${branch.upstream ?? ''} a été supprimée`
   }
   const tracking = branch.upstream ? `suit ${branch.upstream}` : 'aucune branche distante suivie'
-  return `${branch.name} · ${tracking} · clic : aller au commit · double-clic : checkout · glisser sur la branche courante : merge ou rebase`
+  return `${branch.name} · ${tracking}`
 }
 
 const worktreeMeta = (worktree: Worktree): string => [worktree.branch ?? 'détachée', worktree.locked && 'verrouillé', worktree.prunable && 'prunable'].filter(Boolean).join(' · ')
 
 const worktreeTip = (worktree: Worktree): string =>
-  [worktree.isMain ? 'Dépôt principal' : 'Worktree', worktree.path, worktree.branch ? `branche ${worktree.branch}` : 'HEAD détachée', 'double-clic : ouvrir (rejoint un pane déjà dans ce worktree, sinon nouveau workspace)'].join(' · ')
+  [worktree.isMain ? 'Dépôt principal' : 'Worktree', worktree.path, worktree.branch ? `branche ${worktree.branch}` : 'HEAD détachée'].join(' · ')
 
 export function GitRefsSidebar({ state, width }: GitRefsSidebarProps) {
-  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({})
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>(INITIALLY_COLLAPSED)
   const [focusKey, setFocusKey] = useState<string | null>(null)
   const selection = useGitStore((store) => store.refSelection.keys)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -176,7 +177,7 @@ export function GitRefsSidebar({ state, width }: GitRefsSidebarProps) {
         rowKey={key}
         icon={IconName.Remote}
         name={label}
-        tip={`${branch.name} · clic : aller au commit · double-clic : checkout d’une branche locale qui la suit`}
+        tip={branch.name}
         depth={depth}
         selected={selection.has(key)}
         focusable={key === focusable}
@@ -212,7 +213,7 @@ export function GitRefsSidebar({ state, width }: GitRefsSidebarProps) {
         name={tag.name}
         meta={shortSha(tag.sha)}
         refName={tag.name}
-        tip={`Tag ${tag.name} · clic : aller au commit`}
+        tip={`Tag ${tag.name}`}
         selected={selection.has(key)}
         focusable={key === focusable}
         onFocus={setFocusKey}
@@ -232,7 +233,7 @@ export function GitRefsSidebar({ state, width }: GitRefsSidebarProps) {
         icon={IconName.Stash}
         name={stash.message}
         meta={`stash@{${stash.index}}`}
-        tip={`${stash.message} · clic : voir les modifications`}
+        tip={stash.message}
         refName={stash.sha}
         selected={selection.has(key)}
         focusable={key === focusable}
@@ -282,25 +283,37 @@ export function GitRefsSidebar({ state, width }: GitRefsSidebarProps) {
 
   return (
     <div ref={containerRef} role="listbox" aria-label="Branches, tags et stash" aria-multiselectable="true" className="min-h-0 shrink-0 overflow-auto py-[4px]" style={{ width }} onKeyDown={handleKeyDown}>
-      <GitSection title="Locales" count={state.branches.length} expanded={!collapsed[LOCAL]} empty="Aucune branche." onToggle={toggle(LOCAL)} actions={headerButton(IconName.Plus, 'Nouvelle branche depuis HEAD', handleNewBranch, state.head.unborn)}>
-        {renderTree(localTree, LOCAL, 0, renderBranch)}
-      </GitSection>
-      <GitSection title="Distantes" count={state.remoteBranches.length} expanded={!collapsed[REMOTE]} empty={state.remotes.length === 0 ? 'Aucun dépôt distant configuré.' : 'Aucune branche distante.'} onToggle={toggle(REMOTE)}>
-        {groups.map((group) => (
-          <GitSection key={group.remote} title={group.remote} count={group.count} nested expanded={!collapsed[groupKey(group.remote)]} empty="Aucune branche : faites un fetch." onToggle={toggle(groupKey(group.remote))}>
-            {renderTree(group.tree, groupKey(group.remote), 1, renderRemoteBranch)}
-          </GitSection>
-        ))}
-      </GitSection>
-      <GitSection title="Tags" count={state.tags.length} expanded={!collapsed[TAGS]} empty="Aucun tag." onToggle={toggle(TAGS)} actions={headerButton(IconName.Plus, 'Nouveau tag sur HEAD', handleNewTag, state.head.unborn)}>
-        {state.tags.map(renderTag)}
-      </GitSection>
-      <GitSection title="Stash" count={state.stashes.length} expanded={!collapsed[STASHES]} empty="Aucun stash." onToggle={toggle(STASHES)} actions={headerButton(IconName.Stash, clean ? 'Aucune modification à stash' : 'Stash des modifications', promptStash, clean)}>
-        {state.stashes.map(renderStash)}
-      </GitSection>
-      <GitSection title="Worktrees" count={state.worktrees.length} expanded={!collapsed[WORKTREES]} empty="Aucun worktree." onToggle={toggle(WORKTREES)} actions={headerButton(IconName.Plus, withShortcut('Créer un worktree', shortcutText(Command.CreateWorktree)), handleNewWorktree)}>
-        {state.worktrees.map(renderWorktree)}
-      </GitSection>
+      {state.branches.length > 0 && (
+        <GitSection title="Locales" count={state.branches.length} expanded={!collapsed[LOCAL]} onToggle={toggle(LOCAL)} actions={headerButton(IconName.Plus, 'Nouvelle branche depuis HEAD', handleNewBranch, state.head.unborn)}>
+          {renderTree(localTree, LOCAL, 0, renderBranch)}
+        </GitSection>
+      )}
+      {state.remoteBranches.length > 0 && (
+        <GitSection title="Distantes" count={state.remoteBranches.length} expanded={!collapsed[REMOTE]} onToggle={toggle(REMOTE)}>
+          {groups
+            .filter((group) => group.count > 0)
+            .map((group) => (
+              <GitSection key={group.remote} title={group.remote} count={group.count} nested expanded={!collapsed[groupKey(group.remote)]} onToggle={toggle(groupKey(group.remote))}>
+                {renderTree(group.tree, groupKey(group.remote), 1, renderRemoteBranch)}
+              </GitSection>
+            ))}
+        </GitSection>
+      )}
+      {state.tags.length > 0 && (
+        <GitSection title="Tags" count={state.tags.length} expanded={!collapsed[TAGS]} onToggle={toggle(TAGS)} actions={headerButton(IconName.Plus, 'Nouveau tag sur HEAD', handleNewTag, state.head.unborn)}>
+          {state.tags.map(renderTag)}
+        </GitSection>
+      )}
+      {state.stashes.length > 0 && (
+        <GitSection title="Stash" count={state.stashes.length} expanded={!collapsed[STASHES]} onToggle={toggle(STASHES)} actions={headerButton(IconName.Stash, clean ? 'Aucune modification à stash' : 'Stash des modifications', promptStash, clean)}>
+          {state.stashes.map(renderStash)}
+        </GitSection>
+      )}
+      {state.worktrees.length > 0 && (
+        <GitSection title="Worktrees" count={state.worktrees.length} expanded={!collapsed[WORKTREES]} onToggle={toggle(WORKTREES)} actions={headerButton(IconName.Plus, withShortcut('Créer un worktree', shortcutText(Command.CreateWorktree)), handleNewWorktree)}>
+          {state.worktrees.map(renderWorktree)}
+        </GitSection>
+      )}
     </div>
   )
 }

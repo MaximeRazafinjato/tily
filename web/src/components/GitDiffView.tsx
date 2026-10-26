@@ -41,7 +41,7 @@ const LINE_SIGNS: Record<GitDiffLineKind, string> = {
 
 const CURSOR_CLASSES = 'group-focus:outline group-focus:outline-1 group-focus:-outline-offset-1 group-focus:outline-tily-focus'
 const PICK_CLASSES = 'cursor-pointer hover:bg-tily-green-hover/60'
-const PICK_TIP = 'Choisir la ligne · Maj + clic : jusqu’ici · Ctrl + clic : ajouter ou retirer'
+const PICK_TIP = 'Choisir la ligne'
 
 const renderHunk = (row: DiffRow, style: { top: number; height: number }, index: number, selectable: GitDiffSource | null) => {
   if (!selectable || row.hunk === undefined) {
