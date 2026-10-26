@@ -32,7 +32,7 @@ public sealed class ClaudeCodeAdapterTests : IDisposable
         var agent = _adapter.Detect(Probe(), Reported(reportedState));
 
         Assert.Equal(
-            new PaneAgentModel("pane-a", "claude", AgentState.Done, ClaudeCodeAdapter.InterruptedMessage) { Interrupted = true, SessionId = SessionId, SessionDirectory = @"C:\repo\app", TranscriptPath = TranscriptPath() },
+            new PaneAgentModel("pane-a", "claude", AgentState.Done, ClaudeCodeAdapter.InterruptedMessage) { Interrupted = true },
             agent);
     }
 
@@ -96,13 +96,13 @@ public sealed class ClaudeCodeAdapterTests : IDisposable
     }
 
     [Fact]
-    public void Detect_WhenOnlyRegistryPresent_ThenStateIsUnknownWithSession()
+    public void Detect_WhenOnlyRegistryPresent_ThenStateIsUnknown()
     {
         WriteRegistry("busy", HookWrittenAt);
 
         var agent = _adapter.Detect(Probe(), null);
 
-        Assert.Equal((AgentState.Unknown, SessionId), (agent?.State, agent?.SessionId));
+        Assert.Equal(new PaneAgentModel("pane-a", "claude", AgentState.Unknown, null), agent);
     }
 
     private static PaneProbeModel Probe() => new("pane-a", ProcessStart, ["node"], [ProcessId]);
@@ -110,8 +110,6 @@ public sealed class ClaudeCodeAdapterTests : IDisposable
     private static AgentStateModel Reported(AgentState state) => new("claude", state, "En cours", "détail") { UpdatedAtUtc = HookWrittenAt };
 
     private string RegistryPath() => Path.Combine(_directory, "sessions", ProcessId.ToString(CultureInfo.InvariantCulture) + ".json");
-
-    private string TranscriptPath() => Path.Combine(_directory, "projects", "C--repo-app", SessionId + ".jsonl");
 
     private void WriteRegistry(string status, DateTime statusUpdatedAt) =>
         File.WriteAllText(RegistryPath(), JsonSerializer.Serialize(new

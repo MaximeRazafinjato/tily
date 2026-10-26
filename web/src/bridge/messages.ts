@@ -182,7 +182,6 @@ export interface PaneAgent {
   message?: string
   detail?: string
   interrupted?: boolean
-  sessionId?: string
 }
 
 export type HostToWebMessage =
