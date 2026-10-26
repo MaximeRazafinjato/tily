@@ -36,9 +36,8 @@ function PasteConfirmContent({ request }: { request: PasteRequest }) {
   return (
     <div className="absolute inset-0 z-40 flex items-start justify-center bg-tily-paper/60 pt-[12vh]" onPointerDown={handleBackdropPointerDown}>
       <div role="alertdialog" aria-label={title} className="flex max-h-[76vh] w-[560px] max-w-[94vw] flex-col rounded-lg border border-tily-line bg-tily-panel shadow-xl" onKeyDown={keepTabInside}>
-        <div className="flex items-center justify-between border-b border-tily-line px-4 py-3">
+        <div className="flex items-baseline justify-between border-b border-tily-line px-4 py-3">
           <h2 className="text-[15px] font-semibold text-tily-ink">{title}</h2>
-          <span className="text-[11px] text-tily-muted">Entrée colle · Échap annule</span>
         </div>
         <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-4 py-4">
           <p className="text-[12px] text-tily-warning">Ce shell n’attend pas Entrée : chaque ligne collée s’exécute dès qu’elle arrive.</p>
@@ -48,10 +47,10 @@ function PasteConfirmContent({ request }: { request: PasteRequest }) {
           {hidden > 0 && <p className="text-[11px] text-tily-muted">{hiddenLinesLabel(hidden)}</p>}
         </div>
         <div className="flex items-center justify-end gap-2 border-t border-tily-line px-4 py-3">
-          <button type="button" className={SECONDARY} onClick={cancelPaste}>
+          <button type="button" className={SECONDARY} data-tip="Échap" onClick={cancelPaste}>
             Annuler
           </button>
-          <button ref={confirmRef} type="button" className={PRIMARY} onClick={confirmPaste}>
+          <button ref={confirmRef} type="button" className={PRIMARY} data-tip="Entrée" onClick={confirmPaste}>
             Coller et exécuter
           </button>
         </div>

@@ -4,7 +4,7 @@ using System.Security.Cryptography;
 
 namespace Tily.Core.Updates;
 
-public sealed class UpdateClient(HttpClient http)
+public sealed class UpdateClient(HttpClient http, ReleaseChannel channel = ReleaseChannels.Current)
 {
     private const int BufferSize = 81920;
     private const string PartialExtension = ".part";
@@ -18,11 +18,13 @@ public sealed class UpdateClient(HttpClient http)
 
     public async Task<UpdateReleaseModel> LatestAsync(CancellationToken cancellationToken)
     {
-        using var request = new HttpRequestMessage(HttpMethod.Get, UpdateSource.LatestReleaseUrl);
+        var beta = channel == ReleaseChannel.Beta;
+        using var request = new HttpRequestMessage(HttpMethod.Get, beta ? UpdateSource.ReleasesUrl : UpdateSource.LatestReleaseUrl);
         request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github+json"));
         request.Headers.Add("X-GitHub-Api-Version", "2022-11-28");
         using var response = await SendAsync(request, cancellationToken);
-        return ReleaseParser.Parse(await response.Content.ReadAsStringAsync(cancellationToken));
+        var json = await response.Content.ReadAsStringAsync(cancellationToken);
+        return beta ? ReleaseParser.ParseLatestPrerelease(json, channel) : ReleaseParser.Parse(json, channel);
     }
 
     public async Task<string> DownloadAsync(UpdateAssetModel asset, string directory, Action<long, long> progress, CancellationToken cancellationToken)

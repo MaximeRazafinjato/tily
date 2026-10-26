@@ -54,7 +54,7 @@ export function SplitResizer({ axis, ratio, containerRef, onResize }: SplitResiz
       role="separator"
       aria-orientation={horizontal ? 'vertical' : 'horizontal'}
       aria-label="Redimensionner les panes"
-      data-tip="Glisser ou flèches pour redimensionner, double-clic pour partager à parts égales"
+      data-tip="Redimensionner les panes"
       aria-valuemin={Math.round(SPLIT_RATIO_MIN * PERCENT)}
       aria-valuemax={Math.round(SPLIT_RATIO_MAX * PERCENT)}
       aria-valuenow={Math.round(ratio * PERCENT)}

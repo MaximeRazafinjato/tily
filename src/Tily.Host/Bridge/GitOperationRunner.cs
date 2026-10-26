@@ -8,12 +8,14 @@ public sealed class GitOperationRunner
 {
     private readonly Func<string?, GitRepository> _open;
     private readonly Action<object> _post;
-    private readonly Action _completed;
+    private readonly Action<GitChangeScope> _completed;
     private readonly BackgroundQueue _queue;
+    private static readonly HashSet<string> WorkingTreeOperations = ["git.stage", "git.unstage", "git.discard", "git.stageLines", "git.unstageLines", "git.discardLines", "git.ignore", "git.resolve"];
+
     private readonly ConcurrentDictionary<string, byte> _forceAllowed = new(StringComparer.OrdinalIgnoreCase);
     private readonly GitAutoFetchSchedule _autoFetches = new();
 
-    public GitOperationRunner(Func<string?, GitRepository> open, Action<object> post, Action completed, Action<Exception> onError)
+    public GitOperationRunner(Func<string?, GitRepository> open, Action<object> post, Action<GitChangeScope> completed, Action<Exception> onError)
     {
         _open = open;
         _post = post;
@@ -38,6 +40,7 @@ public sealed class GitOperationRunner
             "git.discardLines" => repository => GitLineCommands.Apply(repository, GitLineAction.Discard, LineRequest(command), command.Confirmed),
             "git.commit" => repository => CommitThenPush(repository, command),
             "git.push" => repository => Push(repository, command.Force, command.Confirmed),
+            "git.pushBranch" => repository => PushUpTo(repository, command.Branch, command.Commit),
             "git.pull" => GitSyncCommands.Pull,
             "git.fetch" => Fetch,
             "git.merge" => repository => GitHistoryCommands.Merge(repository, command.Reference),
@@ -98,7 +101,7 @@ public sealed class GitOperationRunner
         }
         finally
         {
-            _completed();
+            _completed(WorkingTreeOperations.Contains(command.Type) ? GitChangeScope.WorkingTree : GitChangeScope.Repository);
         }
     }
 
@@ -128,7 +131,7 @@ public sealed class GitOperationRunner
             finally
             {
                 _post(new { type = "git.autoFetchEnded", path = repository.Root });
-                _completed();
+                _completed(GitChangeScope.Repository);
             }
         }
         catch (Exception exception) when (exception is GitCommandException or IOException or UnauthorizedAccessException)
@@ -167,6 +170,13 @@ public sealed class GitOperationRunner
         var key = ForceKey(repository.Root, repository.CurrentBranch() ?? string.Empty);
         var outcome = GitSyncCommands.Push(repository, force, confirmed, _forceAllowed.ContainsKey(key));
         _forceAllowed.TryRemove(key, out _);
+        return outcome;
+    }
+
+    private GitOutcomeModel PushUpTo(GitRepository repository, string? branch, string? commit)
+    {
+        var outcome = GitSyncCommands.PushUpTo(repository, branch, commit);
+        _forceAllowed.TryRemove(ForceKey(repository.Root, branch ?? string.Empty), out _);
         return outcome;
     }
 

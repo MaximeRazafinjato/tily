@@ -20,14 +20,11 @@ public sealed class ClaudeCodeAdapter : IAgentAdapter
     public PaneAgentModel? Detect(PaneProbeModel probe, AgentStateModel? reported)
     {
         var session = _registry?.Find(probe.ProcessIds ?? []);
-        var agent = reported is not null && reported.Agent == Id
+        return reported is not null && reported.Agent == Id
             ? Reconcile(new PaneAgentModel(probe.PaneId, Id, reported.State, reported.Message, reported.Detail), reported, session)
             : session is not null || probe.Processes.Contains(Id, StringComparer.OrdinalIgnoreCase)
                 ? new PaneAgentModel(probe.PaneId, Id, AgentState.Unknown, null)
                 : null;
-        return agent is null || session is null
-            ? agent
-            : agent with { SessionId = session.SessionId, SessionDirectory = session.Directory, TranscriptPath = _registry!.TranscriptPathFor(session) };
     }
 
     private PaneAgentModel Reconcile(PaneAgentModel agent, AgentStateModel reported, ClaudeSessionModel? session)

@@ -32,8 +32,6 @@ interface WorkspaceItemProps {
   onOpenMenu: (request: PanelMenuRequest) => void
 }
 
-const tabCountTip = (count: number): string => (count === 1 ? '1 onglet dans ce workspace replié' : `${count} onglets dans ce workspace replié`)
-
 const toggleTip = (expanded: boolean, count: number): string => `${expanded ? 'Replier' : 'Afficher'} ${count === 1 ? 'l’onglet' : `les ${count} onglets`}`
 
 const rowStateOf = (dropInto: boolean, here: boolean): string => {
@@ -41,6 +39,13 @@ const rowStateOf = (dropInto: boolean, here: boolean): string => {
     return 'bg-tily-green-soft shadow-[inset_0_0_0_1px_var(--color-tily-focus)]'
   }
   return here ? 'bg-tily-green-soft' : 'hover:bg-tily-panel'
+}
+
+const nameColorOf = (selected: boolean, here: boolean): string => {
+  if (here) {
+    return 'text-tily-green-deep'
+  }
+  return selected ? 'text-tily-ink' : 'text-tily-ink-soft'
 }
 
 export const WorkspaceItem = memo(function WorkspaceItem({ workspace, workspaceNames, selected, renaming, renamingTabId, springOpen, agents, draggingTabId, dropTarget, draggingSelf, dropBefore, actions, onOpenMenu }: WorkspaceItemProps) {
@@ -100,7 +105,7 @@ export const WorkspaceItem = memo(function WorkspaceItem({ workspace, workspaceN
   const handleHeaderPointerDown = (event: PointerEvent<HTMLDivElement>) => beginWorkspaceDrag(event, id, actions.moveWorkspaceBefore)
 
   return (
-    <div className={`relative mb-[4px] ${draggingSelf ? 'opacity-50' : ''}`} data-workspace-slot={id}>
+    <div className={`relative mb-[8px] ${draggingSelf ? 'opacity-50' : ''}`} data-workspace-slot={id}>
       {dropBefore && <span aria-hidden="true" className={PANEL_DROP_LINE} />}
       <div
         className={`group flex h-[30px] cursor-pointer items-center gap-[4px] rounded-md px-[2px] select-none ${rowStateOf(!expanded && isDropTarget(dropTarget, id), here)}`}
@@ -119,7 +124,7 @@ export const WorkspaceItem = memo(function WorkspaceItem({ workspace, workspaceN
           className="flex size-[20px] shrink-0 cursor-pointer items-center justify-center rounded text-tily-muted hover:text-tily-ink"
           onClick={handleToggle}
         >
-          <Icon name={IconName.Chevron} size={10} className={`transition-transform duration-[120ms] ease-out ${expanded ? 'rotate-90' : ''}`} />
+          <Icon name={IconName.Chevron} size={10} className={`translate-y-[0.5px] transition-transform duration-[120ms] ease-out ${expanded ? 'rotate-90' : ''}`} />
         </button>
         {renaming ? (
           <span className="flex min-w-0 flex-1" onClick={stopPropagation} onContextMenu={stopPropagation}>
@@ -131,8 +136,8 @@ export const WorkspaceItem = memo(function WorkspaceItem({ workspace, workspaceN
             data-panel-row=""
             data-row-name={name}
             aria-expanded={expanded}
-            data-tip={`${name} · Double-clic pour renommer`}
-            className={`flex h-full min-w-0 flex-1 cursor-pointer items-center text-left text-[13px] font-semibold ${here ? 'text-tily-green-deep' : 'text-tily-ink'}`}
+            data-tip={name}
+            className={`flex h-full min-w-0 flex-1 cursor-pointer items-center text-left text-[13px] font-semibold ${nameColorOf(selected, here)}`}
             onClick={handleNameClick}
             onDoubleClick={handleRename}
             onKeyDown={handleNameKeyDown}
@@ -145,16 +150,18 @@ export const WorkspaceItem = memo(function WorkspaceItem({ workspace, workspaceN
             <Icon name={IconName.Note} size={11} />
           </button>
         )}
-        {!expanded && (
-          <span className="shrink-0 translate-y-px px-[2px] font-mono text-[11px] leading-none text-tily-muted tabular-nums" aria-hidden="true" data-tip={tabCountTip(tabs.length)}>
-            {tabs.length}
-          </span>
-        )}
         {!expanded && commandNotice && <CommandNoticeIcon notice={commandNotice} />}
         <WorkspaceStatus counts={workspaceStateCounts(workspace, agents)} onJoin={handleJoin} />
-        <button type="button" className={PANEL_CLOSE_BUTTON} data-tip="Fermer le workspace" aria-label={`Fermer le workspace ${name}`} onClick={handleClose}>
-          <Icon name={IconName.Close} size={10} />
-        </button>
+        <span className="relative flex shrink-0">
+          <button type="button" className={`peer ${PANEL_CLOSE_BUTTON}`} data-tip="Fermer le workspace" aria-label={`Fermer le workspace ${name}`} onClick={handleClose}>
+            <Icon name={IconName.Close} size={10} />
+          </button>
+          {!expanded && (
+            <span className="pointer-events-none absolute inset-0 flex translate-y-px items-center justify-center text-[11px] leading-none text-tily-muted tabular-nums group-hover:hidden peer-focus-visible:hidden" aria-hidden="true">
+              {tabs.length}
+            </span>
+          )}
+        </span>
       </div>
       {expanded && (
         <ul id={tabsId} className="relative mb-[4px] pl-[20px] before:absolute before:top-0 before:bottom-[14px] before:left-[12px] before:w-px before:bg-tily-line">

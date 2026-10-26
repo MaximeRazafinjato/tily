@@ -32,12 +32,12 @@ interface WorkspaceTabRowProps {
 
 const MIDDLE_BUTTON = 1
 const JOIN_TARGET = '[data-join]'
-const LEAD = 'flex w-[14px] shrink-0 justify-center text-tily-muted'
+const LEAD = 'flex w-[14px] shrink-0 translate-y-px items-center justify-center text-tily-muted'
 const SHELL_LABELS: Record<string, string> = { pwsh: 'pwsh', cmd: 'cmd', gitbash: 'bash' }
 const SHELL_NAMES: Record<string, string> = { pwsh: 'PowerShell 7', cmd: 'Invite de commandes', gitbash: 'Git Bash' }
 
 const WORKTREE_TIP = 'Créer un worktree de ce projet'
-const NO_REPOSITORY_TIP = 'Créer un worktree : le dossier du pane actif de cet onglet n’est pas dans un dépôt Git'
+const NO_REPOSITORY_TIP = 'Pane actif hors d’un dépôt Git'
 
 export function WorkspaceTabRow({ workspaceId, tab, siblings, active, renaming, dragging, dropBefore, currentPaneId, agents, actions, onOpenMenu }: WorkspaceTabRowProps) {
   const summary = tabAgents(tab, agents)
@@ -127,8 +127,8 @@ export function WorkspaceTabRow({ workspaceId, tab, siblings, active, renaming, 
               {lead}
             </span>
             <TruncatedName name={tab.name} siblings={siblings} className="flex-1" />
-            {tab.owner && <AgentOwnerMark owner={tab.owner} compact />}
-            {customShell && <span className="shrink-0 font-mono text-[10.5px] text-tily-muted @max-[260px]:hidden">{SHELL_LABELS[customShell] ?? customShell}</span>}
+            {tab.owner && <AgentOwnerMark owner={tab.owner} />}
+            {customShell && <span className="shrink-0 text-[11px] text-tily-muted/70 @max-[260px]:hidden">{SHELL_LABELS[customShell] ?? customShell}</span>}
           </button>
         )}
         <button type="button" className={PANEL_HOVER_BUTTON} data-tip={inRepository ? WORKTREE_TIP : NO_REPOSITORY_TIP} aria-label={`Créer un worktree depuis l’onglet ${tab.name}`} aria-disabled={!inRepository} onClick={handleCreateWorktree}>

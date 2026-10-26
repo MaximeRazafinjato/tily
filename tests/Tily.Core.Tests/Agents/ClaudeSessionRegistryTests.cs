@@ -29,7 +29,7 @@ public sealed class ClaudeSessionRegistryTests : IDisposable
 
         var session = _registry.Read(ProcessId);
 
-        Assert.Equal(new ClaudeSessionModel(ProcessId, SessionId, @"C:\repo\app", ClaudeSessionStatus.Waiting, "permission", updated), session);
+        Assert.Equal(new ClaudeSessionModel(ProcessId, ClaudeSessionStatus.Waiting, updated), session);
     }
 
     [Fact]
@@ -89,41 +89,7 @@ public sealed class ClaudeSessionRegistryTests : IDisposable
 
         var session = _registry.Find([1111, ProcessId]);
 
-        Assert.Equal(SessionId, session?.SessionId);
-    }
-
-    [Fact]
-    public void TranscriptPathFor_WhenDirectoryShort_ThenUsesSanitizedProjectFolder()
-    {
-        var session = new ClaudeSessionModel(ProcessId, SessionId, @"C:\Files\Projects\mon projet_é", ClaudeSessionStatus.Busy, null, null);
-
-        var path = _registry.TranscriptPathFor(session);
-
-        Assert.Equal(Path.Combine(_directory, "projects", "C--Files-Projects-mon-projet--", SessionId + ".jsonl"), path);
-    }
-
-    [Fact]
-    public void TranscriptPathFor_WhenDirectoryLong_ThenFindsHashedProjectFolder()
-    {
-        var directory = @"C:\" + string.Join('\\', Enumerable.Repeat("dossier", 30));
-        var folder = Path.Combine(_directory, "projects", ClaudeSessionRegistry.ProjectFolderName(directory)[..ClaudeSessionRegistry.MaxProjectFolderLength] + "-1x2y3z");
-        Directory.CreateDirectory(folder);
-        File.WriteAllText(Path.Combine(folder, SessionId + ".jsonl"), string.Empty);
-        var session = new ClaudeSessionModel(ProcessId, SessionId, directory, ClaudeSessionStatus.Busy, null, null);
-
-        var path = _registry.TranscriptPathFor(session);
-
-        Assert.Equal(Path.Combine(folder, SessionId + ".jsonl"), path);
-    }
-
-    [Fact]
-    public void TranscriptPathFor_WhenSessionIdNotAGuid_ThenNull()
-    {
-        var session = new ClaudeSessionModel(ProcessId, @"..\..\settings", @"C:\repo", ClaudeSessionStatus.Busy, null, null);
-
-        var path = _registry.TranscriptPathFor(session);
-
-        Assert.Null(path);
+        Assert.Equal(ProcessId, session?.ProcessId);
     }
 
     private string RegistryPath() => Path.Combine(_directory, "sessions", ProcessId.ToString(CultureInfo.InvariantCulture) + ".json");

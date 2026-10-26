@@ -17,6 +17,8 @@ import { useUiStore } from './store/uiStore'
 import { receiveActivity, receiveApplicationClosing } from './terminal/closeGuard'
 import { receiveQueriedActivity } from './terminal/paneActivity'
 import { queryContext, receiveContext } from './terminal/contextActions'
+import { receiveBranchMergeRequests, receiveMergeRequestList } from './forge/mergeRequestActions'
+import { receiveMergeRequestComparison, receiveMergeRequestCreated, receiveMergeRequestForm, receiveMergeRequestUpdated } from './forge/mergeRequestFormActions'
 import { startExternalDrops } from './terminal/externalDrop'
 import { receiveCreated, receiveDeleted, receiveGitMarks, receiveListing, receiveRenamed } from './explorer/fileExplorerActions'
 import { receiveProjectFiles } from './explorer/projectFileActions'
@@ -41,6 +43,7 @@ import {
 import { terminalRegistry } from './terminal/terminalRegistry'
 import { receiveUpdateRestart, receiveUpdateState } from './update/updateActions'
 import { receiveStatusLogCleared, receiveStatusLogEntry, startStatusLog } from './statusLog/statusLogActions'
+import { useShortcutStore } from './store/shortcutStore'
 import { useStatusLogStore } from './store/statusLogStore'
 import { forgetRemovedText, markTextSaveFailed, primeSessionText, startTextAutosave } from './terminal/textPersistence'
 
@@ -63,7 +66,10 @@ export default function App() {
     const { markFailed, markExited, markPathMissing, markAlive } = usePaneStore.getState()
     const subscriptions = [
       bridge.on('app.hello', (message) => {
-        setHello(message.version, message.shells, message.home, message.persistence)
+        document.documentElement.dataset.channel = message.channel
+        setHello(message.version, message.name, message.shells, message.home, message.persistence)
+        terminalRegistry.setChannel(message.channel)
+        useShortcutStore.getState().setShortcuts(message.shortcuts)
         useStatusLogStore.getState().load(message.statusLog)
         terminalRegistry.configure(message.persistence.linesPerPane)
         terminalRegistry.setFontSize(message.appearance.fontSize)
@@ -84,7 +90,8 @@ export default function App() {
         setStatus(`Taille du texte des terminaux : ${message.fontSize} px`)
       }),
       bridge.on('settings.result', (message) => {
-        applySettings({ settings: message.settings, shellSettings: message.shellSettings, files: message.files, warnings: message.warnings, agents: message.agents, mcp: message.mcp, notifications: message.notifications }, message.shells, message.persistence)
+        applySettings({ settings: message.settings, shellSettings: message.shellSettings, files: message.files, warnings: message.warnings, agents: message.agents, mcp: message.mcp, notifications: message.notifications, shortcutDefaults: message.shortcutDefaults }, message.shells, message.persistence)
+        useShortcutStore.getState().setShortcuts(message.settings.shortcuts)
         if (!message.saved) {
           return
         }
@@ -148,6 +155,12 @@ export default function App() {
       bridge.on('preview.requested', receivePreviewRequest),
       bridge.on('preview.saved', receivePreviewSaved),
       bridge.on('preview.saveFailed', receivePreviewSaveFailed),
+      bridge.on('forge.listed', (message) => receiveMergeRequestList(message.request, message.list, message.error)),
+      bridge.on('forge.branchListed', (message) => receiveBranchMergeRequests(message.path, message.branch, message.result)),
+      bridge.on('forge.formLoaded', (message) => receiveMergeRequestForm(message.request, message.form, message.error)),
+      bridge.on('forge.compared', (message) => receiveMergeRequestComparison(message.request, message.branch, message.error)),
+      bridge.on('forge.created', (message) => receiveMergeRequestCreated(message.request, message.path, message.source, message.created, message.error)),
+      bridge.on('forge.updated', (message) => receiveMergeRequestUpdated(message.request, message.path, message.source, message.updated, message.error)),
       bridge.on('git.state', (message) => receiveGitState(message.path, message.state, message.error, message.displayRoot)),
       bridge.on('git.changed', (message) => receiveGitChanged(message.path)),
       bridge.on('git.history', (message) => receiveGitHistory(message.history, message.error)),
@@ -162,7 +175,7 @@ export default function App() {
       bridge.on('worktrees.planned', (message) => dispatchReply(message.type, message.request, message) || receiveWorktreePlan(message.request, message.plan)),
       bridge.on('worktrees.listed', (message) => dispatchReply(message.type, message.request, message)),
       bridge.on('worktrees.progress', (message) => receiveWorktreeProgress(message.message)),
-      bridge.on('worktrees.created', (message) => dispatchReply(message.type, message.request, message) || receiveWorktreeCreated(message.path, message.name, message.install)),
+      bridge.on('worktrees.created', (message) => dispatchReply(message.type, message.request, message) || receiveWorktreeCreated(message.path, message.name, message.install, message.claude)),
       bridge.on('worktrees.done', (message) => {
         dispatchReply(message.type, message.request, message)
         receiveWorktreeDone(message.request, message.message, message.warnings)

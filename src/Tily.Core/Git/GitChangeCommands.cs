@@ -2,6 +2,7 @@ namespace Tily.Core.Git;
 
 public static class GitChangeCommands
 {
+    private const char Separator = '\u001f';
     private const int MaxMarkerScanBytes = 10 * 1024 * 1024;
     private static readonly string[] ConflictMarkers = ["<<<<<<<", ">>>>>>>"];
 
@@ -76,13 +77,15 @@ public static class GitChangeCommands
     public static GitOutcomeModel Commit(GitRepository repository, string? message, bool amend)
     {
         var text = (message ?? string.Empty).Trim();
-        var status = repository.Status();
         if (repository.Operation() is not null)
         {
             throw new GitCommandException("Une opération est en cours : terminez-la ou annulez-la avant de committer.", string.Empty);
         }
 
-        if (!amend && status.StagedTotal == 0)
+        var stagedRead = amend ? null : Task.Run(repository.HasStagedChanges);
+        var branchRead = Task.Run(repository.CurrentBranch);
+        var before = repository.HeadSha();
+        if (stagedRead is not null && !stagedRead.GetAwaiter().GetResult())
         {
             throw new GitCommandException("Aucune modification staged : il faut au moins un fichier staged pour committer.", string.Empty);
         }
@@ -92,7 +95,6 @@ public static class GitChangeCommands
             throw new GitCommandException("Le message du commit est vide.", string.Empty);
         }
 
-        var before = repository.HeadSha();
         if (amend && before is null)
         {
             throw new GitCommandException("Aucun commit : amend impossible.", string.Empty);
@@ -106,16 +108,20 @@ public static class GitChangeCommands
 
         arguments.AddRange(text.Length > 0 ? ["-F", "-"] : ["--no-edit"]);
         GitRepository.Require(repository.Run(new GitRunOptionsModel(Input: text.Length > 0 ? $"{text}\n" : null), [.. arguments]), amend ? "L’amend a échoué." : "Le commit a échoué.");
-        var after = repository.HeadSha() ?? throw new GitCommandException("Le commit n’a pas été créé.", string.Empty);
-        var subject = repository.Read("log", "-1", "--format=%s", after).Trim();
+        var created = repository.Run("log", "-1", "--no-show-signature", "--format=%H%x1f%s", "HEAD").Output.Trim().Split(Separator, 2);
+        if (created.Length < 2)
+        {
+            throw new GitCommandException("Le commit n’a pas été créé.", string.Empty);
+        }
+
+        var (after, subject) = (created[0], created[1]);
         var record = new GitUndoRecordModel
         {
             Kind = amend ? GitUndoKind.Amend : GitUndoKind.Commit,
             Label = amend ? "Amend du dernier commit" : $"Commit « {subject} »",
             HeadBefore = before,
             HeadAfter = after,
-            BranchAfter = repository.CurrentBranch(),
-            Published = repository.IsPublished(after)
+            BranchAfter = branchRead.GetAwaiter().GetResult()
         };
         return new GitOutcomeModel(amend ? $"Amend terminé : {GitRepository.Short(after)} « {subject} »." : $"Commit {GitRepository.Short(after)} créé : « {subject} ».", Undo: record);
     }

@@ -133,6 +133,23 @@ public sealed class GitHistoryCommandsTests : IDisposable
     }
 
     [Fact]
+    public void CherryPick_WhenMergeCommit_ThenAppliesChangesFromFirstParent()
+    {
+        _sandbox.Commit("Base", ("a.txt", "a\n"));
+        _sandbox.Git("switch", "-q", "-c", "feature");
+        _sandbox.Commit("Feature", ("f.txt", "f\n"));
+        _sandbox.Git("switch", "-q", "-c", "intégration", "main");
+        _sandbox.Commit("Intégration", ("i.txt", "i\n"));
+        _sandbox.Git("merge", "-q", "--no-edit", "feature");
+        var merge = _sandbox.Head();
+        _sandbox.Git("switch", "-q", "main");
+
+        GitHistoryCommands.CherryPick(_sandbox.Repository, merge);
+
+        Assert.Equal((true, false), (_sandbox.Exists("f.txt"), _sandbox.Exists("i.txt")));
+    }
+
+    [Fact]
     public void Revert_WhenPastCommit_ThenUndoesItsChangesAndUndoRestoresHead()
     {
         _sandbox.Commit("Base", ("a.txt", "a\n"));

@@ -11,19 +11,22 @@ import { closePaneKeepingText, movePaneToNewTab, restoreClosedTab } from '../ter
 import { focusPane, joinNextWaitingPane, scrollPaneToCommand } from '../terminal/terminalActions'
 import { CommandDirection } from '../terminal/commandOutput'
 import { togglePaneZoom } from '../terminal/paneZoom'
+import { openPaneSearch } from '../terminal/paneSearch'
+import { openGlobalSearch } from '../terminal/globalSearch'
 import { togglePanelView } from '../panel/rightPanel'
 import { RenameOrigin, useUiStore } from '../store/uiStore'
 import { startWorktreeCreation } from '../worktree/worktreeActions'
 import { openProjectPicker } from '../project/projectOpenActions'
 import { toggleStatusLog } from '../statusLog/statusLogActions'
-import { Command, DIRECT_ARROW_KEYS, DIRECT_LETTER_KEYS, DIRECT_PAGE_KEYS, LEADER_KEYS, LEADER_SHIFT_ARROW_KEYS } from './commands'
+import { useShortcutStore } from '../store/shortcutStore'
+import { Command } from './commands'
+import { runContextCommand } from './contextCommands'
+import { chordOf, isModifierKey, leaderKeyOf } from './keyChords'
 
 export { Command }
 
-const LEADER_TIMEOUT_MS = 5000
-const MODIFIER_KEYS = new Set(['Control', 'Shift', 'Alt', 'AltGraph', 'Meta'])
+const MS_PER_SECOND = 1000
 const CANCEL_KEY = 'Escape'
-const TAB_KEY = 'Tab'
 const ENTER_KEY = 'Enter'
 const SHORTCUT_BLOCKERS = 'input, textarea, select, [contenteditable="true"], [role="menu"], [role="dialog"], [role="alertdialog"]'
 const TAB_NUMBER_CODE = /^Digit([1-9])$/
@@ -40,31 +43,24 @@ const letterOf = (event: KeyboardEvent): string => {
   return fromCode ? fromCode[1].toLowerCase() : event.key.toLowerCase()
 }
 
-const isLeaderChord = (event: KeyboardEvent): boolean =>
-  event.ctrlKey && !event.altKey && !event.shiftKey && (event.key === ' ' || event.code === 'Space')
+const isLeaderChord = (event: KeyboardEvent): boolean => chordOf(event) === useShortcutStore.getState().settings.leader
 
 const isCloseWindow = (event: KeyboardEvent): boolean => event.altKey && event.key === 'F4'
 const isCopy = (event: KeyboardEvent): boolean => event.ctrlKey && event.shiftKey && !event.altKey && letterOf(event) === 'c'
 const isPlainCtrlC = (event: KeyboardEvent): boolean => event.ctrlKey && !event.shiftKey && !event.altKey && letterOf(event) === 'c'
 const isPaste = (event: KeyboardEvent): boolean => event.ctrlKey && !event.altKey && letterOf(event) === 'v'
 const isAgentLineBreak = (event: KeyboardEvent): boolean => event.key === ENTER_KEY && !event.altKey && !event.metaKey && event.shiftKey !== event.ctrlKey
-const isTabCycle = (event: KeyboardEvent): boolean => event.ctrlKey && !event.altKey && event.key === TAB_KEY
 
 const directCommand = (event: KeyboardEvent): Command | undefined => {
-  if (event.ctrlKey && !event.altKey && letterOf(event) === 'p') {
-    return Command.Palette
-  }
-  if (isTabCycle(event)) {
-    return event.shiftKey ? Command.PreviousTab : Command.NextTab
-  }
-  if (event.ctrlKey && event.shiftKey && !event.altKey) {
-    return DIRECT_PAGE_KEYS[event.key] ?? DIRECT_LETTER_KEYS[letterOf(event)]
-  }
-  if (event.altKey && !event.ctrlKey && !event.shiftKey) {
-    return DIRECT_ARROW_KEYS[event.key]
-  }
-  return undefined
+  const chord = chordOf(event)
+  return chord ? useShortcutStore.getState().directIndex[chord] : undefined
 }
+
+export const isPaletteShortcut = (event: KeyboardEvent): boolean => directCommand(event) === Command.Palette
+
+export const isPaneSearchShortcut = (event: KeyboardEvent): boolean => directCommand(event) === Command.SearchPane
+
+export const isCommandShortcut = (event: KeyboardEvent, command: Command): boolean => directCommand(event) === command
 
 const exitLeader = (): void => {
   clearTimeout(leaderTimer)
@@ -79,10 +75,8 @@ const expireLeader = (): void => {
 const enterLeader = (): void => {
   useHostStore.getState().setLeaderActive(true)
   clearTimeout(leaderTimer)
-  leaderTimer = setTimeout(expireLeader, LEADER_TIMEOUT_MS)
+  leaderTimer = setTimeout(expireLeader, useShortcutStore.getState().settings.leaderTimeoutSeconds * MS_PER_SECOND)
 }
-
-const leaderKeyOf = (event: KeyboardEvent): string => (event.key.length === 1 ? event.key.toLowerCase() : event.key)
 
 const tabNumberOf = (event: KeyboardEvent): number | undefined => {
   const digit = TAB_NUMBER_CODE.exec(event.code)
@@ -92,7 +86,7 @@ const tabNumberOf = (event: KeyboardEvent): number | undefined => {
 }
 
 const decideInLeader = (event: KeyboardEvent): boolean => {
-  if (MODIFIER_KEYS.has(event.key)) {
+  if (isModifierKey(event)) {
     return false
   }
   exitLeader()
@@ -102,7 +96,8 @@ const decideInLeader = (event: KeyboardEvent): boolean => {
   if (event.key === CANCEL_KEY) {
     return false
   }
-  const command = (event.shiftKey ? LEADER_SHIFT_ARROW_KEYS[event.key] : undefined) ?? LEADER_KEYS[leaderKeyOf(event)]
+  const key = leaderKeyOf(event)
+  const command = key ? useShortcutStore.getState().leaderIndex[key] : undefined
   if (command) {
     runCommand(command)
     return false
@@ -152,6 +147,11 @@ const toggleSidebar = (): void => {
   toggle()
 }
 
+const openSettings = (): void => {
+  bridge.send({ type: 'settings.get' })
+  useUiStore.getState().openSettings()
+}
+
 const FOCUS_DIRECTIONS: Partial<Record<Command, Direction>> = {
   [Command.FocusPaneLeft]: Direction.Left,
   [Command.FocusPaneRight]: Direction.Right,
@@ -196,8 +196,18 @@ export const runCommand = (command: Command): void => {
       useUiStore.getState().startRenamingWorkspace(sessionStore.newWorkspace(`Workspace ${(sessionStore.session?.workspaces.length ?? 0) + 1}`, hostStore.home, DEFAULT_SHELL), RenameOrigin.Header)
       break
     case Command.Settings:
-      bridge.send({ type: 'settings.get' })
-      useUiStore.getState().openSettings()
+      openSettings()
+      break
+    case Command.SettingsExport:
+      openSettings()
+      bridge.send({ type: 'settings.export' })
+      break
+    case Command.SettingsImport:
+      openSettings()
+      bridge.send({ type: 'settings.import' })
+      break
+    case Command.FocusSidebar:
+      revealWorkspacePanel()
       break
     case Command.Projects:
       openProjectPicker()
@@ -259,6 +269,14 @@ export const runCommand = (command: Command): void => {
     case Command.OpenBrowser:
       openBrowser(BrowserPlacement.Beside)
       break
+    case Command.SearchPane:
+      openPaneSearch(currentPaneId())
+      break
+    case Command.SearchTerminals:
+      openGlobalSearch()
+      break
+    default:
+      runContextCommand(command)
   }
 }
 
@@ -278,7 +296,7 @@ export const handleForwardedKey = (event: KeyboardEvent): void => {
 }
 
 export const handleLeaderKeyCapture = (event: KeyboardEvent): void => {
-  if (!useHostStore.getState().leaderActive || event.isComposing || MODIFIER_KEYS.has(event.key) || (event.target instanceof Element && event.target.closest(SHORTCUT_BLOCKERS))) {
+  if (!useHostStore.getState().leaderActive || event.isComposing || isModifierKey(event) || (event.target instanceof Element && event.target.closest(SHORTCUT_BLOCKERS))) {
     return
   }
   event.preventDefault()

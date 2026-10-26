@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent } from 'react'
 import { filterSearchItems, type SearchItem } from '../palette/searchFilter'
 import { keepTabInside } from './focusTrap'
+import { Icon } from './Icon'
+import { IconName } from './iconName'
+import { InfoTip } from './InfoTip'
 
 interface SearchDialogProps<T extends SearchItem> {
   label: string
@@ -84,22 +87,29 @@ export function SearchDialog<T extends SearchItem>({ label, placeholder, emptyMe
   return (
     <div className="absolute inset-0 z-30 flex items-start justify-center bg-tily-paper/60 pt-[12vh]" onPointerDown={handleBackdropPointerDown}>
       <div role="dialog" aria-label={label} className="flex max-h-[70vh] w-[560px] max-w-[92vw] flex-col rounded-lg border border-tily-line bg-tily-panel p-2 shadow-xl" onKeyDown={keepTabInside}>
-        <input
-          type="text"
-          role="combobox"
-          aria-autocomplete="list"
-          aria-expanded="true"
-          aria-controls={LISTBOX_ID}
-          aria-activedescendant={selectedItem ? `${RESULT_ID_PREFIX}${selected}` : undefined}
-          autoFocus
-          placeholder={placeholder}
-          value={query}
-          className="rounded border border-tily-focus bg-tily-paper px-3 py-2 text-[13px] text-tily-ink outline-none placeholder:text-tily-muted"
-          onChange={handleQueryChange}
-          onKeyDown={handleKeyDown}
-        />
+        <div className="relative flex flex-col">
+          <input
+            type="text"
+            role="combobox"
+            aria-autocomplete="list"
+            aria-expanded="true"
+            aria-controls={LISTBOX_ID}
+            aria-activedescendant={selectedItem ? `${RESULT_ID_PREFIX}${selected}` : undefined}
+            autoFocus
+            placeholder={placeholder}
+            value={query}
+            className={`rounded border border-tily-focus bg-tily-paper py-2 pl-3 text-[13px] text-tily-ink outline-none placeholder:text-tily-muted ${footer ? 'pr-9' : 'pr-3'}`}
+            onChange={handleQueryChange}
+            onKeyDown={handleKeyDown}
+          />
+          {footer && (
+            <span className="absolute top-1/2 right-3 flex -translate-y-1/2">
+              <InfoTip text={footer} />
+            </span>
+          )}
+        </div>
         <div ref={listRef} id={LISTBOX_ID} role="listbox" aria-label="Résultats" className="mt-2 min-h-0 flex-1 overflow-y-auto">
-          {filtered.length === 0 && <p className="px-3 py-2 text-xs text-tily-muted">{emptyMessage}</p>}
+          {filtered.length === 0 && <p className="px-3 py-2 text-[11px] text-tily-muted">{emptyMessage}</p>}
           {filtered.map((item, index) => {
             const handleHover = () => setSelectedId(item.id)
             const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => (event.ctrlKey && onRunControl && item.favorite === undefined ? onRunControl(item) : runItem(item, event.shiftKey))
@@ -119,7 +129,7 @@ export function SearchDialog<T extends SearchItem>({ label, placeholder, emptyMe
               >
                 <button type="button" tabIndex={-1} className="flex min-w-0 flex-1 cursor-pointer items-baseline gap-3 py-2 text-left focus:outline-none" onPointerDown={handleResultPointerDown} onClick={handleClick}>
                   <span className="min-w-0 truncate">{item.label}</span>
-                  {item.hint && <span className="min-w-0 flex-1 truncate text-right font-mono text-[11px] text-tily-muted">{item.hint}</span>}
+                  {item.hint && <span className="min-w-0 flex-1 truncate text-right text-[11px] text-tily-muted">{item.hint}</span>}
                 </button>
                 {item.favorite !== undefined && (
                   <button
@@ -127,21 +137,20 @@ export function SearchDialog<T extends SearchItem>({ label, placeholder, emptyMe
                     tabIndex={-1}
                     aria-pressed={item.favorite}
                     aria-label={item.favorite ? 'Retirer des favoris' : 'Ajouter aux favoris'}
-                    data-tip={item.favorite ? 'Retirer des favoris (Ctrl + Entrée)' : 'Ajouter aux favoris (Ctrl + Entrée)'}
-                    className={`shrink-0 cursor-pointer rounded px-1.5 py-1 text-[13px] leading-none hover:bg-tily-green-hover focus:outline-none ${item.favorite ? 'text-tily-warning' : 'text-tily-muted opacity-50 hover:opacity-100'}`}
+                    data-tip={item.favorite ? 'Retirer des favoris (Ctrl+Entrée)' : 'Ajouter aux favoris (Ctrl+Entrée)'}
+                    className={`flex size-6 shrink-0 translate-y-px cursor-pointer items-center justify-center self-center rounded hover:bg-tily-green-hover focus:outline-none ${item.favorite ? 'text-tily-warning' : 'text-tily-muted opacity-50 hover:opacity-100'}`}
                     onPointerDown={handleResultPointerDown}
                     onClick={handleToggleFavorite}
                   >
-                    {item.favorite ? '★' : '☆'}
+                    <Icon name={IconName.Star} className={item.favorite ? 'fill-current' : undefined} />
                   </button>
                 )}
               </div>
             )
           })}
-          {hidden > 0 && <p className="px-3 py-2 text-xs text-tily-muted">{hidden === 1 ? '1 autre résultat' : `${hidden} autres résultats`} : précisez la recherche.</p>}
+          {hidden > 0 && <p className="px-3 py-2 text-[11px] text-tily-muted">{hidden === 1 ? '1 autre résultat' : `${hidden} autres résultats`} : précisez la recherche.</p>}
         </div>
-        {footer && <p className="mt-2 border-t border-tily-line px-3 pt-2 text-[11px] text-tily-muted">{footer}</p>}
-        <p role="status" className={notice ? 'mt-2 border-t border-tily-line px-3 pt-2 text-xs text-tily-warning' : undefined}>
+        <p role="status" className={notice ? 'mt-2 border-t border-tily-line px-3 pt-2 text-[11px] text-tily-warning' : undefined}>
           {notice}
         </p>
       </div>

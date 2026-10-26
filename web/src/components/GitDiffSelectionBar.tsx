@@ -24,7 +24,7 @@ export function GitDiffSelectionBar({ count, source }: GitDiffSelectionBarProps)
         <GitToolButton icon={IconName.Minus} label="Unstage" tip="Unstage des lignes choisies (Espace)" onClick={handleUnstage} />
       ) : (
         <>
-          <GitToolButton icon={IconName.Discard} label="Abandonner" tip="Abandonner les lignes choisies (Suppr)" onClick={handleDiscard} />
+          <GitToolButton icon={IconName.Discard} tip="Abandonner les lignes choisies (Suppr)" onClick={handleDiscard} />
           <GitToolButton icon={IconName.Plus} label="Stage" tip="Stage des lignes choisies (Espace)" onClick={handleStage} />
         </>
       )}

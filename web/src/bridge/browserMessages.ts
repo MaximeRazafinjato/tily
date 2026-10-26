@@ -86,7 +86,7 @@ export type BrowserHostMessage =
   | { type: 'browser.reply'; request: number; result?: unknown; error?: string }
 
 export type BrowserWebMessage =
-  | { type: 'browser.attach'; pane: string; url: string; viewport: BrowserViewport; shortcuts: string }
+  | { type: 'browser.attach'; pane: string; url: string; viewport: BrowserViewport }
   | { type: 'browser.bounds'; pane: string; x: number; y: number; width: number; height: number; visible: boolean }
   | { type: 'browser.snapshot'; pane: string; request: number }
   | { type: 'browser.navigate'; pane: string; url: string; request?: number }

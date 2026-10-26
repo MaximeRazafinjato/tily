@@ -4,12 +4,12 @@ import { focusActivePane } from '../explorer/fileExplorerActions'
 import { activeWorkspace, NOTE_MAX_CHARS } from '../model/session'
 import { useSessionStore } from '../store/sessionStore'
 import { sendTextToActivePane } from '../terminal/terminalActions'
-import { SECTION_TITLE } from './rightPanelStyles'
+import { InfoTip } from './InfoTip'
 
-const NOTE_ID = 'workspace-note'
 const NOTE_HINT_ID = 'workspace-note-hint'
 const LINE_BREAK = '\n'
 const TRAILING_LINE_BREAKS = /[\r\n]+$/
+const NOTE_HELP = 'Enregistrées avec la session. Ctrl+Entrée colle la ligne ou la sélection dans le terminal actif, Ctrl+Maj+Entrée l’exécute.'
 
 const noteTextToSend = (value: string, start: number, end: number): string => {
   if (start !== end) {
@@ -21,10 +21,10 @@ const noteTextToSend = (value: string, start: number, end: number): string => {
 }
 
 export function WorkspaceNotes() {
-  const { id, name, note } = useSessionStore(
+  const { id, note } = useSessionStore(
     useShallow((state) => {
       const workspace = state.session ? activeWorkspace(state.session) : undefined
-      return { id: workspace?.id, name: workspace?.name ?? '', note: workspace?.note ?? '' }
+      return { id: workspace?.id, note: workspace?.note ?? '' }
     }),
   )
 
@@ -45,26 +45,24 @@ export function WorkspaceNotes() {
   }
 
   return (
-    <section aria-label="Notes du workspace" className="flex min-h-0 flex-1 flex-col px-[12px] pb-[12px]">
-      <label htmlFor={NOTE_ID} className={`flex h-[30px] shrink-0 items-center ${SECTION_TITLE}`}>
-        <span className="min-w-0 truncate" data-tip={name}>
-          {name}
-        </span>
-      </label>
+    <section aria-label="Notes du workspace" className="relative flex min-h-0 flex-1 flex-col px-[12px] pt-[4px] pb-[12px]">
       <textarea
-        id={NOTE_ID}
         data-workspace-note=""
         value={note}
         maxLength={NOTE_MAX_CHARS}
         spellCheck={false}
-        placeholder="Notes de ce workspace : tâches, ports, commandes… Enregistrées avec la session. Ctrl + Entrée colle la ligne (ou la sélection) dans le terminal actif, Ctrl + Maj + Entrée la colle et l’exécute."
-        className="min-h-0 flex-1 resize-none rounded border border-tily-line bg-tily-panel px-[10px] py-[8px] font-mono text-[12px] leading-[1.5] text-tily-ink outline-none placeholder:text-tily-muted focus:border-tily-focus"
+        placeholder="Notes du workspace…"
+        aria-label="Notes du workspace"
+        className="min-h-0 flex-1 resize-none rounded border border-tily-line bg-tily-panel py-[8px] pr-[28px] pl-[10px] text-[12px] leading-[1.5] text-tily-ink outline-none placeholder:text-tily-muted focus:border-tily-focus"
         onChange={handleChange}
         onKeyDown={handleKeyDown}
         aria-describedby={NOTE_HINT_ID}
       />
-      <p id={NOTE_HINT_ID} className="mt-[6px] shrink-0 text-[11px] leading-[1.4] text-tily-muted">
-        Ctrl + Entrée : coller dans le terminal · Ctrl + Maj + Entrée : exécuter
+      <span className="absolute top-[12px] right-[20px] flex">
+        <InfoTip text={NOTE_HELP} />
+      </span>
+      <p id={NOTE_HINT_ID} className="sr-only">
+        {NOTE_HELP}
       </p>
     </section>
   )

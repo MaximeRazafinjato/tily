@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Reflection;
 using System.Text;
 using System.Text.Json;
 using Tily.Core.Agents;
@@ -7,8 +8,10 @@ using Tily.Core.Projects;
 using Tily.Core.Session;
 using Tily.Core.Settings;
 using Tily.Core.Shell;
+using Tily.Core.Shortcuts;
 using Tily.Core.StatusLog;
 using Tily.Core.Terminal;
+using Tily.Core.Updates;
 using Tily.Core.Worktrees;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml.Controls;
@@ -24,7 +27,7 @@ public sealed class HostBridge : IDisposable
     private const string TerminalCommandPrefix = "terminal.";
     private const string InvalidDroppedPath = "Chemin déposé invalide.";
     private const string AttentionDone = "done";
-    private static readonly string ApplicationVersion = typeof(HostBridge).Assembly.GetName().Version?.ToString(3) ?? string.Empty;
+    private static readonly string ApplicationVersion = typeof(HostBridge).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion.Split('+')[0] ?? string.Empty;
     private static readonly TimeSpan WriteDrainTimeout = TimeSpan.FromSeconds(10);
     private static readonly JsonSerializerOptions JsonOptions = SessionRepository.JsonOptions;
 
@@ -42,6 +45,7 @@ public sealed class HostBridge : IDisposable
     private readonly FilePreviewFeed _preview;
     private readonly PreviewRequestFeed _previewRequests;
     private readonly GitFeed _git;
+    private readonly ForgeFeed _forge;
     private readonly WorktreeFeed _worktrees;
     private readonly UpdateFeed _updates;
     private readonly StatusLogFeed _statusLog;
@@ -81,10 +85,11 @@ public sealed class HostBridge : IDisposable
         _preview = new FilePreviewFeed(() => _settings.Editor, Post, PostBackgroundError);
         _previewRequests = new PreviewRequestFeed(dataDirectory, Post);
         _git = new GitFeed(Post, () => _settings.Git.AutoFetch, PostBackgroundError);
+        _forge = new ForgeFeed(Post, () => _settings.Worktrees.DefaultBase, _git.RefreshSoon, PostBackgroundError);
         _worktrees = new WorktreeFeed(Post, () => _settings, RememberWorktreeFolder, _git.RefreshSoon, PostBackgroundError, dataDirectory);
         _updates = new UpdateFeed(Post, ApplicationVersion, dataDirectory);
         _mcp = new McpFeed(dataDirectory, Post, PostBackgroundError);
-        _browsers = new BrowserFeed(browserLayer, () => _core?.Environment, Post, focusInterface);
+        _browsers = new BrowserFeed(browserLayer, () => _core?.Environment, Post, focusInterface, () => ShortcutRules.InterceptedChords(_settings.Shortcuts));
         ApplySettings(_settings);
         _terminals.OutputReceived += HandleOutput;
         _terminals.CurrentDirectoryChanged += HandleCurrentDirectoryChanged;
@@ -327,6 +332,9 @@ public sealed class HostBridge : IDisposable
             case var type when type.StartsWith("git.", StringComparison.Ordinal):
                 _git.Handle(command);
                 break;
+            case var type when type.StartsWith("forge.", StringComparison.Ordinal):
+                _forge.Handle(command);
+                break;
             case "projects.repositories":
             case "projects.rememberRepository":
             case var type when type.StartsWith("worktrees.", StringComparison.Ordinal):
@@ -365,15 +373,15 @@ public sealed class HostBridge : IDisposable
             return;
         }
 
-        Notify(paneId, [command.Title ?? "Tily", command.Body, command.Location], done ? settings.DoneSound : settings.Sound, settings, done);
+        Notify(paneId, [command.Title ?? "Tily", command.Body], done ? settings.DoneSound : settings.Sound, settings, done);
     }
 
     private void TestAttention(string paneId, BridgeCommandModel command)
     {
         var settings = (command.Notifications?.Deserialize<NotificationSettingsModel>(JsonOptions) ?? _settings.Notifications).Normalized();
         string?[] lines = command.Kind == AttentionDone
-            ? ["Tily : test de fin", "Voici l’apparence d’un agent qui a terminé.", command.Location]
-            : ["Tily : test de notification", "Voici l’apparence d’une demande d’attention.", command.Location];
+            ? ["Tily › Test", "Terminé"]
+            : ["Tily › Test", "Autorisation : Bash"];
         Notify(paneId, lines, command.Kind == AttentionDone ? settings.DoneSound : settings.Sound, settings, true);
     }
 
@@ -397,6 +405,7 @@ public sealed class HostBridge : IDisposable
         _texts = new PaneTextRepository(_dataDirectory, _persistence.MaxTextBytes);
         _terminals.UpdatePaths(_shellPaths);
         _updates.Configure(settings.Updates.AutoCheck);
+        _browsers.UpdateShortcuts();
     }
 
     private void PostSettings(bool saved)
@@ -414,6 +423,7 @@ public sealed class HostBridge : IDisposable
             agents = _agents.Describe(),
             mcp = _mcp.Describe(),
             notifications = _notifier.Describe(),
+            shortcutDefaults = ShortcutSettingsModel.Default,
             saved
         });
     }
@@ -448,12 +458,15 @@ public sealed class HostBridge : IDisposable
         {
             type = "app.hello",
             version = ApplicationVersion,
+            name = WindowTitle.ApplicationName,
+            channel = ReleaseChannels.Identifier(ReleaseChannels.Current),
             session,
             shells = ShellCatalog.Profiles(_shellPaths),
             home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
             text = text.Text,
             persistence = _persistence,
             appearance = _settings.Appearance,
+            shortcuts = _settings.Shortcuts,
             statusLog = _statusLog.Entries(),
             recovery = recovery.Length > 0 ? recovery : null
         });

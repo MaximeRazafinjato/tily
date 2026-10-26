@@ -5,6 +5,8 @@ import { clearStatusLog, closeStatusLog, copyStatusLog, entryFullDate, entryTime
 import { Icon } from './Icon'
 import { IconName } from './iconName'
 import { PANEL_HEADER_BUTTON, SECTION_TITLE } from './rightPanelStyles'
+import { Command } from '../keyboard/commands'
+import { useShortcutText } from '../keyboard/shortcutLabels'
 
 export const STATUS_LOG_ID = 'status-log'
 
@@ -19,15 +21,16 @@ const LEVEL_CLASSES: Record<StatusLevel, string> = {
 
 const countLabel = (count: number): string => (count === 0 ? 'Aucun message' : count === 1 ? '1 message' : `${count} messages`)
 
-export function StatusLogDrawer() {
+export function StatusLogDrawer({ today }: { today: Date }) {
   const entries = useStatusLogStore((state) => state.entries)
+  const logShortcut = useShortcutText(Command.ToggleStatusLog)
+  const hideTip = `Masquer le journal (Échap${logShortcut ? `, ${logShortcut}` : ''})`
   const listRef = useRef<HTMLDivElement>(null)
   const pinnedToBottom = useRef(true)
   const [problemsOnly, setProblemsOnly] = useState(false)
   const numbered = entries.map((entry, position) => ({ entry, position }))
   const shown = problemsOnly ? numbered.filter(({ entry }) => entry.level !== StatusLevel.Info) : numbered
   const empty = entries.length === 0
-  const now = new Date()
 
   useLayoutEffect(() => {
     const list = listRef.current
@@ -76,17 +79,17 @@ export function StatusLogDrawer() {
         <button type="button" className={`${TEXT_BUTTON} aria-pressed:bg-tily-green-soft aria-pressed:text-tily-green-deep`} aria-pressed={problemsOnly} data-tip={problemsOnly ? 'Afficher tous les messages' : 'N’afficher que les avertissements et les erreurs'} onClick={handleToggleProblems}>
           Avertissements et erreurs
         </button>
-        <button type="button" className={TEXT_BUTTON} aria-disabled={empty} data-tip="Copier tout le journal dans le presse-papiers" onClick={handleCopy}>
+        <button type="button" className={TEXT_BUTTON} aria-disabled={empty} data-tip="Copier le journal" onClick={handleCopy}>
           Copier
         </button>
-        <button type="button" className={TEXT_BUTTON} aria-disabled={empty} data-tip="Effacer tous les messages du journal" onClick={handleClear}>
+        <button type="button" className={TEXT_BUTTON} aria-disabled={empty} data-tip="Effacer le journal" onClick={handleClear}>
           Effacer
         </button>
-        <button type="button" className={PANEL_HEADER_BUTTON} aria-label="Masquer le journal" data-tip="Masquer le journal (Échap, Ctrl + Maj + L)" onClick={closeStatusLog}>
+        <button type="button" className={PANEL_HEADER_BUTTON} aria-label="Masquer le journal" data-tip={hideTip} onClick={closeStatusLog}>
           <Icon name={IconName.Close} />
         </button>
       </div>
-      <div ref={listRef} role="log" data-status-log-list="" tabIndex={0} aria-label="Messages" className="min-h-0 flex-1 overflow-y-auto px-[12px] pb-[8px] font-mono text-[11px] leading-[1.6]" onScroll={handleScroll}>
+      <div ref={listRef} role="log" data-status-log-list="" tabIndex={0} aria-label="Messages" className="min-h-0 flex-1 overflow-y-auto px-[12px] pb-[8px] text-[11px] leading-[1.6]" onScroll={handleScroll}>
         {empty ? (
           <p className="font-sans text-[12px] text-tily-muted">Aucun message : ceux de la barre de statut s’afficheront ici.</p>
         ) : shown.length === 0 ? (
@@ -96,7 +99,7 @@ export function StatusLogDrawer() {
             {shown.map(({ entry, position }) => (
               <li key={`${entry.at}-${position}`} className="flex gap-[10px]">
                 <time dateTime={entry.at} data-tip={entryFullDate(entry)} className="shrink-0 text-tily-muted tabular-nums">
-                  {entryTime(entry, now)}
+                  {entryTime(entry, today)}
                 </time>
                 <span className={`w-[92px] shrink-0 ${LEVEL_CLASSES[entry.level]}`}>{levelLabel(entry.level)}</span>
                 <span className={`min-w-0 break-words whitespace-pre-wrap ${entry.level === StatusLevel.Info ? 'text-tily-ink' : LEVEL_CLASSES[entry.level]}`}>{entry.text}</span>

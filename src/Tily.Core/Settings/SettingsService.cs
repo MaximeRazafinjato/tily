@@ -5,6 +5,7 @@ using Tily.Core.Git;
 using Tily.Core.Projects;
 using Tily.Core.Session;
 using Tily.Core.Shell;
+using Tily.Core.Shortcuts;
 using Tily.Core.Updates;
 using Tily.Core.Worktrees;
 
@@ -20,6 +21,7 @@ public sealed class SettingsService
     private readonly GitSettingsRepository _git;
     private readonly UpdateSettingsRepository _updates;
     private readonly AppearanceSettingsRepository _appearance;
+    private readonly ShortcutSettingsRepository _shortcuts;
     private readonly WorktreeProjectsRepository _worktreeProjects;
 
     public SettingsService(string directory)
@@ -32,6 +34,7 @@ public sealed class SettingsService
         _git = new GitSettingsRepository(directory);
         _updates = new UpdateSettingsRepository(directory);
         _appearance = new AppearanceSettingsRepository(directory);
+        _shortcuts = new ShortcutSettingsRepository(directory);
         _worktreeProjects = new WorktreeProjectsRepository(directory);
     }
 
@@ -49,7 +52,8 @@ public sealed class SettingsService
             WorktreeFolders = _worktreeProjects.Folders(),
             Git = _git.Load(),
             Updates = _updates.Load(),
-            Appearance = _appearance.Load()
+            Appearance = _appearance.Load(),
+            Shortcuts = _shortcuts.Load()
         };
     }
 
@@ -83,9 +87,12 @@ public sealed class SettingsService
         }
 
         var relative = NormalizedFolders(settings.WorktreeFolders ?? []).FirstOrDefault(entry => !Path.IsPathRooted(entry.Project) || !Path.IsPathRooted(entry.Folder));
-        return relative is null
-            ? ValidationResultModel.Ok()
-            : ValidationResultModel.Fail($"Le dossier des worktrees de {relative.Project} doit être un chemin absolu : {relative.Folder}");
+        if (relative is not null)
+        {
+            return ValidationResultModel.Fail($"Le dossier des worktrees de {relative.Project} doit être un chemin absolu : {relative.Folder}");
+        }
+
+        return ShortcutRules.Check(settings.Shortcuts).Error is { } shortcutError ? ValidationResultModel.Fail(shortcutError) : ValidationResultModel.Ok();
     }
 
     public ValidationResultModel Save(SettingsModel settings)
@@ -106,6 +113,7 @@ public sealed class SettingsService
         settings.Git ??= GitSettingsModel.Default;
         settings.Updates ??= UpdateSettingsModel.Default;
         settings.Appearance = (settings.Appearance ?? AppearanceSettingsModel.Default).Clamped();
+        settings.Shortcuts = ShortcutRules.Resolve(settings.Shortcuts);
         _shells.Save(settings.Shells);
         _editor.Save(new EditorSettingsModel(settings.Editor));
         _persistence.Save(settings.Persistence);
@@ -115,6 +123,7 @@ public sealed class SettingsService
         _git.Save(settings.Git);
         _updates.Save(settings.Updates);
         _appearance.Save(settings.Appearance);
+        _shortcuts.Save(settings.Shortcuts);
         return result;
     }
 
@@ -181,9 +190,11 @@ public sealed class SettingsService
             WorktreeFolders = _worktreeProjects.Folders(),
             Git = document.Git ?? GitSettingsModel.Default,
             Updates = document.Updates ?? UpdateSettingsModel.Default,
-            Appearance = (document.Appearance ?? AppearanceSettingsModel.Default).Clamped()
+            Appearance = (document.Appearance ?? AppearanceSettingsModel.Default).Clamped(),
+            Shortcuts = document.Shortcuts ?? ShortcutSettingsModel.Default
         };
         var validation = Validate(settings);
+        settings.Shortcuts = ShortcutRules.Resolve(settings.Shortcuts);
         return validation.IsValid
             ? new PreferencesImportResultModel(settings, null, document.Persistence!.OutOfRangeWarnings())
             : PreferencesImportResultModel.Failed($"Préférences refusées : {validation.Error}");
@@ -234,7 +245,8 @@ public sealed class SettingsService
             ["notifications"] = _notifications.FilePath,
             ["git"] = _git.FilePath,
             ["updates"] = _updates.FilePath,
-            ["appearance"] = _appearance.FilePath
+            ["appearance"] = _appearance.FilePath,
+            ["shortcuts"] = _shortcuts.FilePath
         };
         return new SettingsSnapshotModel(settings, shells, files, warnings);
     }

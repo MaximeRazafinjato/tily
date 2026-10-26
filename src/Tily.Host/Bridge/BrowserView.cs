@@ -20,6 +20,7 @@ internal sealed class BrowserView : IDisposable
     private readonly List<BrowserNavigationWaiter> _navigations = [];
     private readonly List<CoreWebView2DevToolsProtocolEventReceiver> _receivers = [];
     private CoreWebView2? _core;
+    private string? _keysScriptId;
     private Rect _bounds;
     private bool _visible;
     private bool _capturing;
@@ -53,7 +54,7 @@ internal sealed class BrowserView : IDisposable
 
     public bool Loading { get; private set; }
 
-    public async Task InitializeAsync(CoreWebView2Environment environment, string url, string? shortcutLetters)
+    public async Task InitializeAsync(CoreWebView2Environment environment, string url, IReadOnlyList<string> shortcutChords)
     {
         var options = environment.CreateCoreWebView2ControllerOptions();
         options.ProfileName = ProfileName;
@@ -82,7 +83,7 @@ internal sealed class BrowserView : IDisposable
             _receivers.Add(receiver);
         }
 
-        await core.AddScriptToExecuteOnDocumentCreatedAsync(BrowserPageScript.Keys(shortcutLetters));
+        _keysScriptId = await core.AddScriptToExecuteOnDocumentCreatedAsync(BrowserPageScript.Keys(shortcutChords));
         await BrowserDevTools.EnableAsync(core);
         _core = core;
         await ApplyViewportAsync();
@@ -108,6 +109,23 @@ internal sealed class BrowserView : IDisposable
     }
 
     public void Navigate(string url) => _core?.Navigate(url);
+
+    public async Task UpdateShortcutsAsync(IReadOnlyList<string> shortcutChords)
+    {
+        if (_core is not { } core)
+        {
+            return;
+        }
+
+        var script = BrowserPageScript.Keys(shortcutChords);
+        if (_keysScriptId is not null)
+        {
+            core.RemoveScriptToExecuteOnDocumentCreated(_keysScriptId);
+        }
+
+        _keysScriptId = await core.AddScriptToExecuteOnDocumentCreatedAsync(script);
+        await core.ExecuteScriptAsync(script);
+    }
 
     public Task<BrowserNavigationModel> NavigateAsync(string url, TimeSpan timeout) => WaitForNavigationAsync(() => Require().Navigate(url), timeout);
 

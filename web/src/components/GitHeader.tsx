@@ -13,7 +13,7 @@ interface GitHeaderProps {
   busy: string | null
 }
 
-const HEAD_LABEL = 'flex max-w-max min-w-0 flex-2 items-center gap-[4px] font-mono text-tily-green-deep'
+const HEAD_LABEL = 'flex max-w-max min-w-0 flex-1 items-baseline gap-[4px] text-tily-green-deep'
 
 const undoTip = ({ undo }: GitState): string => {
   if (!undo) {
@@ -35,7 +35,7 @@ export function GitHeader({ state, busy }: GitHeaderProps) {
   }
   const headLabel = (
     <>
-      <Icon name={IconName.Branch} className="shrink-0" />
+      <Icon name={IconName.Branch} className="shrink-0 -translate-y-[0.5px] self-center" />
       <span className="truncate">{headSummary(head)}</span>
     </>
   )
@@ -46,36 +46,35 @@ export function GitHeader({ state, busy }: GitHeaderProps) {
       ? `Push vers ${head.upstream}`
       : noRemote
         ? 'Aucun dépôt distant configuré'
-        : `Push de « ${head.branch ?? ''} » : publie la branche sur le dépôt distant`
+        : `Push de « ${head.branch ?? ''} »`
 
   return (
-    <div className="flex shrink-0 flex-col gap-[4px] px-[10px] pb-[6px]">
+    <div className="flex shrink-0 flex-col gap-[4px] border-y border-tily-line bg-tily-panel px-[10px] pt-[8px] pb-[6px]">
       <div className="flex min-w-0 items-center gap-[8px] pl-[2px] text-[12px]">
-        <span className="max-w-max min-w-0 flex-1 truncate font-semibold text-tily-ink" data-tip={state.root}>
-          {state.name}
+        <span className="flex min-w-0 items-baseline gap-[8px]">
+          {copiedBranch ? (
+            <button type="button" className={`${HEAD_LABEL} cursor-pointer hover:underline`} data-tip={`Copier la branche « ${copiedBranch} »`} aria-label="Copier la branche Git" onClick={handleCopyBranch}>
+              {headLabel}
+            </button>
+          ) : (
+            <span className={HEAD_LABEL} data-tip={headSummary(head)}>
+              {headLabel}
+            </span>
+          )}
+          {head.upstream && (head.ahead > 0 || head.behind > 0) && (
+            <GitAheadBehind ahead={head.ahead} behind={head.behind} tip={trackingTip} />
+          )}
+          {!head.upstream && head.branch && !head.unborn && (
+            <span role="img" className="flex shrink-0 self-center text-tily-muted" aria-label="Branche non publiée" data-tip="Branche non publiée">
+              <Icon name={IconName.RemoteOff} />
+            </span>
+          )}
         </span>
-        {copiedBranch ? (
-          <button type="button" className={`${HEAD_LABEL} cursor-pointer hover:underline`} data-tip={`Copier la branche « ${copiedBranch} »`} aria-label="Copier la branche Git" onClick={handleCopyBranch}>
-            {headLabel}
-          </button>
-        ) : (
-          <span className={HEAD_LABEL} data-tip={headSummary(head)}>
-            {headLabel}
-          </span>
-        )}
-        {head.upstream && (head.ahead > 0 || head.behind > 0) && (
-          <GitAheadBehind ahead={head.ahead} behind={head.behind} tip={trackingTip} />
-        )}
-        {!head.upstream && head.branch && !head.unborn && (
-          <span className="shrink-0 text-[11px] text-tily-muted" data-tip="Aucune branche distante suivie : Push la publie">
-            non publiée
-          </span>
-        )}
         <span className="ml-auto" />
-        <GitToolButton icon={IconName.Graph} label="Graphe" tip={graphOpen ? 'Masquer le graphe et revenir aux terminaux' : 'Afficher le graphe des branches et des commits à la place des terminaux'} pressed={graphOpen} onClick={toggleGitGraph} />
+        <GitToolButton icon={IconName.Graph} label="Graphe" tip={graphOpen ? 'Masquer le graphe' : 'Afficher le graphe'} pressed={graphOpen} onClick={toggleGitGraph} />
       </div>
       <div className="@container -mx-[4px] flex flex-wrap items-center gap-[2px]">
-        <GitToolButton icon={IconName.Fetch} label="Fetch" tip={noRemote ? 'Aucun dépôt distant configuré' : 'Fetch de toutes les branches distantes (git fetch --all)'} disabled={working || noRemote} onClick={fetchRemote} />
+        <GitToolButton icon={IconName.Fetch} label="Fetch" tip={noRemote ? 'Aucun dépôt distant configuré' : 'Fetch de toutes les branches distantes'} disabled={working || noRemote} onClick={fetchRemote} />
         <GitToolButton icon={IconName.Pull} label={head.behind > 0 ? `Pull ${head.behind}` : 'Pull'} tip={head.upstream ? `Pull depuis ${head.upstream}` : 'Aucune branche distante suivie'} disabled={working || !head.upstream} onClick={pullBranch} />
         <GitToolButton icon={IconName.Push} label={head.ahead > 0 ? `Push ${head.ahead}` : 'Push'} tip={pushTip} disabled={working || head.detached || head.unborn || noRemote} onClick={pushBranch} />
         <span className="flex-1" />

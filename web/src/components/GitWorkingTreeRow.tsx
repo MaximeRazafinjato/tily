@@ -23,7 +23,7 @@ export function GitWorkingTreeRow({ state, graph, selected, layout, onSelect, on
   }
   const renderCount = (value: number, sign: string, tip: string, tone: string) =>
     value > 0 && (
-      <span className={`shrink-0 font-mono text-[11.5px] ${tone}`} data-tip={tip}>
+      <span className={`shrink-0 text-[11px] ${tone}`} data-tip={tip}>
         {`${sign}${value}`}
       </span>
     )
@@ -40,8 +40,8 @@ export function GitWorkingTreeRow({ state, graph, selected, layout, onSelect, on
     >
       <span className="shrink-0" style={{ width: layout.labelsWidth }} />
       <GitGraphCell graph={graph} width={layout.graphWidth} node={GitNodeKind.WorkingTree} labelled={false} />
-      <div className="flex min-w-0 flex-1 items-center gap-[10px] overflow-hidden pr-[8px] pl-[11px]">
-        <span className="shrink-0 font-mono text-tily-muted italic" data-tip="Modifications de l’arbre de travail : stage et commit dans le panneau Git">
+      <div className="flex min-w-0 flex-1 items-baseline gap-[10px] overflow-hidden pr-[8px] pl-[11px]">
+        <span className="shrink-0 text-tily-muted italic" data-tip="Modifications de l’arbre de travail">
           {'// WIP'}
         </span>
         {state.operation && <span className="shrink-0 rounded bg-tily-warning/15 px-[6px] text-[11px] text-tily-warning">{`${OPERATION_LABELS[state.operation]} en cours`}</span>}

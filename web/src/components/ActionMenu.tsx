@@ -14,12 +14,13 @@ interface ActionMenuProps {
   emptyMessage?: string
   header?: ReactNode
   align?: 'left' | 'right'
+  scrollable?: boolean
   onClose: () => void
 }
 
 const itemsOf = (menu: HTMLDivElement | null): HTMLButtonElement[] => Array.from(menu?.querySelectorAll('button:not(:disabled)') ?? [])
 
-export function ActionMenu({ label, items, emptyMessage, header, align = 'left', onClose }: ActionMenuProps) {
+export function ActionMenu({ label, items, emptyMessage, header, align = 'left', scrollable = false, onClose }: ActionMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -54,11 +55,11 @@ export function ActionMenu({ label, items, emptyMessage, header, align = 'left',
       ref={menuRef}
       role="menu"
       aria-label={label}
-      className={`absolute top-full z-20 mt-1 w-max max-w-[360px] min-w-[190px] rounded-md border border-tily-line bg-tily-panel p-1 shadow-lg ${align === 'right' ? 'right-0' : 'left-0'}`}
+      className={`absolute top-full z-20 mt-1 w-max max-w-[360px] min-w-[190px] rounded-md border border-tily-line bg-tily-panel p-1 shadow-lg ${align === 'right' ? 'right-0' : 'left-0'} ${scrollable ? 'max-h-[min(50vh,360px)] overflow-y-auto' : ''}`}
       onKeyDown={handleKeyDown}
     >
       {header}
-      {items.length === 0 && emptyMessage && <span className="block px-3 py-2 text-xs text-tily-muted">{emptyMessage}</span>}
+      {items.length === 0 && emptyMessage && <span className="block px-3 py-2 text-[11px] text-tily-muted">{emptyMessage}</span>}
       {items.map((item) => (
         <button
           key={item.id}
@@ -66,7 +67,7 @@ export function ActionMenu({ label, items, emptyMessage, header, align = 'left',
           role="menuitem"
           tabIndex={-1}
           disabled={item.disabled}
-          className="flex w-full cursor-pointer items-center gap-3 rounded px-3 py-2 text-left text-xs text-tily-ink hover:bg-tily-green-hover focus:bg-tily-green-soft focus:text-tily-green-deep focus:outline-none disabled:cursor-default disabled:text-tily-muted disabled:opacity-60 disabled:hover:bg-transparent"
+          className="flex w-full cursor-pointer items-baseline gap-3 rounded px-3 py-2 text-left text-[12px] text-tily-ink hover:bg-tily-green-hover focus:bg-tily-green-soft focus:text-tily-green-deep focus:outline-none disabled:cursor-default disabled:text-tily-muted disabled:opacity-60 disabled:hover:bg-transparent"
           onClick={item.run}
         >
           <span className="min-w-0 flex-1 truncate">{item.label}</span>

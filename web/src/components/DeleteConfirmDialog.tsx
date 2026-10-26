@@ -40,19 +40,18 @@ export function DeleteConfirmDialog({ request, onConfirm, onCancel }: DeleteConf
       <div role="alertdialog" aria-label={title} className="flex w-[480px] max-w-[94vw] flex-col rounded-lg border border-tily-line bg-tily-panel shadow-xl" onKeyDown={keepTabInside}>
         <div className="flex items-center justify-between gap-3 border-b border-tily-line px-4 py-3">
           <h2 className="min-w-0 truncate text-[15px] font-semibold text-tily-ink">{title}</h2>
-          <span className="shrink-0 text-[11px] text-tily-muted">Entrée supprime · Échap annule</span>
         </div>
         <div className="flex flex-col gap-2 px-4 py-4">
           <p className="text-[12px] text-tily-ink">
             {request.isDirectory ? 'Le dossier et tout son contenu seront placés dans la corbeille de Windows.' : 'Le fichier sera placé dans la corbeille de Windows.'}
           </p>
-          <p className="truncate font-mono text-[11px] text-tily-muted">{request.path}</p>
+          <p className="truncate text-[11px] text-tily-muted">{request.path}</p>
         </div>
         <div className="flex items-center justify-end gap-2 border-t border-tily-line px-4 py-3">
-          <button type="button" className={SECONDARY} onClick={onCancel}>
+          <button type="button" className={SECONDARY} data-tip="Échap" onClick={onCancel}>
             Annuler
           </button>
-          <button ref={confirmRef} type="button" className={DANGER} onClick={handleConfirm}>
+          <button ref={confirmRef} type="button" className={DANGER} data-tip="Entrée" onClick={handleConfirm}>
             Placer dans la corbeille
           </button>
         </div>

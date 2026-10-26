@@ -19,10 +19,15 @@ export const receiveWorktreeProgress = (message: string): void => {
   }
 }
 
-export const receiveWorktreeCreated = (path: string, name: string, install: string | undefined): void => {
+const createdStatus = (name: string, install: string | undefined, claude: string | undefined): string => {
+  const opened = `Worktree « ${name} » ouvert${claude ? ' avec Claude Code' : ''}`
+  return install ? `${opened} : ${install} tourne ${claude ? 'dans le pane du dessous' : 'dans son terminal'}.` : `${opened}.`
+}
+
+export const receiveWorktreeCreated = (path: string, name: string, install: string | undefined, claude: string | undefined): void => {
   useWorktreeStore.getState().setDraft(null)
-  openCreatedWorktree(path, name, install)
-  useHostStore.getState().setStatus(install ? `Worktree « ${name} » ouvert : ${install} tourne dans son terminal.` : `Worktree « ${name} » ouvert.`)
+  openCreatedWorktree(path, name, install, claude)
+  useHostStore.getState().setStatus(createdStatus(name, install, claude))
 }
 
 export const receiveWorktreeDone = (request: number | undefined, message: string, warnings: string[]): void => {

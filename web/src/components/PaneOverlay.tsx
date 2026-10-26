@@ -76,25 +76,25 @@ export function PaneOverlay({ state, active, shells, onRestart, onRestartIn, onC
   return (
     <div ref={overlayRef} role="alert" tabIndex={-1} className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-tily-terminal/90 p-4 text-center" onFocus={handleOverlayFocus} onKeyDownCapture={ignoreHastyActivation} onKeyUpCapture={ignoreHastyActivation}>
       <p className="text-[13px] font-semibold text-tily-ink">{TITLES[state.kind]}</p>
-      <p className="max-w-full font-mono text-[11px] break-words text-tily-muted">{state.message}</p>
-      {pathMissing && state.fallback && <p className="max-w-full font-mono text-[11px] break-words text-tily-green">{`Repli : ${state.fallback}`}</p>}
+      <p className="max-w-full text-[11px] break-words text-tily-muted">{state.message}</p>
+      {pathMissing && state.fallback && <p className="max-w-full text-[11px] break-words text-tily-green">{`Repli : ${state.fallback}`}</p>}
       <div className="flex flex-wrap items-center justify-center gap-2">
         {pathMissing ? (
           <>
             <button type="button" className={PRIMARY} data-tip={`Relancer un shell neuf dans ${state.fallback ?? ''}`} onClick={handleRestartInFallback}>
               Relancer dans le dossier de repli
             </button>
-            <button ref={defaultRef} type="button" className={SECONDARY} data-overlay-default data-tip="Garder ce shell tel quel et masquer ce message (Entrée)" onClick={onDismiss}>
+            <button ref={defaultRef} type="button" className={SECONDARY} data-overlay-default data-tip="Garder ce shell (Entrée)" onClick={onDismiss}>
               Ignorer
             </button>
           </>
         ) : (
           <>
-            <button ref={defaultRef} type="button" className={PRIMARY} data-overlay-default data-tip="Relancer le même shell dans ce pane (Entrée)" onClick={onRestart}>
+            <button ref={defaultRef} type="button" className={PRIMARY} data-overlay-default data-tip="Relancer le shell (Entrée)" onClick={onRestart}>
               Relancer
             </button>
             <div className="relative">
-              <button ref={shellButtonRef} type="button" className={SECONDARY} aria-haspopup="menu" aria-expanded={menuOpen} data-tip="Relancer ce pane avec un autre shell" onClick={handleOpenMenu}>
+              <button ref={shellButtonRef} type="button" className={SECONDARY} aria-haspopup="menu" aria-expanded={menuOpen} data-tip="Relancer avec un autre shell" onClick={handleOpenMenu}>
                 Choisir un shell
               </button>
               {menuOpen && <ShellMenu shells={shells} onSelect={handleSelectShell} onClose={handleCloseMenu} />}

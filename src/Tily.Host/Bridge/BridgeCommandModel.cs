@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Tily.Core.Forge;
 using Tily.Core.Git;
 
 namespace Tily.Host.Bridge;
@@ -19,7 +20,6 @@ public sealed class BridgeCommandModel
     public string? Field { get; init; }
     public string? Title { get; init; }
     public string? Body { get; init; }
-    public string? Location { get; init; }
     public string? Name { get; init; }
     public string? Kind { get; init; }
     public string? Parent { get; init; }
@@ -32,6 +32,7 @@ public sealed class BridgeCommandModel
     public string? NewName { get; init; }
     public string? Mode { get; init; }
     public string? Scope { get; init; }
+    public string? State { get; init; }
     public string? Source { get; init; }
     public string? Repository { get; init; }
     public string? Project { get; init; }
@@ -51,6 +52,8 @@ public sealed class BridgeCommandModel
     public string[]? Tags { get; init; }
     public string[]? Stashes { get; init; }
     public GitHunkSelectionModel[]? Selection { get; init; }
+    public MergeRequestInputModel? MergeRequest { get; init; }
+    public MergeRequestInputModel? Original { get; init; }
     public int Cols { get; init; }
     public int Rows { get; init; }
     public int Line { get; init; }
@@ -63,8 +66,10 @@ public sealed class BridgeCommandModel
     public int FontSize { get; init; }
     public int Index { get; init; }
     public int Request { get; init; }
+    public int Number { get; init; }
     public bool Amend { get; init; }
     public bool Push { get; init; }
+    public bool Close { get; init; }
     public bool Force { get; init; }
     public bool Pop { get; init; }
     public bool Checkout { get; init; }
@@ -72,6 +77,7 @@ public sealed class BridgeCommandModel
     public bool Confirmed { get; init; }
     public bool RememberFolder { get; init; }
     public bool Install { get; init; }
+    public bool Claude { get; init; }
     public bool Database { get; init; }
     public bool Remember { get; init; }
     public bool KeepBranch { get; init; }

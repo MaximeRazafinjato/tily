@@ -51,8 +51,29 @@
   --color-tily-syntax-title: #7f9fc9;
   --color-tily-syntax-attr: #6fb3b0;
   --color-tily-syntax-comment: #6d746f;
+  --color-tily-search-match: #4a3f24;
+  --color-tily-search-active: #7a5f26;
+  --color-tily-forge-merged: #a98fc9;
   --font-sans: 'Segoe UI Variable', 'Segoe UI', system-ui, sans-serif;
   --font-mono: 'CaskaydiaCove Nerd Font Mono', 'Cascadia Mono', 'Cascadia Code', Consolas, 'Symbols Nerd Font Mono', monospace;
+}
+
+html[data-channel='beta'] {
+  --color-tily-paper: #14181e;
+  --color-tily-panel: #1b1f26;
+  --color-tily-line: #282e37;
+  --color-tily-ink: #d4d8de;
+  --color-tily-ink-soft: #9da4af;
+  --color-tily-muted: #7d8592;
+  --color-tily-green: #6a96d4;
+  --color-tily-green-deep: #a6c4ec;
+  --color-tily-green-soft: #222a37;
+  --color-tily-green-hover: #20262f;
+  --color-tily-focus: #88ade0;
+  --color-tily-terminal: #101318;
+  --color-tily-terminal-ink: #c9ced5;
+  --color-tily-scrollbar: #38404b;
+  --color-tily-scrollbar-hover: #505966;
 }
 
 html {
@@ -216,7 +237,7 @@ html[data-git-dragging] * {
 
 .tily-markdown :is(code, pre) {
   font-family: var(--font-mono);
-  font-size: 12.5px;
+  font-size: 12px;
 }
 
 .tily-markdown :not(pre) > code {

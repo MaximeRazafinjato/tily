@@ -19,13 +19,17 @@ import { InlineNameEditor } from './InlineNameEditor'
 import { ShellMenu } from './ShellMenu'
 import { TabContextMenu, type TabMenuActions, type TabMenuRequest } from './TabContextMenu'
 import { beginTabDrag, isDropTarget, type MoveTabHandler } from './tabDrag'
+import { Command } from '../keyboard/commands'
+import { shortcutTextIn, useShortcutText, withShortcut } from '../keyboard/shortcutLabels'
+import { RightPanelView } from '../model/session'
+import { useShortcutStore } from '../store/shortcutStore'
 
 interface TabBarProps {
   workspace: Workspace
   shells: ShellProfile[]
   renamingTabId: string | null
-  panelOpen: boolean
-  onTogglePanel: () => void
+  panelView: RightPanelView | null
+  onTogglePanel: (view: RightPanelView) => void
   onSelect: (tabId: string) => void
   onStartRename: (tabId: string) => void
   onCommitRename: (name: string) => void
@@ -41,6 +45,12 @@ interface TabBarProps {
 const MIDDLE_BUTTON = 1
 const RENAME_KEY = 'F2'
 const NEIGHBOUR_KEYS: Record<string, number> = { ArrowLeft: -1, ArrowRight: 1 }
+
+const PANEL_VIEWS: { view: RightPanelView; label: string; icon: IconName; command: Command }[] = [
+  { view: RightPanelView.Files, label: 'Fichiers', icon: IconName.Folder, command: Command.ToggleExplorer },
+  { view: RightPanelView.Git, label: 'Git', icon: IconName.Branch, command: Command.ToggleGit },
+  { view: RightPanelView.Notes, label: 'Notes', icon: IconName.Note, command: Command.ToggleNotes },
+]
 
 const tabSelector = (tabId: string): string => `[data-drop-tab="${tabId}"]`
 const FADE_WIDTH = '24px'
@@ -73,8 +83,10 @@ const focusNeighbourTab = (tabButton: HTMLElement, offset: number): void => {
   tabButtons[tabButtons.indexOf(tabButton) + offset]?.focus()
 }
 
-export function TabBar({ workspace, shells, renamingTabId, panelOpen, onTogglePanel, onSelect, onStartRename, onCommitRename, onCancelRename, onClose, onCloseOthers, onShift, onDuplicate, onNew, onMove }: TabBarProps) {
+export function TabBar({ workspace, shells, renamingTabId, panelView, onTogglePanel, onSelect, onStartRename, onCommitRename, onCancelRename, onClose, onCloseOthers, onShift, onDuplicate, onNew, onMove }: TabBarProps) {
   const [menuOpen, setMenuOpen] = useState(false)
+  const newTabShortcut = useShortcutText(Command.NewTab)
+  const shortcuts = useShortcutStore((state) => state.settings)
   const [tabMenu, setTabMenu] = useState<TabMenuRequest | null>(null)
   const [fade, setFade] = useState<StripFade>(NO_FADE)
   const addButtonRef = useRef<HTMLButtonElement>(null)
@@ -208,19 +220,19 @@ export function TabBar({ workspace, shells, renamingTabId, panelOpen, onTogglePa
               <div
                 data-drop-workspace={workspace.id}
                 data-drop-tab={tab.id}
-                className={`flex min-w-[100px] items-center rounded-t-md border border-b-0 ${active ? 'border-tily-line bg-tily-panel text-tily-green-deep' : 'border-transparent text-tily-muted hover:bg-tily-green-hover'} ${draggingTabId === tab.id ? 'opacity-50' : ''}`}
+                className={`group flex min-w-[100px] items-center rounded-t-md border border-b-0 ${active ? 'border-tily-line bg-tily-panel text-tily-green-deep' : 'border-transparent text-tily-muted hover:bg-tily-green-hover'} ${draggingTabId === tab.id ? 'opacity-50' : ''}`}
                 onAuxClick={handleAuxClick}
                 onContextMenu={handleTabContextMenu}
               >
                 {tab.id === renamingTabId ? (
-                  <InlineNameEditor value={tab.name} label="Nom de l’onglet" className="mx-1 my-1 min-w-0 flex-1 text-xs" onCommit={onCommitRename} onCancel={onCancelRename} />
+                  <InlineNameEditor value={tab.name} label="Nom de l’onglet" className="mx-1 my-1 min-w-0 flex-1 text-[12px]" onCommit={onCommitRename} onCancel={onCancelRename} />
                 ) : (
                   <button
                     type="button"
                     role="tab"
                     aria-selected={active}
-                    data-tip={`${tab.name} · ${activePane(tab).path} · ${paneCountLabel(panesOf(tab.tree).length)} · Double-clic pour renommer, glisser pour déplacer`}
-                    className="flex min-w-0 flex-1 cursor-pointer items-center gap-1.5 px-3 py-2 text-left text-xs"
+                    data-tip={`${tab.name} · ${activePane(tab).path} · ${paneCountLabel(panesOf(tab.tree).length)}`}
+                    className="flex min-w-0 flex-1 cursor-pointer items-center gap-1.5 px-3 py-2 text-left text-[12px]"
                     onClick={handleSelect}
                     onDoubleClick={handleStartRename}
                     onPointerDown={handlePointerDown}
@@ -228,11 +240,11 @@ export function TabBar({ workspace, shells, renamingTabId, panelOpen, onTogglePa
                   >
                     {agentSummary ? <AgentStateIcon state={agentSummary.state} tip={agentSummary.tip} /> : commandNotice && <CommandNoticeIcon notice={commandNotice} />}
                     <span className="min-w-0 truncate">{tab.name}</span>
-                    {tab.owner && <AgentOwnerMark owner={tab.owner} compact />}
+                    {tab.owner && <AgentOwnerMark owner={tab.owner} />}
                   </button>
                 )}
-                <button type="button" className="shrink-0 cursor-pointer px-2 text-xs hover:text-tily-error" data-tip="Fermer l’onglet" onClick={handleClose}>
-                  ×
+                <button type="button" className={`flex shrink-0 cursor-pointer items-center self-stretch px-2 hover:text-tily-error ${active ? '' : 'opacity-0 group-hover:opacity-100 focus-visible:opacity-100'}`} aria-label="Fermer l’onglet" data-tip="Fermer l’onglet" onClick={handleClose}>
+                  <Icon name={IconName.Close} size={10} />
                 </button>
               </div>
             </Fragment>
@@ -246,27 +258,36 @@ export function TabBar({ workspace, shells, renamingTabId, panelOpen, onTogglePa
           type="button"
           aria-haspopup="menu"
           aria-expanded={menuOpen}
-          className="cursor-pointer rounded px-2 py-1 text-base hover:bg-tily-green-hover"
-          data-tip="Nouvel onglet PowerShell (Ctrl + Maj + T ; clic droit : choisir le shell ou un navigateur ; double-clic dans l’espace vide de la barre : nouvel onglet)"
+          aria-label="Nouvel onglet"
+          className="flex size-[26px] cursor-pointer items-center justify-center rounded hover:bg-tily-green-hover"
+          data-tip={withShortcut('Nouvel onglet', newTabShortcut)}
           onClick={handleNewDefault}
           onContextMenu={handleContextMenu}
           onKeyDown={handleAddKeyDown}
         >
-          +
+          <Icon name={IconName.Plus} />
         </button>
         {menuOpen && <ShellMenu shells={shells} onSelect={handleSelectShell} onBrowser={handleNewBrowser} onClose={handleCloseMenu} />}
       </div>
-      <button
-        type="button"
-        aria-pressed={panelOpen}
-        aria-label={panelOpen ? 'Masquer le panneau de droite' : 'Afficher le panneau de droite'}
-        className={`mb-1 ml-auto flex h-[26px] shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-md px-2 text-xs hover:bg-tily-green-hover hover:text-tily-ink ${panelOpen ? 'text-tily-green-deep' : 'text-tily-muted'}`}
-        data-tip={`${panelOpen ? 'Masquer' : 'Afficher'} le panneau Fichiers / Git / Notes (Ctrl + Maj + E, G ou O)`}
-        onClick={onTogglePanel}
-      >
-        <Icon name={IconName.Explorer} size={14} />
-        <span>Fichiers / Git / Notes</span>
-      </button>
+      <div className="mb-1 ml-auto flex shrink-0 items-center gap-0.5">
+        {PANEL_VIEWS.map((entry) => {
+          const shown = entry.view === panelView
+          const handleToggle = () => onTogglePanel(entry.view)
+          return (
+            <button
+              key={entry.view}
+              type="button"
+              aria-pressed={shown}
+              aria-label={entry.label}
+              className={`flex size-[26px] cursor-pointer items-center justify-center rounded-md hover:bg-tily-green-hover hover:text-tily-ink ${shown ? 'bg-tily-green-soft text-tily-green-deep' : 'text-tily-muted'}`}
+              data-tip={withShortcut(entry.label, shortcutTextIn(shortcuts, entry.command))}
+              onClick={handleToggle}
+            >
+              <Icon name={entry.icon} size={13} />
+            </button>
+          )
+        })}
+      </div>
       {tabMenu && (
         <TabContextMenu
           request={tabMenu}

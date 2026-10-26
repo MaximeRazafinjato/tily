@@ -1,6 +1,17 @@
+using System.Diagnostics;
 using Tily.Core.Git;
 
 namespace Tily.Host.Bridge;
+
+[Flags]
+public enum GitChangeScope
+{
+    None = 0,
+    WorkingTree = 1,
+    Repository = 2
+}
+
+public sealed record GitChangeModel(GitChangeScope Scope, long LastEvent);
 
 public sealed class GitWatcher : IDisposable
 {
@@ -12,16 +23,19 @@ public sealed class GitWatcher : IDisposable
     };
 
     private const string WorktreesEntry = "worktrees";
+    private const string IndexEntry = "index";
     private static readonly HashSet<string> WorktreeEntries = new(StringComparer.OrdinalIgnoreCase) { "HEAD", "locked", "gitdir" };
 
     private readonly string[] _gitDirectories;
     private readonly List<FileSystemWatcher> _watchers = [];
-    private readonly Action _changed;
+    private readonly Action<GitChangeModel> _changed;
     private readonly Timer _timer;
     private int _scheduled;
+    private int _scope;
+    private long _lastEvent;
     private bool _disposed;
 
-    public GitWatcher(GitLocationModel location, Action changed)
+    public GitWatcher(GitLocationModel location, Action<GitChangeModel> changed)
     {
         _changed = changed;
         _gitDirectories = [location.GitDirectory, location.CommonDirectory];
@@ -49,7 +63,7 @@ public sealed class GitWatcher : IDisposable
             watcher.Created += (_, args) => Signal(args.FullPath);
             watcher.Deleted += (_, args) => Signal(args.FullPath);
             watcher.Renamed += (_, args) => Signal(args.FullPath);
-            watcher.Error += (_, _) => Schedule();
+            watcher.Error += (_, _) => Schedule(GitChangeScope.Repository);
             watcher.EnableRaisingEvents = true;
             _watchers.Add(watcher);
         }
@@ -60,14 +74,17 @@ public sealed class GitWatcher : IDisposable
 
     private void Signal(string path)
     {
-        if (IsRelevant(path))
+        var scope = ScopeOf(path);
+        if (scope != GitChangeScope.None)
         {
-            Schedule();
+            Schedule(scope);
         }
     }
 
-    private void Schedule()
+    private void Schedule(GitChangeScope scope)
     {
+        Interlocked.Or(ref _scope, (int)scope);
+        Volatile.Write(ref _lastEvent, Stopwatch.GetTimestamp());
         if (Volatile.Read(ref _disposed) || Interlocked.Exchange(ref _scheduled, 1) != 0)
         {
             return;
@@ -85,30 +102,37 @@ public sealed class GitWatcher : IDisposable
     private void Fire()
     {
         Interlocked.Exchange(ref _scheduled, 0);
-        if (!Volatile.Read(ref _disposed))
+        var scope = (GitChangeScope)Interlocked.Exchange(ref _scope, 0);
+        if (scope != GitChangeScope.None && !Volatile.Read(ref _disposed))
         {
-            _changed();
+            _changed(new GitChangeModel(scope, Volatile.Read(ref _lastEvent)));
         }
     }
 
-    private bool IsRelevant(string path)
+    private GitChangeScope ScopeOf(string path)
     {
         var gitDirectory = _gitDirectories.FirstOrDefault(directory => IsWithin(path, directory));
         if (gitDirectory is null)
         {
-            return true;
+            return GitChangeScope.WorkingTree;
         }
 
         var relative = Path.GetRelativePath(gitDirectory, path);
         var parts = relative.Split(Path.DirectorySeparatorChar);
         if (relative.EndsWith(".lock", StringComparison.OrdinalIgnoreCase))
         {
-            return false;
+            return GitChangeScope.None;
         }
 
-        return string.Equals(parts[0], WorktreesEntry, StringComparison.OrdinalIgnoreCase)
+        var relevant = string.Equals(parts[0], WorktreesEntry, StringComparison.OrdinalIgnoreCase)
             ? parts.Length <= 2 || WorktreeEntries.Contains(parts[2])
             : GitEntries.Contains(parts[0]);
+        if (!relevant)
+        {
+            return GitChangeScope.None;
+        }
+
+        return string.Equals(parts[0], IndexEntry, StringComparison.OrdinalIgnoreCase) ? GitChangeScope.WorkingTree : GitChangeScope.Repository;
     }
 
     private static bool IsWithin(string path, string directory) =>

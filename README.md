@@ -27,11 +27,13 @@
 - **Explorateur de fichiers** : parcourir le dossier du terminal actif dans un panneau à droite, avec l’état Git de chaque fichier (modifié, ajouté, non suivi…) et son diff à un clic droit, un bouton « Tout replier », et lire un fichier Markdown ou texte, voir une image ou une page HTML, dans un aperçu rechargé à chaque modification, rendu ou texte source pour le Markdown et le HTML, et modifier un fichier texte (Markdown, HTML, JSON, texte…) directement dans cet aperçu ; « Ouvrir un fichier du projet… » dans la palette retrouve un fichier du dépôt par son nom ou son chemin, les fichiers modifiés en tête, pour l’ouvrir dans l’éditeur ou dans l’aperçu, l’afficher dans l’arbre ou insérer son chemin dans le terminal.
 - **Notes par workspace** : garder des notes en texte brut (tâches, ports, commandes) dans la vue « Notes » du panneau de droite, enregistrées avec la session ; Ctrl + Entrée colle la ligne du curseur dans le terminal actif et Ctrl + Maj + Entrée l’exécute ; une icône signale les workspaces qui en ont.
 - **Journal des messages** : un clic sur la barre de statut, ou Ctrl + Maj + L, déplie l’historique horodaté de ses messages, conservé d’une session à l’autre.
-- **Branche visible** : l’en-tête de chaque terminal affiche la branche Git de son dossier, mise à jour après chaque commande ; un clic dessus ouvre la vue Git.
+- **Branche visible** : l’en-tête de chaque terminal affiche la branche Git de son dossier, mise à jour après chaque commande, avec la pastille de sa MR/PR ouverte ; un clic copie la branche, Ctrl + clic ouvre la vue Git.
 - **Vue Git** : graphe de l’historique, branches et tags, Stage et commit, Push et Pull, Merge, Rebase, Cherry-pick, Revert, Stash, résolution des conflits et bouton « Annuler », sans taper de commande ; le diff d’un fichier se copie en un clic, prêt pour `git apply`, et le chemin relatif d’un fichier modifié depuis son menu, qui l’affiche aussi dans l’arbre des fichiers ; le brouillon du message de commit est gardé par dépôt ; fetch automatique à l’ouverture, désactivable dans les Paramètres.
-- **Worktrees** : lister, ouvrir, créer et supprimer des worktrees Git comme avec `wtr` et `rmwt` (ports de développement libres, `pnpm install` dans le terminal du nouveau workspace, base PostgreSQL ou SQL Server répliquée), depuis la vue Git, la palette, Leader puis N ou l’icône d’arbre du panneau des workspaces ; quand un projet contient plusieurs dépôts Git, choisir celui à utiliser, et mémoriser par projet le dépôt par défaut et le dossier des worktrees.
-- **Suivi de Claude Code** : repérer d’un coup d’œil le workspace et l’onglet où Claude Code travaille, attend une réponse ou a terminé ; une page HTML que Claude Code ouvre pour relecture (`start "" page.html`) s’affiche dans l’aperçu, à côté de son terminal, au lieu du navigateur. Ce suivi s’active par le bouton « Installer les hooks » de Paramètres → Agents, à cliquer de nouveau quand une mise à jour les annonce « non installés ».
-- **Pilotage par Claude Code** : Claude Code, lancé dans un pane, lit lui-même la sortie des terminaux, retrouve les commandes en échec et attend qu’un serveur soit prêt, sans copier-coller de logs ; il ouvre aussi workspaces, onglets, splits et worktrees, et lance ou interrompt des commandes. Agir sur un terminal qu’il n’a pas créé, ou en fermer un, demande votre accord. Ce serveur MCP local s’active par le bouton « Activer » de Paramètres → Serveur MCP, avec effet aux prochaines sessions `claude`.
+- **Pull requests et merge requests** : la vue Git liste les PR (GitHub) ou les MR (GitLab) du projet, filtrables par état, label, assigné et texte, et permet d’en créer ou d’en modifier une (reviewers, assigné, labels, brouillon) sans quitter Tily, par les CLI `gh` et `glab` déjà connectées.
+- **Worktrees** : lister, ouvrir, créer et supprimer des worktrees Git comme avec `wtr` et `rmwt` (ports de développement libres, `pnpm install` dans le terminal du nouveau workspace, Claude Code lancé dans un pane au-dessus de l’installation, sauf si on décoche l’option, base PostgreSQL ou SQL Server répliquée), depuis la vue Git, la palette, Leader puis N ou l’icône d’arbre du panneau des workspaces ; quand un projet contient plusieurs dépôts Git, choisir celui à utiliser, et mémoriser par projet le dépôt par défaut et le dossier des worktrees.
+- **Suivi de Claude Code** : repérer d’un coup d’œil le workspace et l’onglet où Claude Code travaille, attend une réponse ou a terminé ; une page HTML que Claude Code ouvre pour relecture (`start "" page.html`) s’affiche dans l’aperçu, à côté de son terminal, au lieu du navigateur. Ce suivi s’active par le bouton « Installer » du réglage « Hooks Claude Code » (Paramètres, section « Agents et MCP »), à cliquer de nouveau après chaque mise à jour de Tily.
+- **Notifications** : quand Claude Code attend une réponse, une carte discrète dans Tily et une notification Windows, avec le son de votre choix, disent où ; un clic rejoint le bon terminal. La fin d’un agent peut aussi être notifiée, avec son propre son.
+- **Pilotage par Claude Code** : Claude Code, lancé dans un pane, lit lui-même la sortie des terminaux, retrouve les commandes en échec et attend qu’un serveur soit prêt, sans copier-coller de logs ; il ouvre aussi workspaces, onglets, splits et worktrees, et lance ou interrompt des commandes. Agir sur un terminal qu’il n’a pas créé, ou en fermer un, demande votre accord. Ce serveur MCP local s’active par le bouton « Activer » du réglage « Serveur MCP » (Paramètres, section « Agents et MCP »), avec effet aux prochaines sessions `claude`.
 - **Navigateur intégré** : afficher l’application en cours de développement dans un pane, à côté de ses terminaux (Leader puis U, la palette ou clic droit sur « + »), avec Précédent, Recharger, largeur mobile ou desktop, DevTools et un compteur d’erreurs ; la connexion aux sites (Azure AD compris) est gardée d’un lancement à l’autre. Avec le serveur MCP de Tily activé, Claude Code y ouvre lui-même une page, lit sa console et ses requêtes en échec et en prend des captures desktop ou mobile.
 - **Commandes longues** : quand une commande de plus de 10 secondes se termine dans un onglet que vous ne regardez pas (build, tests, installation), l’onglet porte une coche ou une croix rouge en cas d’échec, et la barre de statut l’annonce en citant la commande ; si Tily n’a pas le focus, il clignote dans la barre des tâches.
 - **Sortie des commandes** : copier la sortie de la dernière commande (menu du terminal ou palette), pour la coller dans un agent, et passer d’une commande à l’autre dans l’historique par Alt + PgUp / PgDn (Windows PowerShell et PowerShell 7).
@@ -48,7 +50,7 @@
 
 ### Vue Git
 
-![Vue Git avec les branches, le graphe de l’historique et les modifications en cours](docs/images/git.png)
+![Vue Git avec les branches, le graphe de l’historique et le détail d’un commit](docs/images/git.png)
 
 ### Explorateur de fichiers
 
@@ -61,7 +63,11 @@
 
 Aucun droit administrateur n’est nécessaire. Tily vérifie ensuite lui-même les nouvelles versions (au démarrage puis toutes les 6 heures, désactivable dans Paramètres) : le bouton « Mise à jour » de l’en-tête installe la nouvelle version et redémarre Tily, workspaces et préférences conservés. Lancer à la main le nouvel installeur, Tily fermé, reste possible.
 
+**Tily Beta**, aux couleurs bleues, suit les pré-releases et s’installe à côté de Tily, avec ses propres réglages : télécharger `TilyBeta-x.y.z-beta.n-setup.exe` depuis une [pré-release](https://github.com/MaximeRazafinjato/tily/releases).
+
 ## Raccourcis clavier
+
+Valeurs par défaut : la touche Leader, son délai et chaque raccourci se changent dans Paramètres, section « Raccourcis clavier ».
 
 | Leader (Ctrl + Espace, puis…) | Raccourci direct | Action |
 | --- | --- | --- |
@@ -71,6 +77,7 @@ Aucun droit administrateur n’est nécessaire. Tily vérifie ensuite lui-même 
 | H | Ctrl + Maj + H | Split haut/bas |
 | F | — | Sélecteur de projets |
 | N | — | Créer un worktree |
+| U | — | Navigateur côte à côte |
 | W | Ctrl + Maj + W | Nouveau workspace |
 | X | Ctrl + Maj + X | Fermer le terminal actif |
 | M | Ctrl + Maj + M | Agrandir / réduire le terminal actif (ou double-clic sur son en-tête) |
@@ -86,6 +93,7 @@ Aucun droit administrateur n’est nécessaire. Tily vérifie ensuite lui-même 
 | A | Ctrl + Maj + A | Rejoindre l’agent Claude Code en attente depuis le plus longtemps |
 | , | — | Paramètres |
 | Flèche | Alt + flèche | Passer d’un terminal à l’autre |
+| — | Ctrl + Maj + F | Rechercher dans le terminal actif (Entrée / Maj + Entrée : occurrence précédente / suivante, Alt + Entrée : dans tous les terminaux) |
 | — | Alt + PgUp / PgDn | Remonter ou descendre d’une commande dans l’historique du terminal (PowerShell) |
 | Pg préc. / Pg suiv. | Ctrl + Maj + Pg préc. / Pg suiv. | Déplacer l’onglet vers la gauche / la droite |
 | 1 … 9 | — | Aller à l’onglet 1 à 8 du workspace, 9 pour le dernier |

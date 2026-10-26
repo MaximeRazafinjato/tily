@@ -1,5 +1,7 @@
 using Tily.Core.Agents;
 using Tily.Core.Native;
+using Tily.Core.Session;
+using Tily.Core.Updates;
 using Microsoft.UI.Dispatching;
 using Microsoft.Win32;
 using Windows.Data.Xml.Dom;
@@ -9,8 +11,8 @@ namespace Tily.Host.Bridge;
 
 public sealed class AttentionNotifier : IDisposable
 {
-    private const string ApplicationUserModelId = "MaximeRazafinjato.Tily";
-    private const string RegistrationKey = @"Software\Classes\AppUserModelId\" + ApplicationUserModelId;
+    private static readonly string ApplicationUserModelId = ReleaseChannels.ApplicationUserModelId(ReleaseChannels.Current);
+    private static readonly string RegistrationKey = @"Software\Classes\AppUserModelId\" + ApplicationUserModelId;
     private const string ToastGroup = "agents";
 
     private readonly DispatcherQueue _dispatcher;
@@ -37,7 +39,7 @@ public sealed class AttentionNotifier : IDisposable
         {
             using (var key = Registry.CurrentUser.CreateSubKey(RegistrationKey))
             {
-                key.SetValue("DisplayName", "Tily");
+                key.SetValue("DisplayName", WindowTitle.ApplicationName);
                 key.SetValue("IconUri", Path.Combine(AppContext.BaseDirectory, "Assets", "Tily.png"));
             }
 

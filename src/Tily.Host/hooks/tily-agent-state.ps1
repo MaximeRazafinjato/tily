@@ -127,9 +127,14 @@ if ($eventName -eq 'PreToolUse' -and $hook.tool_name -eq 'Bash') {
     exit 0
 }
 
+function Get-Question($toolInput) {
+    $question = [string]@($toolInput.questions)[0].question
+    if ([string]::IsNullOrWhiteSpace($question)) { return 'Question posée.' }
+    return $question
+}
+
 function Get-ToolDetail($toolInput) {
     if ($null -eq $toolInput) { return $null }
-    if ($toolInput.questions) { return [string]@($toolInput.questions)[0].question }
     foreach ($name in 'command', 'file_path', 'notebook_path', 'url', 'query', 'pattern', 'description') {
         $property = $toolInput.PSObject.Properties[$name]
         if ($property -and -not [string]::IsNullOrWhiteSpace([string]$property.Value)) { return [string]$property.Value }
@@ -158,11 +163,15 @@ $detail = $null
 switch ($eventName) {
     'SessionStart' { $state = 'unknown' }
     'UserPromptSubmit' { $state = 'working' }
-    'PreToolUse' { if ($hook.tool_name -eq 'AskUserQuestion') { $state = 'waiting'; $message = 'Question posée.'; $detail = Get-ToolDetail $hook.tool_input } }
+    'PreToolUse' { if ($hook.tool_name -eq 'AskUserQuestion') { $state = 'waiting'; $message = Get-Question $hook.tool_input } }
     'PostToolUse' { $state = 'working' }
     'Stop' { $state = 'done'; $detail = Get-LastAssistantText $hook }
     'StopFailure' { $state = 'error'; $message = 'Erreur signalée par Claude Code.' }
-    'PermissionRequest' { $state = 'waiting'; $message = "Autorisation demandée : $($hook.tool_name)"; $detail = Get-ToolDetail $hook.tool_input }
+    'PermissionRequest' {
+        $state = 'waiting'
+        if ($hook.tool_name -eq 'AskUserQuestion') { $message = Get-Question $hook.tool_input }
+        else { $message = "Autorisation : $($hook.tool_name)"; $detail = Get-ToolDetail $hook.tool_input }
+    }
     'Notification' {
         if ($hook.notification_type -in $waitingNotifications) {
             if (Test-Path -LiteralPath $file) {

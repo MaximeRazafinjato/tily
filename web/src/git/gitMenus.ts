@@ -2,6 +2,7 @@ import { GitRefKind, GitResetMode, type GitBranch, type GitCommit, type GitRefLa
 import { WorktreeBranchMode, type Worktree } from '../bridge/worktreeMessages'
 import type { ActionMenuItem } from '../components/ActionMenu'
 import { revealInExplorer } from '../explorer/fileExplorerActions'
+import { createMergeRequestLabel, openMergeRequestForm } from '../forge/mergeRequestFormActions'
 import { openWorktree, openWorktreeDialog, requestWorktreeRemoval } from '../worktree/worktreeActions'
 import type { GitGraphLayout } from '../model/session'
 import type { GitRefHandle } from '../store/gitStore'
@@ -20,17 +21,44 @@ import {
   promptNewTag,
   promptRenameBranch,
   promptStash,
+  pushBranchUpTo,
   pushTag,
   rebaseCurrentOnto,
   resetCurrentTo,
   switchToBranch,
   switchToRemote,
 } from './gitRefActions'
-import { copyToClipboard, revealCommit, stageChanges } from './gitRequests'
+import { copyToClipboard, pushBranch, revealCommit, stageChanges } from './gitRequests'
 
 const copyName = (name: string): ActionMenuItem => ({ id: 'copy', label: 'Copier le nom', run: () => copyToClipboard(name, `Nom copié : ${name}`) })
 
+const upToDate = (branch: GitBranch): boolean => Boolean(branch.upstream) && !branch.gone && branch.ahead === 0
+
+const pushOf = (branch: GitBranch, state: GitState, label: string): ActionMenuItem => ({
+  id: `push-${branch.name}`,
+  label,
+  disabled: state.remotes.length === 0 || upToDate(branch),
+  run: () => (branch.current ? pushBranch() : pushBranchUpTo(branch.name)),
+})
+
+const commitPushes = (commit: GitCommit, state: GitState): ActionMenuItem[] => {
+  const tips = commit.refs.flatMap((label) => state.branches.filter((branch) => label.kind === GitRefKind.Branch && branch.name === label.name))
+  const current = state.head.branch
+  const upTo: ActionMenuItem[] =
+    current && commit.pushable && commit.sha !== state.head.sha
+      ? [{ id: 'push-up-to', label: `Push de « ${current} » jusqu’à ce commit`, run: () => pushBranchUpTo(current, commit.sha) }]
+      : []
+  return [...tips.map((branch) => pushOf(branch, state, `Push de « ${branch.name} »`)), ...upTo]
+}
+
 const WORKTREE_FROM_BRANCH = 'Créer un worktree depuis cette branche…'
+const ORIGIN = 'origin'
+
+const mergeRequestFrom = (branch: string, state: GitState): ActionMenuItem => ({
+  id: 'merge-request',
+  label: `${createMergeRequestLabel(state.root, currentName(state.head))} depuis cette branche…`,
+  run: () => openMergeRequestForm(state.root, branch),
+})
 
 export const worktreeOfBranch = (name: string, state: GitState): Worktree | undefined => state.worktrees.find((worktree) => worktree.branch === name)
 
@@ -53,12 +81,14 @@ export const branchMenu = (branch: GitBranch, state: GitState): ActionMenuItem[]
   const blocked = Boolean(state.operation)
   return [
     { id: 'switch', label: 'Checkout de cette branche', disabled: branch.current || blocked, run: () => switchToBranch(branch) },
+    pushOf(branch, state, 'Push de la branche'),
     { id: 'merge', label: `Merge dans « ${current} »`, disabled: branch.current || blocked, run: () => mergeIntoCurrent(branch.name) },
     { id: 'rebase', label: `Rebase de « ${current} » sur cette branche`, disabled: branch.current || blocked || state.head.detached, run: () => rebaseCurrentOnto(branch.name) },
     { id: 'show', label: 'Aller au commit', run: () => revealCommit(branch.sha) },
     { id: 'branch', label: 'Créer une branche ici…', run: () => promptNewBranch(branch.name, branch.name) },
     { id: 'tag', label: 'Créer un tag ici…', run: () => promptNewTag(branch.sha, `« ${branch.name} »`) },
     worktreeFromBranch(branch, state),
+    mergeRequestFrom(branch.name, state),
     { id: 'rename', label: 'Renommer…', run: () => promptRenameBranch(branch) },
     { id: 'delete', label: branch.merged ? 'Supprimer' : 'Supprimer (sans merge)…', disabled: branch.current, run: () => deleteBranch(branch) },
     copyName(branch.name),
@@ -75,6 +105,7 @@ export const remoteBranchMenu = (branch: GitRemoteBranch, state: GitState): Acti
     { id: 'show', label: 'Aller au commit', run: () => revealCommit(branch.sha) },
     { id: 'branch', label: 'Créer une branche ici…', run: () => promptNewBranch(branch.name, branch.name) },
     { id: 'worktree', label: WORKTREE_FROM_BRANCH, run: () => openWorktreeDialog(state.root, { mode: WorktreeBranchMode.Remote, branch: branch.name }) },
+    ...(branch.remote === ORIGIN ? [mergeRequestFrom(branch.branch, state)] : []),
     { id: 'delete', label: 'Supprimer la branche distante…', run: () => deleteRemoteBranch(branch) },
     copyName(branch.name),
   ]
@@ -102,6 +133,7 @@ export const commitMenu = (commit: GitCommit, state: GitState): ActionMenuItem[]
   const short = shortSha(commit.sha)
   return [
     { id: 'checkout', label: 'Checkout de ce commit (HEAD détachée)', disabled: isHead || blocked, run: () => checkoutCommit(commit) },
+    ...commitPushes(commit, state),
     { id: 'branch', label: 'Créer une branche ici…', run: () => promptNewBranch(commit.sha, short) },
     { id: 'tag', label: 'Créer un tag ici…', run: () => promptNewTag(commit.sha, short) },
     { id: 'cherry-pick', label: `Cherry-pick sur « ${current} »`, disabled: isHead || blocked, run: () => cherryPickCommit(commit) },

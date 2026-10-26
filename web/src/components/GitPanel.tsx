@@ -4,6 +4,7 @@ import { focusActivePane } from '../explorer/fileExplorerActions'
 import { focusGitGraph } from '../git/gitFocus'
 import { plural } from '../git/gitLabels'
 import { followRepository, initializeRepository, refreshRepository } from '../git/gitRequests'
+import { Command, isCommandShortcut } from '../keyboard/shortcuts'
 import { RightPanelView } from '../model/session'
 import { togglePanelView } from '../panel/rightPanel'
 import { useGitStore } from '../store/gitStore'
@@ -11,8 +12,9 @@ import { GitBanners } from './GitBanners'
 import { GitChangesView } from './GitChangesView'
 import { GitCommitDetail } from './GitCommitDetail'
 import { GitHeader } from './GitHeader'
+import { GitMergeRequests } from './GitMergeRequests'
 import { GitPromptBar } from './GitPromptBar'
-import { GIT_SECONDARY, SECTION_TITLE } from './rightPanelStyles'
+import { GIT_SECONDARY, SECTION_HEADING } from './rightPanelStyles'
 
 interface GitPanelProps {
   folder: string
@@ -30,10 +32,9 @@ const handleEscape = (): void => {
 }
 
 const handleKeyDown = (event: KeyboardEvent<HTMLElement>) => {
-  const key = event.key.toLowerCase()
-  if (event.ctrlKey && event.shiftKey && key === 'g') {
+  if (isCommandShortcut(event.nativeEvent, Command.ToggleGit)) {
     togglePanelView(RightPanelView.Git, true)
-  } else if (event.ctrlKey && event.shiftKey && key === 'e') {
+  } else if (isCommandShortcut(event.nativeEvent, Command.ToggleExplorer)) {
     togglePanelView(RightPanelView.Files, true)
   } else if (event.key === 'Escape') {
     handleEscape()
@@ -81,20 +82,24 @@ export function GitPanel({ folder }: GitPanelProps) {
       )
     }
     const changeCount = state.stagedTotal + state.unstagedTotal + state.conflicts.length
+    const mergeRequests = <GitMergeRequests root={state.root} branch={state.head.detached ? null : (state.head.branch ?? null)} />
     return (
       <>
         <GitHeader state={state} busy={busy} />
         <GitBanners state={state} busy={busy} />
         {prompt && <GitPromptBar key={`${prompt.kind}\n${prompt.target ?? ''}`} prompt={prompt} />}
         {commit ? (
-          <GitCommitDetail state={state} busy={busy} />
+          <>
+            <GitCommitDetail state={state} busy={busy} />
+            {mergeRequests}
+          </>
         ) : (
           <>
-            <div className="flex h-[30px] shrink-0 items-center gap-[8px] border-y border-tily-line px-[12px]">
-              <span className={SECTION_TITLE}>Modifications</span>
+            <div className="mt-[6px] flex h-[30px] shrink-0 items-center gap-[8px] px-[12px]">
+              <span className={SECTION_HEADING}>Modifications</span>
               <span className="text-[11px] text-tily-muted">{changeCount > 0 ? plural(changeCount, 'fichier', 'fichiers') : 'aucune'}</span>
             </div>
-            <GitChangesView state={state} busy={busy} />
+            <GitChangesView state={state} busy={busy} footer={mergeRequests} />
           </>
         )}
       </>

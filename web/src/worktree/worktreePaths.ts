@@ -1,4 +1,4 @@
-import { allPanes, findWorkspace, folderName, panesOf, type Pane, type Session } from '../model/session'
+import { allPanes, findWorkspace, folderName, paneLocation, panesOf, type Pane, type Session } from '../model/session'
 import { AgentState, type GitContext, type PaneAgent } from '../bridge/messages'
 import type { WorktreeRemovalPane } from '../store/worktreeStore'
 
@@ -9,7 +9,6 @@ export interface WorktreeTarget {
 }
 
 const SEPARATOR = '\\'
-const LABEL_SEPARATOR = ' › '
 const ACTIVE_AGENT_STATES = new Set([AgentState.Working, AgentState.Waiting, AgentState.Unknown])
 
 const normalize = (path: string): string => path.replaceAll('/', SEPARATOR).replace(/\\+$/, '').toLowerCase()
@@ -21,6 +20,11 @@ export const isWithinFolder = (path: string, folder: string): boolean => {
 }
 
 export const sameFolder = (first: string, second: string): boolean => normalize(first) === normalize(second)
+
+export const parentFolder = (path: string): string => {
+  const trimmed = path.replace(/[\\/]+$/, '')
+  return trimmed.slice(0, trimmed.length - folderName(trimmed).length).replace(/[\\/]+$/, '')
+}
 
 export const repositoryLabel = (repository: string, project: string): string => {
   if (sameFolder(repository, project)) {
@@ -40,7 +44,7 @@ export const removalPanes = (session: Session, folder: string, agents: Record<st
         .filter((pane) => isWithinFolder(pane.path, folder))
         .map((pane) => ({
           paneId: pane.id,
-          label: [workspace.name, tab.name, folderName(pane.path)].join(LABEL_SEPARATOR),
+          label: paneLocation(workspace.name, tab.name, pane.path),
           agent: agents[pane.id] !== undefined && ACTIVE_AGENT_STATES.has(agents[pane.id].state),
         })),
     ),

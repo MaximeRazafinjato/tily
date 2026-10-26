@@ -1,5 +1,6 @@
 import type { Session } from '../model/session'
 import type { BrowserHostMessage, BrowserWebMessage } from './browserMessages'
+import type { ForgeHostMessage, ForgeWebMessage } from './forgeMessages'
 import type { GitChangeKind, GitHostMessage, GitSettings, GitWebMessage } from './gitMessages'
 import type { McpHostMessage, McpServerInfo, McpWebMessage } from './mcpMessages'
 import type { PreviewHostMessage, PreviewKind, PreviewWebMessage } from './previewMessages'
@@ -60,6 +61,17 @@ export interface AppearanceSettings {
   fontSize: number
 }
 
+export interface ShortcutBinding {
+  direct: string
+  leader: string
+}
+
+export interface ShortcutSettings {
+  leader: string
+  leaderTimeoutSeconds: number
+  bindings: Record<string, ShortcutBinding>
+}
+
 export interface PersistenceSettings {
   textIntervalSeconds: number
   linesPerPane: number
@@ -99,6 +111,7 @@ export interface Settings {
   git: GitSettings
   updates: UpdateSettings
   appearance: AppearanceSettings
+  shortcuts: ShortcutSettings
 }
 
 interface ShellSetting {
@@ -135,6 +148,7 @@ export interface SettingsSnapshot {
   agents: AgentHooksInfo
   mcp: McpServerInfo
   notifications: NotificationAvailability
+  shortcutDefaults: ShortcutSettings
 }
 
 export interface Project {
@@ -156,6 +170,11 @@ export enum AgentState {
   Unknown = 'unknown',
 }
 
+export enum ReleaseChannel {
+  Stable = 'stable',
+  Beta = 'beta',
+}
+
 export interface PaneAgent {
   paneId: string
   agent: string
@@ -163,12 +182,11 @@ export interface PaneAgent {
   message?: string
   detail?: string
   interrupted?: boolean
-  sessionId?: string
 }
 
 export type HostToWebMessage =
   | { type: 'appearance.changed'; fontSize: number }
-  | { type: 'app.hello'; version: string; session: Session; shells: ShellProfile[]; home: string; text: Record<string, string>; persistence: PersistenceSettings; appearance: AppearanceSettings; statusLog: StatusLogEntry[]; recovery?: string }
+  | { type: 'app.hello'; version: string; name: string; channel: ReleaseChannel; session: Session; shells: ShellProfile[]; home: string; text: Record<string, string>; persistence: PersistenceSettings; appearance: AppearanceSettings; shortcuts: ShortcutSettings; statusLog: StatusLogEntry[]; recovery?: string }
   | { type: 'app.closing'; activity: PaneActivity[] }
   | { type: 'session.saved' }
   | { type: 'session.saveFailed'; message: string }
@@ -196,6 +214,7 @@ export type HostToWebMessage =
   | { type: 'files.searched'; path: string; root: string; files: string[]; changed: string[]; truncated: boolean; error?: string }
   | { type: 'error'; pane?: string; message: string }
   | GitHostMessage
+  | ForgeHostMessage
   | PreviewHostMessage
   | WorktreeHostMessage
   | UpdateHostMessage
@@ -212,7 +231,7 @@ export type WebToHostMessage =
   | { type: 'appearance.fontSize'; fontSize: number }
   | { type: 'settings.export' }
   | { type: 'settings.import' }
-  | { type: 'attention.raise'; pane: string; kind: AttentionKind; title: string; body: string; location: string }
+  | { type: 'attention.raise'; pane: string; kind: AttentionKind; title: string; body: string }
   | { type: 'attention.test'; pane: string; kind: AttentionKind; notifications: NotificationSettings }
   | { type: 'attention.flash' }
   | { type: 'agents.installHooks' }
@@ -245,6 +264,7 @@ export type WebToHostMessage =
   | { type: 'window.closeCancel' }
   | { type: 'window.title'; title: string }
   | GitWebMessage
+  | ForgeWebMessage
   | PreviewWebMessage
   | WorktreeWebMessage
   | UpdateWebMessage

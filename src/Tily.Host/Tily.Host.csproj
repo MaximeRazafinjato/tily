@@ -4,16 +4,18 @@
     <TargetFramework>net10.0-windows10.0.26100.0</TargetFramework>
     <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
     <RootNamespace>Tily.Host</RootNamespace>
+    <IconName>Tily</IconName>
+    <IconName Condition="'$(Channel)' == 'beta'">TilyBeta</IconName>
     <AssemblyName>Tily</AssemblyName>
     <ApplicationManifest>app.manifest</ApplicationManifest>
-    <ApplicationIcon>Assets\Tily.ico</ApplicationIcon>
+    <ApplicationIcon>Assets\$(IconName).ico</ApplicationIcon>
     <UseWinUI>true</UseWinUI>
     <WindowsPackageType>None</WindowsPackageType>
     <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
     <SelfContained>true</SelfContained>
     <PublishTrimmed>false</PublishTrimmed>
     <EnableMsixTooling>true</EnableMsixTooling>
-    <Version>2.2.0</Version>
+    <Version>2.3.0</Version>
     <WebRoot>$(MSBuildProjectDirectory)\..\..\web</WebRoot>
     <WebDist>$(WebRoot)\dist</WebDist>
   </PropertyGroup>
@@ -22,8 +24,8 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="hooks\tily-agent-state.ps1" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="Assets\Tily.ico" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="Assets\Tily.png" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="Assets\$(IconName).ico" Link="Assets\Tily.ico" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="Assets\$(IconName).png" Link="Assets\Tily.png" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Tily.Core\Tily.Core.csproj" />

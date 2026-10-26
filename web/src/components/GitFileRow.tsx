@@ -59,7 +59,7 @@ export const GitFileRow = memo(function GitFileRow({ row, selected, focusable, h
       onContextMenu={handleContextMenu}
     >
       <span className="flex min-w-0 flex-1 items-baseline gap-[6px]">
-        <span className={`w-[12px] shrink-0 text-center font-mono text-[11px] font-semibold ${letterClass}`} data-tip={statusTip(row)}>
+        <span className={`w-[12px] shrink-0 text-center text-[11px] font-semibold ${letterClass}`} data-tip={statusTip(row)}>
           {letter}
         </span>
         <span className="min-w-0 shrink truncate">{fileName(path)}</span>

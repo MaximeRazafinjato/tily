@@ -114,7 +114,7 @@ const send = async (target: McpPaneTarget, command: string): Promise<McpRunResul
 export const interruptPane = async (values: McpArguments, caller: string | undefined): Promise<McpInterruptResult> => {
   const paneId = textArgument(values, 'pane')
   const running = commandTracking(requireStartedPane(paneId).handle.terminal).running
-  const approved = await requirePermission(requireStartedPane(paneId), caller, 'Envoyer Ctrl + C', running?.command ? `Commande en cours : ${running.command}` : undefined)
+  const approved = await requirePermission(requireStartedPane(paneId), caller, 'Envoyer Ctrl+C', running?.command ? `Commande en cours : ${running.command}` : undefined)
   const result = await interrupt(requireStartedPane(paneId))
   return approved ? { ...result, approved } : result
 }
@@ -124,10 +124,10 @@ const interrupt = async (target: McpPaneTarget): Promise<McpInterruptResult> => 
   const before = commandTracking(terminal)
   terminal.input(CTRL_C, false)
   if (!before.integrated) {
-    return { pane: target.pane.id, message: 'Ctrl + C envoyé. Ce shell ne signale pas ses commandes : vérifiez avec tily_read_pane.' }
+    return { pane: target.pane.id, message: 'Ctrl+C envoyé. Ce shell ne signale pas ses commandes : vérifiez avec tily_read_pane.' }
   }
   if (!before.running) {
-    return { pane: target.pane.id, stopped: true, message: 'Ctrl + C envoyé ; aucune commande ne tournait.' }
+    return { pane: target.pane.id, stopped: true, message: 'Ctrl+C envoyé ; aucune commande ne tournait.' }
   }
   const stopped = await pollUntil(() => commandTracking(terminal).running === null, STOP_TIMEOUT_MS)
   return {
@@ -135,6 +135,6 @@ const interrupt = async (target: McpPaneTarget): Promise<McpInterruptResult> => 
     stopped,
     message: stopped
       ? `La commande « ${before.running.command} » s’est arrêtée.`
-      : `Ctrl + C envoyé, mais la commande « ${before.running.command} » tourne toujours : elle ignore peut-être Ctrl + C.`,
+      : `Ctrl+C envoyé, mais la commande « ${before.running.command} » tourne toujours : elle ignore peut-être Ctrl+C.`,
   }
 }

@@ -5,7 +5,7 @@ import { PickTarget, type AttentionKind, type NotificationSettings, type Setting
 import { activePane, activeTab, activeWorkspace, DEFAULT_SHELL, EXPLORER_DEFAULT, EXPLORER_MAX, EXPLORER_MIN, findWorkspace, RightPanelView, SIDEBAR_DEFAULT, SIDEBAR_MAX, SIDEBAR_MIN, type Session, type SplitAxis, type SplitPath, type Workspace } from '../model/session'
 import { toggleFavoriteCommand, type PaletteItem } from '../palette/paletteItems'
 import { waitingPanes } from '../agents/agentSummary'
-import { Command, handleDocumentShortcut, handleLeaderKeyCapture, runCommand } from '../keyboard/shortcuts'
+import { Command, handleDocumentShortcut, handleLeaderKeyCapture, isPaletteShortcut, runCommand } from '../keyboard/shortcuts'
 import { agentKey, useAgentStore } from '../store/agentStore'
 import { useHostStore } from '../store/hostStore'
 import { useSessionStore } from '../store/sessionStore'
@@ -14,14 +14,16 @@ import { cancelClose, confirmClose } from '../terminal/closeGuard'
 import { confirmDelete, focusFileTree } from '../explorer/fileExplorerActions'
 import { useExplorerStore } from '../store/explorerStore'
 import { focusGitPanel, takeFocusFromCoveredTerminals } from '../git/gitFocus'
-import { openWorkspaceNotes, toggleRightPanel } from '../panel/rightPanel'
+import { openWorkspaceNotes, togglePanelView, toggleRightPanel } from '../panel/rightPanel'
 import { useGitStore } from '../store/gitStore'
 import { usePreviewStore } from '../store/previewStore'
 import { useMcpConsentStore } from '../store/mcpConsentStore'
 import { usePasteStore } from '../store/pasteStore'
+import { mergeRequestFormOpen } from '../store/mergeRequestFormStore'
 import { worktreeModalOpen } from '../store/worktreeStore'
 import { filePickerOpen } from '../store/filePickerStore'
 import { commitPickerOpen } from '../store/commitPickerStore'
+import { globalSearchOpen } from '../store/terminalSearchStore'
 import { changePaneShell, dismissPaneState, restartPane, restartPaneIn } from '../terminal/paneLifecycle'
 import { closeOtherTabsKeepingText, closePaneKeepingText, closeTabKeepingText, closeWorkspaceKeepingText, duplicateTabKeepingLayout, restoreClosedTab } from '../terminal/tabLifecycle'
 import { focusPane, joinPane } from '../terminal/terminalActions'
@@ -29,6 +31,8 @@ import { togglePaneZoom, useEndZoomWhenPaneChanges, zoomedPaneOf } from '../term
 import { AttentionToasts } from './AttentionToasts'
 import { CloseConfirmDialog } from './CloseConfirmDialog'
 import { McpConsentDialog } from './McpConsentDialog'
+import { MergeRequestContextMenu } from './MergeRequestContextMenu'
+import { MergeRequestDialog } from './MergeRequestDialog'
 import { PasteConfirmDialog } from './PasteConfirmDialog'
 import { CommandPalette } from './CommandPalette'
 import { DeleteConfirmDialog } from './DeleteConfirmDialog'
@@ -44,6 +48,7 @@ import { HeaderWorkspaces } from './HeaderWorkspaces'
 import { ProjectPickers } from './ProjectPickers'
 import { FilePicker } from './FilePicker'
 import { CommitPicker } from './CommitPicker'
+import { TerminalSearchDialog } from './TerminalSearchDialog'
 import { RightPanel } from './RightPanel'
 import { SettingsDialog } from './SettingsDialog'
 import { SidebarResizer } from './SidebarResizer'
@@ -147,6 +152,8 @@ const handleNewTabIn = (workspaceId: string): void => {
   newTab(DEFAULT_SHELL)
 }
 
+const togglePanelFromTabBar = (view: RightPanelView): void => togglePanelView(view, true)
+
 const handleOpenTerminalAt = (path: string): void => {
   const { session, newTabAt } = useSessionStore.getState()
   const workspace = session ? activeWorkspace(session) : undefined
@@ -174,7 +181,7 @@ const handleCancelGit = (): void => {
 
 const confirmationOpen = (): boolean => {
   const { settingsOpen, closeConfirmation } = useUiStore.getState()
-  return settingsOpen || closeConfirmation !== null || useExplorerStore.getState().deleteRequest !== null || useGitStore.getState().confirmation !== null || usePasteStore.getState().request !== null || useMcpConsentStore.getState().queue.length > 0 || worktreeModalOpen() || filePickerOpen() || commitPickerOpen() || usePreviewStore.getState().pendingAction !== null
+  return settingsOpen || closeConfirmation !== null || useExplorerStore.getState().deleteRequest !== null || useGitStore.getState().confirmation !== null || usePasteStore.getState().request !== null || useMcpConsentStore.getState().queue.length > 0 || worktreeModalOpen() || mergeRequestFormOpen() || filePickerOpen() || commitPickerOpen() || globalSearchOpen() || usePreviewStore.getState().pendingAction !== null
 }
 
 const modalOpen = (): boolean => {
@@ -231,7 +238,7 @@ export function AppShell({ session }: AppShellProps) {
       closeConfirmation: state.closeConfirmation,
     })),
   )
-  const { startRenamingWorkspace, startRenamingTab, openPalette, closePalette, openSettings, closeSettings } = useUiStore.getState()
+  const { startRenamingTab, openPalette, closePalette, openSettings, closeSettings } = useUiStore.getState()
   const deleteRequest = useExplorerStore((state) => state.deleteRequest)
   const gitConfirmation = useGitStore((state) => state.confirmation)
   const unsavedPreview = usePreviewStore((state) => state.pendingAction !== null)
@@ -254,7 +261,7 @@ export function AppShell({ session }: AppShellProps) {
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (!event.defaultPrevented && event.ctrlKey && !event.altKey && event.key.toLowerCase() === 'p' && !confirmationOpen()) {
+      if (!event.defaultPrevented && isPaletteShortcut(event) && !confirmationOpen()) {
         event.preventDefault()
         openPalette()
       }
@@ -313,11 +320,6 @@ export function AppShell({ session }: AppShellProps) {
     }
     toggleSidebar()
   }
-  const handleStartRename = () => {
-    if (workspace) {
-      startRenamingWorkspace(workspace.id, RenameOrigin.Header)
-    }
-  }
 
   const renderMain = (current: Workspace) => {
     const currentTab = activeTab(current)
@@ -329,8 +331,8 @@ export function AppShell({ session }: AppShellProps) {
           workspace={current}
           shells={availableShells}
           renamingTabId={tabRenameOrigin === RenameOrigin.TabBar ? renamingTabId : null}
-          panelOpen={Boolean(currentTab.explorer)}
-          onTogglePanel={toggleRightPanel}
+          panelView={currentTab.explorer ? (currentTab.panel ?? RightPanelView.Files) : null}
+          onTogglePanel={togglePanelFromTabBar}
           onSelect={selectTab}
           onStartRename={startRenamingTab}
           onCommitRename={handleCommitTabRename}
@@ -367,7 +369,6 @@ export function AppShell({ session }: AppShellProps) {
         }
         onToggleSidebar={handleToggleSidebar}
         onOpenSettings={handleOpenSettings}
-        onStartRename={handleStartRename}
         onCommitRename={handleCommitRename}
         onCancelRename={finishRename}
       />
@@ -396,11 +397,14 @@ export function AppShell({ session }: AppShellProps) {
       <AttentionToasts waiting={waiting} onJoin={handleJoinPane} onDismiss={handleDismissAttention} />
       <FilePicker />
       <CommitPicker />
+      <TerminalSearchDialog />
       {projectPickerOpen && <ProjectPickers />}
       {settingsOpen && <SettingsDialog snapshot={settingsSnapshot} pickedPath={pickedPath} imported={importedPreferences} onClose={handleCloseSettings} onSave={handleSaveSettings} onPick={handlePickPath} onExport={handleExportPreferences} onImport={handleImportPreferences} onInstallHooks={handleInstallHooks} onRemoveHooks={handleRemoveHooks} onTestNotification={handleTestNotification} />}
       {paletteOpen && <CommandPalette session={session} shells={availableShells} onClose={handleClosePalette} onRun={handleRunPaletteItem} onToggleFavorite={toggleFavoriteCommand} />}
       {deleteRequest && <DeleteConfirmDialog request={deleteRequest} onConfirm={confirmDelete} onCancel={handleCancelDelete} />}
       <WorktreeDialogs />
+      <MergeRequestDialog />
+      <MergeRequestContextMenu />
       {gitConfirmation && <GitConfirmDialog confirmation={gitConfirmation} onConfirm={handleConfirmGit} onCancel={handleCancelGit} />}
       {closeConfirmation && <CloseConfirmDialog confirmation={closeConfirmation} onConfirm={confirmClose} onCancel={handleCancelClose} />}
       <PasteConfirmDialog />

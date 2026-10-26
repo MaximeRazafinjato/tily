@@ -112,6 +112,8 @@ export const deleteTag = (tag: GitTag): void => withRoot((path) => ({ type: 'git
 
 export const pushTag = (tag: GitTag): void => withRoot((path) => ({ type: 'git.tagPush', path, name: tag.name }))
 
+export const pushBranchUpTo = (branch: string, commit?: string): void => withRoot((path) => ({ type: 'git.pushBranch', path, branch, commit }))
+
 export const applyStash = (stash: GitStash, pop: boolean): void => withRoot((path) => ({ type: 'git.stashApply', path, index: stash.index, commit: stash.sha, pop }))
 
 export const dropStash = (stash: GitStash): void =>

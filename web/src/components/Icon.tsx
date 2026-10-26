@@ -20,11 +20,20 @@ const SHAPES: Record<IconName, ReactNode> = {
     </>
   ),
   [IconName.Browser]: <path d="M5 2.2H2.6a.8.8 0 0 0-.8.8v6.4a.8.8 0 0 0 .8.8H9a.8.8 0 0 0 .8-.8V7M7.2 1.8h3v3M10.2 1.8 5.6 6.4" />,
+  [IconName.Menu]: <path d="M2 3h8M2 6h8M2 9h8" />,
+  [IconName.MergeRequest]: (
+    <>
+      <circle cx="3" cy="2.5" r="1.2" />
+      <circle cx="3" cy="9.5" r="1.2" />
+      <circle cx="9" cy="9.5" r="1.2" />
+      <path d="M3 3.7v4.6M9 8.3V5a1.5 1.5 0 0 0-1.5-1.5H5.6M7 2.1 5.6 3.5 7 4.9" />
+    </>
+  ),
   [IconName.Check]: <path d="M2.5 6.3 5 8.8l4.5-5.3" />,
   [IconName.Search]: (
     <>
-      <circle cx="5.2" cy="5.2" r="3.2" />
-      <path d="M7.6 7.6 10.5 10.5" />
+      <circle cx="4.95" cy="4.95" r="3.2" />
+      <path d="M7.35 7.35 10.25 10.25" />
     </>
   ),
   [IconName.Chevron]: <path d="M4.5 2.5 8 6l-3.5 3.5" />,
@@ -116,13 +125,14 @@ const SHAPES: Record<IconName, ReactNode> = {
       <path d="M4.3 4h3.4M4.3 6h3.4M4.3 8h2" />
     </>
   ),
+  [IconName.Play]: <path d="M3.8 2.3v7.4L9.6 6Z" />,
   [IconName.Plus]: <path d="M6 2.2v7.6M2.2 6h7.6" />,
   [IconName.Project]: (
     <>
-      <path d="M1.5 9V3.3a.8.8 0 0 1 .8-.8h2.4l1 1.1h3.7a.8.8 0 0 1 .8.8v1.1" />
-      <path d="M1.5 9h3.3" />
-      <circle cx="7.9" cy="7.9" r="1.8" />
-      <path d="m9.2 9.2 1.3 1.3" />
+      <path d="M1.5 8.5V2.8a.8.8 0 0 1 .8-.8h2.4l1 1.1h3.7a.8.8 0 0 1 .8.8v1.1" />
+      <path d="M1.5 8.5h3.3" />
+      <circle cx="7.9" cy="7.4" r="1.8" />
+      <path d="m9.2 8.7 1.3 1.3" />
     </>
   ),
   [IconName.Pull]: <path d="M6 1.5v7M3.2 5.7 6 8.5l2.8-2.8M2.5 10.5h7" />,
@@ -134,12 +144,26 @@ const SHAPES: Record<IconName, ReactNode> = {
     </>
   ),
   [IconName.Remote]: <path d="M3.3 9.5H3a2.2 2.2 0 0 1-.3-4.4 3.3 3.3 0 0 1 6.3-.9 2.4 2.4 0 0 1 .2 4.8Z" />,
+  [IconName.RemoteOff]: (
+    <>
+      <path d="M3.3 9.5H3a2.2 2.2 0 0 1-.3-4.4 3.3 3.3 0 0 1 6.3-.9 2.4 2.4 0 0 1 .2 4.8Z" />
+      <path d="M1.5 1.5l9 9" />
+    </>
+  ),
+  [IconName.Settings]: (
+    <>
+      <circle cx="6" cy="6" r="3.2" />
+      <circle cx="6" cy="6" r="1.2" />
+      <path d="M6 1.2v1.6M6 9.2v1.6M1.2 6h1.6M9.2 6h1.6M2.6 2.6l1.1 1.1M8.3 8.3l1.1 1.1M2.6 9.4l1.1-1.1M8.3 3.7l1.1-1.1" />
+    </>
+  ),
   [IconName.Sidebar]: (
     <>
       <rect x="1.5" y="2" width="9" height="8" rx="1" />
       <path d="M4.7 2v8" />
     </>
   ),
+  [IconName.Star]: <path d="M6 1.57 7.18 4.85 10.66 4.96 7.9 7.09 8.88 10.43 6 8.47 3.12 10.43 4.1 7.09 1.34 4.96 4.82 4.85Z" />,
   [IconName.Stash]: (
     <>
       <path d="M1.5 4.5h9v5.2a.8.8 0 0 1-.8.8H2.3a.8.8 0 0 1-.8-.8Z" />

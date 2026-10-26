@@ -6,7 +6,7 @@ import { hideGitGraph } from '../panel/rightPanel'
 import { useGitStore } from '../store/gitStore'
 import { Icon } from './Icon'
 import { IconName } from './iconName'
-import { PANEL_HEADER_BUTTON, SECTION_TITLE } from './rightPanelStyles'
+import { PANEL_HEADER_BUTTON } from './rightPanelStyles'
 
 interface GitGraphToolbarProps {
   state: GitState
@@ -57,19 +57,18 @@ export function GitGraphToolbar({ state, referencesShown, onToggleReferences }: 
       >
         <Icon name={IconName.Sidebar} />
       </button>
-      <span className={SECTION_TITLE}>Graphe</span>
       <span className="min-w-0 truncate text-[12px] font-semibold text-tily-ink" data-tip={state.root}>
         {state.name}
       </span>
       {!history && <span className="shrink-0 text-[11px] text-tily-muted">Chargement de l’historique…</span>}
       <span className="flex-1" />
-      <button type="button" className={PANEL_HEADER_BUTTON} aria-label="Rechercher un commit" data-tip="Rechercher un commit par message, SHA, auteur ou branche" aria-disabled={!history || history.commits.length === 0} onClick={handleSearch}>
+      <button type="button" className={PANEL_HEADER_BUTTON} aria-label="Rechercher un commit" data-tip="Rechercher un commit" aria-disabled={!history || history.commits.length === 0} onClick={handleSearch}>
         <Icon name={IconName.Search} />
       </button>
       <div role="radiogroup" aria-label="Branches affichées" className="flex shrink-0 rounded-md bg-tily-paper p-[2px]">
         {SCOPES.map(renderScope)}
       </div>
-      <button type="button" className={PANEL_HEADER_BUTTON} aria-label="Fermer le graphe" data-tip="Fermer le graphe et revenir aux terminaux (Échap)" onClick={hideGitGraph}>
+      <button type="button" className={PANEL_HEADER_BUTTON} aria-label="Fermer le graphe" data-tip="Fermer le graphe (Échap)" onClick={hideGitGraph}>
         <Icon name={IconName.Close} />
       </button>
     </div>

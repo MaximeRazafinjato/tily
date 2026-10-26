@@ -34,8 +34,9 @@ public static class GitDiffReader
         }
 
         string[] paths = oldPath is null ? [path] : [oldPath, path];
-        var arguments = request.Source == GitDiffSource.Commit ? CommitArguments(repository, request.Commit, paths) : WorkingArguments(request.Source, paths);
-        var raw = repository.Read(new GitRunOptionsModel(LiteralPaths: true), arguments);
+        var raw = request.Source == GitDiffSource.Commit
+            ? ReadCommitDiff(repository, request.Commit, paths)
+            : repository.Read(new GitRunOptionsModel(LiteralPaths: true), WorkingArguments(request.Source, paths));
         var diff = Copyable(GitDiffParser.Parse(path, oldPath, raw), raw);
         return request.Source == GitDiffSource.Commit || oldPath is not null ? diff : Selectable(diff, raw);
     }
@@ -84,19 +85,22 @@ public static class GitDiffReader
 
     public static GitCommitDetailsModel ReadCommit(GitRepository repository, string? commit)
     {
-        var sha = RequireCommit(repository, commit);
-        var fields = repository.Read("show", "-s", "--no-show-signature", "--format=%H%x1f%P%x1f%an%x1f%ae%x1f%at%x1f%B", sha).Split(Separator, 6);
+        var revision = CommitRevision(commit);
+        var filesRead = Task.Run(() => repository.Read("diff-tree", "-r", "-M", "--root", "--diff-merges=first-parent", "--no-commit-id", "--name-status", "-z", revision));
+        var show = repository.Run("show", "-s", "--no-show-signature", "--format=%H%x1f%P%x1f%an%x1f%ae%x1f%at%x1f%B", revision);
+        if (!show.Succeeded)
+        {
+            throw new GitCommandException($"Commit introuvable : {commit}.", string.Empty);
+        }
+
+        var fields = show.Output.Split(Separator, 6);
         if (fields.Length < 6)
         {
             throw new GitCommandException($"Commit illisible : {commit}.", string.Empty);
         }
 
-        var parents = GitHistoryReader.Parents(fields[1]);
-        string[] arguments = parents.Count == 0
-            ? ["diff-tree", "-r", "-M", "--root", "--no-commit-id", "--name-status", "-z", sha]
-            : ["diff-tree", "-r", "-M", "--name-status", "-z", parents[0], sha];
-        var files = ParseNameStatus(repository.Read(arguments));
-        return new GitCommitDetailsModel(fields[0].Trim(), parents, fields[2], fields[3], long.TryParse(fields[4], out var date) ? date : 0, fields[5].TrimEnd(), files);
+        var files = ParseNameStatus(filesRead.GetAwaiter().GetResult());
+        return new GitCommitDetailsModel(fields[0].Trim(), GitHistoryReader.Parents(fields[1]), fields[2], fields[3], long.TryParse(fields[4], out var date) ? date : 0, fields[5].TrimEnd(), files);
     }
 
     public static IReadOnlyList<GitFileChangeModel> ParseNameStatus(string output)
@@ -135,16 +139,12 @@ public static class GitDiffReader
         return files;
     }
 
-    private static string RequireCommit(GitRepository repository, string? commit) =>
-        repository.Resolve(commit ?? string.Empty) ?? throw new GitCommandException($"Commit introuvable : {commit}.", string.Empty);
+    private static string CommitRevision(string? commit) => $"{GitNames.RequireRevision(commit)}^{{commit}}";
 
-    private static string[] CommitArguments(GitRepository repository, string? commit, string[] paths)
+    private static string ReadCommitDiff(GitRepository repository, string? commit, string[] paths)
     {
-        var sha = RequireCommit(repository, commit);
-        var parents = GitHistoryReader.Parents(repository.Read("rev-list", "--parents", "-n", "1", sha).Trim()).Skip(1).ToList();
-        return parents.Count == 0
-            ? ["diff-tree", "-p", "-r", "--root", "--no-commit-id", .. DiffOptions, sha, "--", .. paths]
-            : ["diff-tree", "-p", "-r", .. DiffOptions, parents[0], sha, "--", .. paths];
+        var output = repository.Run(new GitRunOptionsModel(LiteralPaths: true), ["diff-tree", "-p", "-r", "--root", "--diff-merges=first-parent", "--no-commit-id", .. DiffOptions, CommitRevision(commit), "--", .. paths]);
+        return output.Succeeded ? output.Output : throw new GitCommandException($"Commit introuvable : {commit}.", output.Details);
     }
 
     private static FileInfo UntrackedFile(GitRepository repository, string path)

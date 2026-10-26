@@ -123,18 +123,18 @@ export function FilePreviewDrawer() {
         </span>
         {edit ? (
           <>
-            <GitToolButton icon={IconName.Check} tip="Enregistrer (Ctrl + S)" label={edit.saving ? 'Enregistrement…' : 'Enregistrer'} disabled={!dirty || edit.saving} onClick={handleSave} />
-            <GitToolButton icon={IconName.Pencil} tip="Quitter l’édition" label="Éditer" pressed onClick={stopPreviewEdit} />
+            <GitToolButton icon={IconName.Check} tip="Enregistrer (Ctrl+S)" label={edit.saving ? 'Enregistrement…' : 'Enregistrer'} disabled={!dirty || edit.saving} onClick={handleSave} />
+            <GitToolButton icon={IconName.Pencil} tip="Quitter l’édition" pressed onClick={stopPreviewEdit} />
           </>
         ) : (
-          editable(preview) && <GitToolButton icon={IconName.Pencil} tip="Modifier le fichier dans Tily" label="Éditer" pressed={false} onClick={startPreviewEdit} />
+          editable(preview) && <GitToolButton icon={IconName.Pencil} tip="Éditer" pressed={false} onClick={startPreviewEdit} />
         )}
         {!edit && preview && hasSource(preview) && (
-          <GitToolButton icon={IconName.File} tip={showSource ? `Revenir au rendu ${KIND_LABELS[preview.kind]}` : `Afficher le texte source du ${KIND_LABELS[preview.kind]}`} label="Source" pressed={showSource} onClick={handleToggleSource} />
+          <GitToolButton icon={IconName.File} tip={showSource ? `Revenir au rendu ${KIND_LABELS[preview.kind]}` : `Afficher le texte source du ${KIND_LABELS[preview.kind]}`} pressed={showSource} onClick={handleToggleSource} />
         )}
         {preview?.kind === PreviewKind.Html && !preview.error && <GitToolButton icon={IconName.Browser} tip="Ouvrir dans le navigateur" onClick={openPreviewInBrowser} />}
         <GitToolButton icon={IconName.Editor} tip="Ouvrir dans l’éditeur" onClick={openPreviewInEditor} />
-        <GitToolButton icon={IconName.Expand} tip={expanded ? 'Revenir à la largeur habituelle' : 'Agrandir l’aperçu à toute la zone des terminaux'} pressed={expanded} onClick={handleToggleExpanded} />
+        <GitToolButton icon={IconName.Expand} tip={expanded ? 'Réduire l’aperçu' : 'Agrandir l’aperçu'} pressed={expanded} onClick={handleToggleExpanded} />
         <button type="button" className={PANEL_HEADER_BUTTON} aria-label="Fermer" data-tip="Fermer (Échap)" onClick={handleClose}>
           <Icon name={IconName.Close} />
         </button>
@@ -143,10 +143,10 @@ export function FilePreviewDrawer() {
       {conflict && (
         <div role="status" className="flex shrink-0 items-center gap-[8px] border-b border-tily-line px-[16px] py-[6px] text-[12px] text-tily-warning">
           <span className="min-w-0 flex-1 truncate">{preview?.error ?? 'Le fichier a été modifié sur le disque.'}</span>
-          <button type="button" className={BANNER_BUTTON} data-tip="Abandonner mes modifications et reprendre le fichier du disque" onClick={reloadPreviewFromDisk}>
+          <button type="button" className={BANNER_BUTTON} data-tip="Reprendre la version du disque" onClick={reloadPreviewFromDisk}>
             Recharger
           </button>
-          <button type="button" className={BANNER_BUTTON} data-tip="Enregistrer mes modifications à la place de la version du disque" onClick={overwritePreview}>
+          <button type="button" className={BANNER_BUTTON} data-tip="Écraser la version du disque" onClick={overwritePreview}>
             Écraser
           </button>
         </div>
@@ -167,7 +167,7 @@ export function FilePreviewDrawer() {
             <img
               src={preview.content}
               alt={name}
-              data-tip={actualSize ? 'Clic : ajuster à la place disponible' : 'Clic : taille réelle'}
+              data-tip={actualSize ? 'Ajuster à la place disponible' : 'Taille réelle'}
               className={`mx-auto block object-contain ${actualSize ? 'max-w-none cursor-zoom-out' : 'max-h-full max-w-full cursor-zoom-in'}`}
               onLoad={handleImageLoad}
               onClick={handleToggleActualSize}
@@ -175,9 +175,9 @@ export function FilePreviewDrawer() {
           ) : preview.kind === PreviewKind.Markdown && !showSource && html !== null ? (
             <div className="tily-markdown text-tily-ink" dangerouslySetInnerHTML={{ __html: html }} />
           ) : html !== null ? (
-            <pre className="font-mono text-[12.5px] leading-[1.5] whitespace-pre-wrap text-tily-ink" dangerouslySetInnerHTML={{ __html: html }} />
+            <pre className="font-mono text-[12px] leading-[1.5] whitespace-pre-wrap text-tily-ink" dangerouslySetInnerHTML={{ __html: html }} />
           ) : (
-            <pre className="font-mono text-[12.5px] leading-[1.5] whitespace-pre-wrap text-tily-ink">{preview.content}</pre>
+            <pre className="font-mono text-[12px] leading-[1.5] whitespace-pre-wrap text-tily-ink">{preview.content}</pre>
           )}
         </div>
       )}

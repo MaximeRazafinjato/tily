@@ -1,6 +1,13 @@
+import type { GitBranch } from '../bridge/gitMessages'
+
 interface GitBranchLeaf<T> {
   item: T
   label: string
+}
+
+interface PinnedBranches {
+  pinned: GitBranch[]
+  others: GitBranch[]
 }
 
 export interface GitBranchFolder<T> {
@@ -13,6 +20,8 @@ export interface GitBranchFolder<T> {
 
 const REF_INDENT_PX = 14
 const REF_BASE_PADDING_PX = 12
+const PINNED_NAMES = ['main', 'master', 'preprod', 'develop', 'evolutions']
+const CURRENT_RANK = -1
 
 export const refIndent = (depth: number): number => REF_BASE_PADDING_PX + depth * REF_INDENT_PX
 
@@ -44,7 +53,16 @@ export const branchTree = <T>(items: T[], nameOf: (item: T) => string): GitBranc
   return root
 }
 
-export const visibleBranches = <T>(folder: GitBranchFolder<T>, isCollapsed: (path: string) => boolean): T[] => [
+const isPinned = (branch: GitBranch): boolean => branch.current || PINNED_NAMES.includes(branch.name)
+
+const pinRank = (branch: GitBranch): number => (branch.current ? CURRENT_RANK : PINNED_NAMES.indexOf(branch.name))
+
+export const splitPinnedBranches = (branches: GitBranch[]): PinnedBranches => ({
+  pinned: branches.filter(isPinned).sort((first, second) => pinRank(first) - pinRank(second)),
+  others: branches.filter((branch) => !isPinned(branch)),
+})
+
+export const visibleBranches =<T>(folder: GitBranchFolder<T>, isCollapsed: (path: string) => boolean): T[] => [
   ...folder.folders.flatMap((child) => (isCollapsed(child.path) ? [] : visibleBranches(child, isCollapsed))),
   ...folder.leaves.map((leaf) => leaf.item),
 ]

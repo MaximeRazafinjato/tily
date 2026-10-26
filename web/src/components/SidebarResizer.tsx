@@ -44,7 +44,7 @@ export function SidebarResizer({ width, min, max, label, defaultWidth, reversed 
       role="separator"
       aria-orientation="vertical"
       aria-label={label}
-      data-tip={`${label} : glisser ou flèches, double-clic pour la largeur par défaut`}
+      data-tip={label}
       aria-valuemin={min}
       aria-valuemax={max}
       aria-valuenow={width}

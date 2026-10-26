@@ -27,6 +27,17 @@ public sealed class UpdateClientTests : IDisposable
         Assert.Equal("1.4.0", release.Version);
     }
 
+    [Fact]
+    public async Task LatestAsync_WhenBetaChannel_ThenParsesLatestPrerelease()
+    {
+        var releases = $"[{ReleaseParserTests.ReleaseJson()}, {ReleaseParserTests.ReleaseJson("v1.5.0-beta.1", "TilyBeta-1.5.0-beta.1-setup.exe", prerelease: true)}]";
+        var client = new UpdateClient(new HttpClient(new FixedHandler(HttpStatusCode.OK, Encoding.UTF8.GetBytes(releases))), ReleaseChannel.Beta);
+
+        var release = await client.LatestAsync(CancellationToken.None);
+
+        Assert.Equal("1.5.0-beta.1", release.Version);
+    }
+
     [Theory]
     [InlineData(HttpStatusCode.NotFound, "Aucune version de Tily n’est publiée sur GitHub.")]
     [InlineData(HttpStatusCode.Forbidden, "GitHub limite le nombre de vérifications : réessayez dans une heure.")]

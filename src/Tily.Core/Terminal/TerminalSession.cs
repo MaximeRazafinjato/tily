@@ -31,7 +31,7 @@ public sealed class TerminalSession : IDisposable
     public TerminalSession(TerminalSessionOptions options)
     {
         PaneId = options.PaneId;
-        _console = new PseudoConsole(options.Provider, options.Columns, options.Rows);
+        _console = new PseudoConsole(options.Columns, options.Rows);
         _job = new JobObject();
         try
         {
