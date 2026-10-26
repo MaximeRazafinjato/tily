@@ -40,6 +40,7 @@ public sealed class GitOperationRunner
             "git.discardLines" => repository => GitLineCommands.Apply(repository, GitLineAction.Discard, LineRequest(command), command.Confirmed),
             "git.commit" => repository => CommitThenPush(repository, command),
             "git.push" => repository => Push(repository, command.Force, command.Confirmed),
+            "git.pushBranch" => repository => PushUpTo(repository, command.Branch, command.Commit),
             "git.pull" => GitSyncCommands.Pull,
             "git.fetch" => Fetch,
             "git.merge" => repository => GitHistoryCommands.Merge(repository, command.Reference),
@@ -169,6 +170,13 @@ public sealed class GitOperationRunner
         var key = ForceKey(repository.Root, repository.CurrentBranch() ?? string.Empty);
         var outcome = GitSyncCommands.Push(repository, force, confirmed, _forceAllowed.ContainsKey(key));
         _forceAllowed.TryRemove(key, out _);
+        return outcome;
+    }
+
+    private GitOutcomeModel PushUpTo(GitRepository repository, string? branch, string? commit)
+    {
+        var outcome = GitSyncCommands.PushUpTo(repository, branch, commit);
+        _forceAllowed.TryRemove(ForceKey(repository.Root, branch ?? string.Empty), out _);
         return outcome;
     }
 

@@ -18,6 +18,7 @@ public static class GitHistoryReader
             return Empty(repository.Root, scope);
         }
 
+        var pushableRead = Task.Run(() => PushableCommits(repository, state, limit));
         var arguments = new List<string> { "log", "-z", "--topo-order", "--no-show-signature", $"-n{limit + 1}", CommitFormat };
         arguments.AddRange(revisions);
         arguments.Add("--");
@@ -25,6 +26,7 @@ public static class GitHistoryReader
             .Select(record => record.Trim('\n').Split(Separator))
             .Where(fields => fields.Length >= 6)
             .ToList();
+        var pushable = pushableRead.GetAwaiter().GetResult();
         var labels = Labels(state);
         var stashes = state.Stashes.Where(stash => stash.Base.Length > 0).ToLookup(stash => stash.Base, StringComparer.Ordinal);
         var entries = new List<GitCommitModel>();
@@ -39,7 +41,8 @@ public static class GitHistoryReader
                 long.TryParse(fields[4], out var date) ? date : 0,
                 fields[5],
                 labels.TryGetValue(fields[0], out var refLabels) ? refLabels : [],
-                SingleNode));
+                SingleNode,
+                Pushable: pushable.Contains(fields[0])));
         }
 
         var nodes = entries.Select(entry => new GitGraphNodeModel(entry.Sha, entry.Parents, entry.Stash)).Prepend(WorkingTreeNode(state.Head)).ToList();
@@ -53,6 +56,26 @@ public static class GitHistoryReader
     public static IReadOnlyList<string> Parents(string field) => field.Split(' ', StringSplitOptions.RemoveEmptyEntries);
 
     private static GitGraphNodeModel WorkingTreeNode(GitHeadModel head) => new(string.Empty, head.Unborn || head.Sha is null ? [] : [head.Sha], true);
+
+    private static HashSet<string> PushableCommits(GitRepository repository, GitStateModel state, int limit)
+    {
+        var head = state.Head;
+        if (head.Branch is null || head.Unborn || state.Remotes.Count == 0)
+        {
+            return [];
+        }
+
+        var tracked = state.RemoteBranches.Any(branch => branch.Name == head.Upstream);
+        if (tracked && head.Ahead == 0)
+        {
+            return [];
+        }
+
+        var output = tracked
+            ? repository.Run("rev-list", $"-n{limit}", "--ancestry-path", $"refs/remotes/{head.Upstream}..HEAD", "--")
+            : repository.Run("rev-list", $"-n{limit}", "HEAD", "--not", "--remotes", "--");
+        return output.Succeeded ? [.. output.Output.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)] : [];
+    }
 
     private static GitCommitModel StashEntry(GitStashModel stash) => new(stash.Sha, [stash.Base], stash.Author, stash.Email, stash.Date, stash.Message, [], SingleNode, true);
 

@@ -188,6 +188,7 @@ export interface GitCommit {
   refs: GitRefLabel[]
   graph: GitGraphRow
   stash?: boolean
+  pushable?: boolean
 }
 
 export interface GitHistory {
@@ -264,6 +265,7 @@ export type GitWebMessage =
   | { type: 'git.stageLines' | 'git.unstageLines' | 'git.discardLines'; path: string; file: string; untracked: boolean; fingerprint: string; selection: GitHunkSelection[]; confirmed: boolean }
   | { type: 'git.commit'; path: string; message: string; amend: boolean; push: boolean }
   | { type: 'git.push'; path: string; force: boolean; confirmed: boolean }
+  | { type: 'git.pushBranch'; path: string; branch: string; commit?: string }
   | { type: 'git.pull' | 'git.fetch' | 'git.continue' | 'git.undo'; path: string }
   | { type: 'git.merge' | 'git.rebase'; path: string; reference: string }
   | { type: 'git.cherryPick'; path: string; commit: string }
