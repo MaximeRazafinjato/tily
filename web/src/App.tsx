@@ -173,7 +173,7 @@ export default function App() {
       bridge.on('worktrees.planned', (message) => dispatchReply(message.type, message.request, message) || receiveWorktreePlan(message.request, message.plan)),
       bridge.on('worktrees.listed', (message) => dispatchReply(message.type, message.request, message)),
       bridge.on('worktrees.progress', (message) => receiveWorktreeProgress(message.message)),
-      bridge.on('worktrees.created', (message) => dispatchReply(message.type, message.request, message) || receiveWorktreeCreated(message.path, message.name, message.install)),
+      bridge.on('worktrees.created', (message) => dispatchReply(message.type, message.request, message) || receiveWorktreeCreated(message.path, message.name, message.install, message.claude)),
       bridge.on('worktrees.done', (message) => {
         dispatchReply(message.type, message.request, message)
         receiveWorktreeDone(message.request, message.message, message.warnings)
