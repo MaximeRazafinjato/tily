@@ -13,7 +13,7 @@ interface ShortcutCaptureProps {
 
 const CANCEL_KEY = 'Escape'
 const TAB_KEY = 'Tab'
-const CAPTURE = 'min-w-0 flex-1 cursor-pointer truncate rounded border px-2 py-1 text-left font-mono text-[12px] outline-none'
+const CAPTURE = 'min-w-0 flex-1 cursor-pointer truncate rounded border px-2 py-1 text-left text-[12px] outline-none'
 const IDLE = `${CAPTURE} border-tily-line bg-tily-paper text-tily-ink hover:bg-tily-green-hover focus:border-tily-focus`
 const ACTIVE = `${CAPTURE} border-tily-focus bg-tily-green-soft text-tily-green-deep`
 const CLEAR = 'flex size-4 shrink-0 cursor-pointer items-center justify-center rounded text-tily-muted hover:bg-tily-green-hover hover:text-tily-error'

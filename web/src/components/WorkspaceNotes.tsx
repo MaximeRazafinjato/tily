@@ -53,7 +53,7 @@ export function WorkspaceNotes() {
         spellCheck={false}
         placeholder="Notes du workspace…"
         aria-label="Notes du workspace"
-        className="min-h-0 flex-1 resize-none rounded border border-tily-line bg-tily-panel py-[8px] pr-[28px] pl-[10px] font-mono text-[12px] leading-[1.5] text-tily-ink outline-none placeholder:text-tily-muted focus:border-tily-focus"
+        className="min-h-0 flex-1 resize-none rounded border border-tily-line bg-tily-panel py-[8px] pr-[28px] pl-[10px] text-[12px] leading-[1.5] text-tily-ink outline-none placeholder:text-tily-muted focus:border-tily-focus"
         onChange={handleChange}
         onKeyDown={handleKeyDown}
         aria-describedby={NOTE_HINT_ID}

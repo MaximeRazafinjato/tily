@@ -157,7 +157,7 @@ export const WorkspaceItem = memo(function WorkspaceItem({ workspace, workspaceN
             <Icon name={IconName.Close} size={10} />
           </button>
           {!expanded && (
-            <span className="pointer-events-none absolute inset-0 flex translate-y-px items-center justify-center font-mono text-[11px] leading-none text-tily-muted tabular-nums group-hover:hidden peer-focus-visible:hidden" aria-hidden="true">
+            <span className="pointer-events-none absolute inset-0 flex translate-y-px items-center justify-center text-[11px] leading-none text-tily-muted tabular-nums group-hover:hidden peer-focus-visible:hidden" aria-hidden="true">
               {tabs.length}
             </span>
           )}

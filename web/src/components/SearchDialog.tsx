@@ -109,7 +109,7 @@ export function SearchDialog<T extends SearchItem>({ label, placeholder, emptyMe
           )}
         </div>
         <div ref={listRef} id={LISTBOX_ID} role="listbox" aria-label="Résultats" className="mt-2 min-h-0 flex-1 overflow-y-auto">
-          {filtered.length === 0 && <p className="px-3 py-2 text-xs text-tily-muted">{emptyMessage}</p>}
+          {filtered.length === 0 && <p className="px-3 py-2 text-[11px] text-tily-muted">{emptyMessage}</p>}
           {filtered.map((item, index) => {
             const handleHover = () => setSelectedId(item.id)
             const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => (event.ctrlKey && onRunControl && item.favorite === undefined ? onRunControl(item) : runItem(item, event.shiftKey))
@@ -129,7 +129,7 @@ export function SearchDialog<T extends SearchItem>({ label, placeholder, emptyMe
               >
                 <button type="button" tabIndex={-1} className="flex min-w-0 flex-1 cursor-pointer items-baseline gap-3 py-2 text-left focus:outline-none" onPointerDown={handleResultPointerDown} onClick={handleClick}>
                   <span className="min-w-0 truncate">{item.label}</span>
-                  {item.hint && <span className="min-w-0 flex-1 truncate text-right font-mono text-[11px] text-tily-muted">{item.hint}</span>}
+                  {item.hint && <span className="min-w-0 flex-1 truncate text-right text-[11px] text-tily-muted">{item.hint}</span>}
                 </button>
                 {item.favorite !== undefined && (
                   <button
@@ -148,9 +148,9 @@ export function SearchDialog<T extends SearchItem>({ label, placeholder, emptyMe
               </div>
             )
           })}
-          {hidden > 0 && <p className="px-3 py-2 text-xs text-tily-muted">{hidden === 1 ? '1 autre résultat' : `${hidden} autres résultats`} : précisez la recherche.</p>}
+          {hidden > 0 && <p className="px-3 py-2 text-[11px] text-tily-muted">{hidden === 1 ? '1 autre résultat' : `${hidden} autres résultats`} : précisez la recherche.</p>}
         </div>
-        <p role="status" className={notice ? 'mt-2 border-t border-tily-line px-3 pt-2 text-xs text-tily-warning' : undefined}>
+        <p role="status" className={notice ? 'mt-2 border-t border-tily-line px-3 pt-2 text-[11px] text-tily-warning' : undefined}>
           {notice}
         </p>
       </div>

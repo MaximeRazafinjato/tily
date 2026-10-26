@@ -30,7 +30,7 @@ export function WorktreeFolderField({ draft, plan, project, checkboxLabel }: Wor
   return (
     <div className="flex min-w-0 flex-col gap-1.5">
       <span className="flex min-h-[28px] min-w-0 items-center gap-2">
-        <span className="flex min-w-0 flex-1 items-baseline gap-2 font-mono text-[12px]" data-tip={finalPath || undefined}>
+        <span className="flex min-w-0 flex-1 items-baseline gap-2 text-[12px]" data-tip={finalPath || undefined}>
           <span className="shrink-0 text-tily-ink">{finalPath ? folderName(finalPath) : '—'}</span>
           <span className="truncate text-[11px] text-tily-muted">{parentFolder(finalPath)}</span>
         </span>

@@ -18,7 +18,7 @@ const TOGGLES: ToggleDescription[] = [
   { option: SearchOption.Regex, text: '.*', label: 'Expression régulière', keys: 'Alt+R' },
 ]
 
-const TOGGLE_BUTTON = 'flex h-5 min-w-5 shrink-0 cursor-pointer items-center justify-center rounded px-1 font-mono text-[11px] leading-none focus:outline-none'
+const TOGGLE_BUTTON = 'flex h-5 min-w-5 shrink-0 cursor-pointer items-center justify-center rounded px-1 text-[11px] leading-none focus:outline-none'
 const ACTIVE_TOGGLE = 'bg-tily-green-soft text-tily-green-deep ring-1 ring-tily-green'
 const INACTIVE_TOGGLE = 'text-tily-muted hover:bg-tily-green-hover hover:text-tily-ink'
 

@@ -18,7 +18,7 @@ export function GitDragGhost() {
   return (
     <div
       aria-hidden="true"
-      className="pointer-events-none fixed z-50 flex max-w-[360px] items-center gap-[6px] rounded-md border border-tily-line bg-tily-paper px-[8px] py-[3px] text-[11.5px] text-tily-ink shadow-lg"
+      className="pointer-events-none fixed z-50 flex max-w-[360px] items-center gap-[6px] rounded-md border border-tily-line bg-tily-paper px-[8px] py-[3px] text-[11px] text-tily-ink shadow-lg"
       style={{ left: drag.x + POINTER_OFFSET_X, top: drag.y + POINTER_OFFSET_Y }}
     >
       <Icon name={drag.source.kind === GitRefKind.Remote ? IconName.Remote : IconName.Local} className="shrink-0" />

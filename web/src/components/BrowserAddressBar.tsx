@@ -47,7 +47,7 @@ export function BrowserAddressBar({ url, editing, onNavigate, onLeave }: Browser
       spellCheck={false}
       aria-label="Adresse de la page"
       placeholder="Adresse, par exemple localhost:5173"
-      className="h-[18px] min-w-[4em] flex-1 rounded border border-tily-line bg-tily-terminal px-1.5 font-mono text-[11px] text-tily-ink outline-none placeholder:text-tily-muted focus:border-tily-focus"
+      className="h-[18px] min-w-[4em] flex-1 rounded border border-tily-line bg-tily-terminal px-1.5 text-[11px] text-tily-ink outline-none placeholder:text-tily-muted focus:border-tily-focus"
       value={draft ?? displayedAddress(url)}
       onFocus={handleFocus}
       onChange={handleChange}

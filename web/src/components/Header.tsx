@@ -37,15 +37,15 @@ export function Header({ workspaceName, renaming, sidebarCollapsed, leaderActive
         <Icon name={IconName.Menu} size={14} />
       </button>
       <div className="flex min-w-0 items-baseline gap-4">
-        <span className="text-[17px] font-semibold text-tily-green">Tily</span>
+        <span className="text-[15px] font-semibold text-tily-green">Tily</span>
         {!navigation &&
           (sidebarCollapsed || renaming) &&
           (workspaceName === null ? (
-            <span className="text-[16px] text-tily-muted">Aucun workspace</span>
+            <span className="text-[15px] text-tily-muted">Aucun workspace</span>
           ) : renaming ? (
-            <InlineNameEditor value={workspaceName} label="Nom du workspace" className="w-64 text-[16px]" onCommit={onCommitRename} onCancel={onCancelRename} />
+            <InlineNameEditor value={workspaceName} label="Nom du workspace" className="w-64 text-[15px]" onCommit={onCommitRename} onCancel={onCancelRename} />
           ) : (
-            <EditableName name={workspaceName} className="text-[16px]" onClick={onStartRename} />
+            <EditableName name={workspaceName} className="text-[15px]" onClick={onStartRename} />
           ))}
       </div>
       {navigation && <div className={leaderActive ? 'hidden' : 'contents'}>{navigation}</div>}

@@ -45,7 +45,7 @@ export function DeleteConfirmDialog({ request, onConfirm, onCancel }: DeleteConf
           <p className="text-[12px] text-tily-ink">
             {request.isDirectory ? 'Le dossier et tout son contenu seront placés dans la corbeille de Windows.' : 'Le fichier sera placé dans la corbeille de Windows.'}
           </p>
-          <p className="truncate font-mono text-[11px] text-tily-muted">{request.path}</p>
+          <p className="truncate text-[11px] text-tily-muted">{request.path}</p>
         </div>
         <div className="flex items-center justify-end gap-2 border-t border-tily-line px-4 py-3">
           <button type="button" className={SECONDARY} data-tip="Échap" onClick={onCancel}>

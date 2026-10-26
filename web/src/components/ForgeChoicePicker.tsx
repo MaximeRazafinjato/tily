@@ -181,7 +181,7 @@ export function ForgeChoicePicker({ label, options, selected, multiple, emptyMes
             onKeyDown={handleSearchKeyDown}
           />
           <div ref={listRef} role="listbox" aria-label={label} aria-multiselectable={multiple} className="overflow-y-auto" style={{ maxHeight: placement.listHeight }}>
-            {visible.length === 0 && <span className="block px-3 py-2 text-xs text-tily-muted">{options.length === 0 ? emptyMessage : 'Aucun résultat.'}</span>}
+            {visible.length === 0 && <span className="block px-3 py-2 text-[11px] text-tily-muted">{options.length === 0 ? emptyMessage : 'Aucun résultat.'}</span>}
             {visible.map((option, index) => (
               <button
                 key={option.id}
@@ -190,7 +190,7 @@ export function ForgeChoicePicker({ label, options, selected, multiple, emptyMes
                 tabIndex={-1}
                 data-index={index}
                 aria-selected={selected.includes(option.id)}
-                className={`flex w-full cursor-pointer items-center gap-2 rounded px-2 py-[5px] text-left text-xs text-tily-ink hover:bg-tily-green-hover ${index === activeIndex ? 'bg-tily-green-soft' : ''}`}
+                className={`flex w-full cursor-pointer items-center gap-2 rounded px-2 py-[5px] text-left text-[12px] text-tily-ink hover:bg-tily-green-hover ${index === activeIndex ? 'bg-tily-green-soft' : ''}`}
                 onPointerEnter={() => setActive(index)}
                 onClick={() => choose(option.id)}
               >

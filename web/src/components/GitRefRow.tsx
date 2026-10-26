@@ -92,7 +92,7 @@ export function GitRefRow({ rowKey, name, meta, metaIcon, metaTip, tip, current 
           </span>
         )}
         {meta && (
-          <span className="max-w-[45%] min-w-0 truncate font-mono text-[11px] text-tily-muted" data-tip={metaTip}>
+          <span className="max-w-[45%] min-w-0 truncate text-[11px] text-tily-muted" data-tip={metaTip}>
             {meta}
           </span>
         )}

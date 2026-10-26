@@ -108,7 +108,7 @@ export function TerminalSearchDialog() {
           <SearchOptionToggles options={options} onToggle={toggleSearchOption} />
         </div>
         <div ref={listRef} id={LISTBOX_ID} role="listbox" aria-label="Lignes trouvées" className="mt-2 min-h-0 flex-1 overflow-y-auto">
-          {matches.length === 0 && <p className={`px-3 py-2 text-xs ${valid ? 'text-tily-muted' : 'text-tily-error'}`}>{emptyMessage}</p>}
+          {matches.length === 0 && <p className={`px-3 py-2 text-[11px] ${valid ? 'text-tily-muted' : 'text-tily-error'}`}>{emptyMessage}</p>}
           {matches.map((line, index) => {
             const handleHover = () => setSelectedId(line.id)
             const handleClick = () => goToTerminalLine(line)

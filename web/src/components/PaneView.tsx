@@ -197,14 +197,14 @@ export const PaneView = memo(function PaneView({ pane, active, zoomed, onToggleZ
               <AgentOwnerMark owner={pane.owner} />
             </span>
           )}
-          <span className={`min-w-0 flex-1 truncate font-mono whitespace-nowrap ${active ? 'text-tily-green' : 'text-tily-ink-soft'}`} data-tip={pane.path}>
+          <span className={`min-w-0 flex-1 truncate whitespace-nowrap ${active ? 'text-tily-green' : 'text-tily-ink-soft'}`} data-tip={pane.path}>
             {lastFolder(pane.path)}
           </span>
         </span>
         {branchLabel && (
           <button
             type="button"
-            className="flex max-w-[35%] min-w-0 shrink cursor-pointer items-center gap-1 rounded font-mono text-tily-muted hover:text-tily-ink @max-[520px]:hidden"
+            className="flex max-w-[35%] min-w-0 shrink cursor-pointer items-center gap-1 rounded text-tily-muted hover:text-tily-ink @max-[520px]:hidden"
             data-tip={branchTip}
             aria-label={context?.branch ? `Copier la branche ${context.branch}` : `${branchLabel} : ouvrir la vue Git`}
             onClick={handleBranchClick}

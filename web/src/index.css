@@ -219,7 +219,7 @@ html[data-git-dragging] * {
 
 .tily-markdown :is(code, pre) {
   font-family: var(--font-mono);
-  font-size: 12.5px;
+  font-size: 12px;
 }
 
 .tily-markdown :not(pre) > code {

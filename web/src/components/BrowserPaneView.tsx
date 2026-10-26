@@ -168,7 +168,7 @@ export const BrowserPaneView = memo(function BrowserPaneView({ pane, active, zoo
         </button>
         <BrowserAddressBar url={state?.url ?? pane.url} editing={editing} onNavigate={handleNavigate} onLeave={handleLeaveAddress} />
         {errors > 0 && (
-          <button type="button" className="flex h-5 shrink-0 cursor-pointer items-center gap-1 rounded px-1 font-mono text-tily-error hover:bg-tily-green-hover" data-tip={`${errorsLabel(errors)} depuis le dernier chargement`} aria-label={errorsLabel(errors)} onClick={handleDevTools}>
+          <button type="button" className="flex h-5 shrink-0 cursor-pointer items-center gap-1 rounded px-1 text-tily-error hover:bg-tily-green-hover" data-tip={`${errorsLabel(errors)} depuis le dernier chargement`} aria-label={errorsLabel(errors)} onClick={handleDevTools}>
             <ErrorIcon />
             {errors}
           </button>
@@ -197,7 +197,7 @@ export const BrowserPaneView = memo(function BrowserPaneView({ pane, active, zoo
       </header>
       <div data-browser-body={pane.id} className="relative min-h-0 overflow-hidden" onMouseDown={handleBodyMouseDown}>
         {snapshot && <img src={snapshot} alt="" className="mx-auto block h-full" style={{ width: mobile ? 'min(390px, 100%)' : '100%' }} onLoad={handleSnapshotLoad} />}
-        {failure && <p className="absolute inset-x-4 top-4 rounded border border-tily-line bg-tily-panel p-3 text-sm text-tily-error">{failure}</p>}
+        {failure && <p className="absolute inset-x-4 top-4 rounded border border-tily-line bg-tily-panel p-3 text-[12px] text-tily-error">{failure}</p>}
       </div>
     </section>
   )

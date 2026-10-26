@@ -95,7 +95,7 @@ export function GitCommitBox({ state, busy }: GitCommitBoxProps) {
           <span className="truncate" data-tip="Amend du dernier commit">Amend</span>
         </label>
         {subjectLength > 0 && (
-          <span className={`shrink-0 font-mono text-[11px] tabular-nums ${subjectLength > SUBJECT_MAX ? 'text-tily-warning' : 'text-tily-muted'}`} data-tip={subjectTip(subjectLength)}>
+          <span className={`shrink-0 text-[11px] tabular-nums ${subjectLength > SUBJECT_MAX ? 'text-tily-warning' : 'text-tily-muted'}`} data-tip={subjectTip(subjectLength)}>
             {subjectLength}
           </span>
         )}

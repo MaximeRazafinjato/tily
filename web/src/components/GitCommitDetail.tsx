@@ -40,7 +40,7 @@ export function GitCommitDetail({ state, busy }: GitCommitDetailProps) {
         heading={
           <span className="flex min-w-0 items-baseline gap-[8px]">
             <span className={SECTION_HEADING}>{stash ? 'Stash' : 'Commit'}</span>
-            <span className="min-w-0 truncate font-mono text-[11px] text-tily-green-deep">{stash ? `stash@{${stash.index}}` : shortSha(commit)}</span>
+            <span className="min-w-0 truncate text-[11px] text-tily-green-deep">{stash ? `stash@{${stash.index}}` : shortSha(commit)}</span>
           </span>
         }
         actions={

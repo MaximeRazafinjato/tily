@@ -76,8 +76,8 @@ export function PaneOverlay({ state, active, shells, onRestart, onRestartIn, onC
   return (
     <div ref={overlayRef} role="alert" tabIndex={-1} className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-tily-terminal/90 p-4 text-center" onFocus={handleOverlayFocus} onKeyDownCapture={ignoreHastyActivation} onKeyUpCapture={ignoreHastyActivation}>
       <p className="text-[13px] font-semibold text-tily-ink">{TITLES[state.kind]}</p>
-      <p className="max-w-full font-mono text-[11px] break-words text-tily-muted">{state.message}</p>
-      {pathMissing && state.fallback && <p className="max-w-full font-mono text-[11px] break-words text-tily-green">{`Repli : ${state.fallback}`}</p>}
+      <p className="max-w-full text-[11px] break-words text-tily-muted">{state.message}</p>
+      {pathMissing && state.fallback && <p className="max-w-full text-[11px] break-words text-tily-green">{`Repli : ${state.fallback}`}</p>}
       <div className="flex flex-wrap items-center justify-center gap-2">
         {pathMissing ? (
           <>

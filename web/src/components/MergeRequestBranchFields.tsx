@@ -77,7 +77,7 @@ export function MergeRequestBranchFields({ data, fields, branch, push, comparing
         {!comparing && existing && (
           <span className="text-[11px] text-tily-warning">
             {`Une ${noun} est déjà ouverte depuis cette branche : `}
-            <button type="button" className="cursor-pointer font-mono underline" data-tip={MERGE_REQUEST_LINK_HINT} onClick={handleOpenExisting}>
+            <button type="button" className="cursor-pointer underline" data-tip={MERGE_REQUEST_LINK_HINT} onClick={handleOpenExisting}>
               {`${existing.reference} ${existing.title}`}
             </button>
           </span>

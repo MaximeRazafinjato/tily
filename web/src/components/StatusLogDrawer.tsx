@@ -89,7 +89,7 @@ export function StatusLogDrawer({ today }: { today: Date }) {
           <Icon name={IconName.Close} />
         </button>
       </div>
-      <div ref={listRef} role="log" data-status-log-list="" tabIndex={0} aria-label="Messages" className="min-h-0 flex-1 overflow-y-auto px-[12px] pb-[8px] font-mono text-[11px] leading-[1.6]" onScroll={handleScroll}>
+      <div ref={listRef} role="log" data-status-log-list="" tabIndex={0} aria-label="Messages" className="min-h-0 flex-1 overflow-y-auto px-[12px] pb-[8px] text-[11px] leading-[1.6]" onScroll={handleScroll}>
         {empty ? (
           <p className="font-sans text-[12px] text-tily-muted">Aucun message : ceux de la barre de statut s’afficheront ici.</p>
         ) : shown.length === 0 ? (

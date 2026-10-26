@@ -225,14 +225,14 @@ export function TabBar({ workspace, shells, renamingTabId, panelView, onTogglePa
                 onContextMenu={handleTabContextMenu}
               >
                 {tab.id === renamingTabId ? (
-                  <InlineNameEditor value={tab.name} label="Nom de l’onglet" className="mx-1 my-1 min-w-0 flex-1 text-xs" onCommit={onCommitRename} onCancel={onCancelRename} />
+                  <InlineNameEditor value={tab.name} label="Nom de l’onglet" className="mx-1 my-1 min-w-0 flex-1 text-[12px]" onCommit={onCommitRename} onCancel={onCancelRename} />
                 ) : (
                   <button
                     type="button"
                     role="tab"
                     aria-selected={active}
                     data-tip={`${tab.name} · ${activePane(tab).path} · ${paneCountLabel(panesOf(tab.tree).length)}`}
-                    className="flex min-w-0 flex-1 cursor-pointer items-center gap-1.5 px-3 py-2 text-left text-xs"
+                    className="flex min-w-0 flex-1 cursor-pointer items-center gap-1.5 px-3 py-2 text-left text-[12px]"
                     onClick={handleSelect}
                     onDoubleClick={handleStartRename}
                     onPointerDown={handlePointerDown}

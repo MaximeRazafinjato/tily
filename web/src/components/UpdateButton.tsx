@@ -32,7 +32,7 @@ export function UpdateButton() {
         onClick={showUpdateDialog}
       >
         {info.status === UpdateStatus.Downloading ? <Spinner size={11} /> : <Icon name={IconName.Fetch} />}
-        <span className="text-xs">{labelOf(info, release)}</span>
+        <span className="text-[12px]">{labelOf(info, release)}</span>
       </button>
       {dialogOpen && <UpdateDialog info={info} release={release} />}
     </>
