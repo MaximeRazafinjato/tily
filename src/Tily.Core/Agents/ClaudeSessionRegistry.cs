@@ -1,15 +1,12 @@
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Globalization;
-using System.Text;
 using System.Text.Json;
 
 namespace Tily.Core.Agents;
 
 public sealed class ClaudeSessionRegistry
 {
-    public const int MaxProjectFolderLength = 200;
-
     private const double MaxUnixMilliseconds = 253402300799999;
 
     private static readonly TimeSpan StartTolerance = TimeSpan.FromSeconds(1);
@@ -33,8 +30,6 @@ public sealed class ClaudeSessionRegistry
     public string ClaudeDirectory { get; }
 
     public string SessionsDirectory => Path.Combine(ClaudeDirectory, "sessions");
-
-    public string ProjectsDirectory => Path.Combine(ClaudeDirectory, "projects");
 
     public static string DefaultDirectory()
     {
@@ -66,56 +61,15 @@ public sealed class ClaudeSessionRegistry
         }
     }
 
-    public string? TranscriptPathFor(ClaudeSessionModel session)
-    {
-        if (string.IsNullOrWhiteSpace(session.Directory) || !Guid.TryParse(session.SessionId, out _))
-        {
-            return null;
-        }
-
-        var folder = ProjectFolderName(session.Directory);
-        var fileName = session.SessionId + ".jsonl";
-        return folder.Length <= MaxProjectFolderLength
-            ? Path.Combine(ProjectsDirectory, folder, fileName)
-            : LongFolderTranscript(folder[..MaxProjectFolderLength], fileName);
-    }
-
-    public static string ProjectFolderName(string directory)
-    {
-        var name = new StringBuilder(directory.Length);
-        foreach (var character in directory)
-        {
-            name.Append(char.IsAsciiLetterOrDigit(character) ? character : '-');
-        }
-
-        return name.ToString();
-    }
-
-    private string? LongFolderTranscript(string prefix, string fileName)
-    {
-        try
-        {
-            return Directory.Exists(ProjectsDirectory)
-                ? Directory.EnumerateDirectories(ProjectsDirectory, prefix + "-*")
-                    .Select(folder => Path.Combine(folder, fileName))
-                    .FirstOrDefault(File.Exists)
-                : null;
-        }
-        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
-        {
-            return null;
-        }
-    }
-
     private ClaudeSessionModel? Parse(int processId, JsonElement root)
     {
-        if (root.ValueKind != JsonValueKind.Object || StringOf(root, "sessionId") is not { } sessionId || !SameProcess(processId, root))
+        if (root.ValueKind != JsonValueKind.Object || StringOf(root, "sessionId") is null || !SameProcess(processId, root))
         {
             return null;
         }
 
         var status = StringOf(root, "status") is { } text && Statuses.TryGetValue(text, out var known) ? known : ClaudeSessionStatus.Unknown;
-        return new ClaudeSessionModel(processId, sessionId, StringOf(root, "cwd"), status, StringOf(root, "waitingFor"), TimeOf(root, "statusUpdatedAt") ?? TimeOf(root, "updatedAt"));
+        return new ClaudeSessionModel(processId, status, TimeOf(root, "statusUpdatedAt") ?? TimeOf(root, "updatedAt"));
     }
 
     private bool SameProcess(int processId, JsonElement root)

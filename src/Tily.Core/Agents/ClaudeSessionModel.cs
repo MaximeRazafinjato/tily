@@ -9,4 +9,4 @@ public enum ClaudeSessionStatus
     Waiting
 }
 
-public sealed record ClaudeSessionModel(int ProcessId, string SessionId, string? Directory, ClaudeSessionStatus Status, string? WaitingFor, DateTime? StatusUpdatedAtUtc);
+public sealed record ClaudeSessionModel(int ProcessId, ClaudeSessionStatus Status, DateTime? StatusUpdatedAtUtc);

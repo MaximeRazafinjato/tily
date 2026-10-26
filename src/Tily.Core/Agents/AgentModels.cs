@@ -16,14 +16,6 @@ public sealed record PaneAgentModel(string PaneId, string Agent, AgentState Stat
 {
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
     public bool Interrupted { get; init; }
-
-    public string? SessionId { get; init; }
-
-    [JsonIgnore]
-    public string? SessionDirectory { get; init; }
-
-    [JsonIgnore]
-    public string? TranscriptPath { get; init; }
 }
 
 public sealed record PaneProbeModel(string PaneId, DateTime StartedAtUtc, IReadOnlyList<string> Processes, IReadOnlyList<int>? ProcessIds = null);
