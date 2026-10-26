@@ -4,6 +4,7 @@ import { focusActivePane } from '../explorer/fileExplorerActions'
 import { focusGitGraph } from '../git/gitFocus'
 import { plural } from '../git/gitLabels'
 import { followRepository, initializeRepository, refreshRepository } from '../git/gitRequests'
+import { Command, isCommandShortcut } from '../keyboard/shortcuts'
 import { RightPanelView } from '../model/session'
 import { togglePanelView } from '../panel/rightPanel'
 import { useGitStore } from '../store/gitStore'
@@ -31,10 +32,9 @@ const handleEscape = (): void => {
 }
 
 const handleKeyDown = (event: KeyboardEvent<HTMLElement>) => {
-  const key = event.key.toLowerCase()
-  if (event.ctrlKey && event.shiftKey && key === 'g') {
+  if (isCommandShortcut(event.nativeEvent, Command.ToggleGit)) {
     togglePanelView(RightPanelView.Git, true)
-  } else if (event.ctrlKey && event.shiftKey && key === 'e') {
+  } else if (isCommandShortcut(event.nativeEvent, Command.ToggleExplorer)) {
     togglePanelView(RightPanelView.Files, true)
   } else if (event.key === 'Escape') {
     handleEscape()

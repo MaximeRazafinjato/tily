@@ -51,7 +51,7 @@ export function NotificationSettingsSection({ title, notifications, availability
       <SettingsField label="Son d’attente" tip={SOUND_TIP}>
         <SoundSetting label="Son d’attente" sound={notifications.sound} placeholder="C:\Sons\attention.wav" testTip="Tester la notification" onChange={handleSoundChange} onPick={onPickSound} onTest={onTestWaiting} />
       </SettingsField>
-      <SettingsField label="Fin d’un agent" tip="Chaque fois qu’un agent termine, avec son dernier message, même si Tily est la fenêtre active.">
+      <SettingsField label="Fin d’un agent" tip="Chaque fois qu’un agent termine, même si Tily est la fenêtre active.">
         <label className={SETTINGS_CHECKBOX}>
           <input type="checkbox" checked={notifications.notifyDone} onChange={handleNotifyDoneChange} />
           Notifier

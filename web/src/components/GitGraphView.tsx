@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
+import { Command, isCommandShortcut } from '../keyboard/shortcuts'
 import { DEFAULT_GIT_GRAPH, GIT_REFERENCES_MAX, GIT_REFERENCES_MIN, RightPanelView, type GitGraphLayout } from '../model/session'
 import { hideGitGraph, togglePanelView } from '../panel/rightPanel'
 import { useGitStore } from '../store/gitStore'
@@ -14,10 +15,9 @@ interface GitGraphViewProps {
 }
 
 const handleKeyDown = (event: KeyboardEvent<HTMLElement>) => {
-  const key = event.key.toLowerCase()
-  if (event.ctrlKey && event.shiftKey && key === 'g') {
+  if (isCommandShortcut(event.nativeEvent, Command.ToggleGit)) {
     togglePanelView(RightPanelView.Git, true)
-  } else if (event.ctrlKey && event.shiftKey && key === 'e') {
+  } else if (isCommandShortcut(event.nativeEvent, Command.ToggleExplorer)) {
     togglePanelView(RightPanelView.Files, true)
   } else if (event.key === 'Escape') {
     hideGitGraph()
