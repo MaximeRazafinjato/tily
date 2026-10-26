@@ -70,7 +70,7 @@ public sealed class ForgeProviderTests
     {
         var runner = FakeForgeRunner.Answering("[]");
 
-        new GitHubProvider(runner).List(GitHubRemote, ".", new MergeRequestQueryModel(MergeRequestStateFilter.Open, 20, "feat/liste"));
+        new GitHubProvider(runner).List(GitHubRemote, ".", new MergeRequestQueryModel(20, "feat/liste"));
 
         Assert.Equal(
             "pr list --repo github.com/MaximeRazafinjato/tily --state open --limit 20 --json number,title,state,isDraft,author,assignees,labels,headRefName,baseRefName,url,createdAt,updatedAt,reviewDecision,reviewRequests --head feat/liste",
@@ -82,10 +82,10 @@ public sealed class ForgeProviderTests
     {
         var runner = FakeForgeRunner.Answering("[]");
 
-        new GitLabProvider(runner).List(GitLabRemote, ".", new MergeRequestQueryModel(MergeRequestStateFilter.Merged, 100, "feat/é"));
+        new GitLabProvider(runner).List(GitLabRemote, ".", new MergeRequestQueryModel(100, "feat/é"));
 
         Assert.Equal(
-            "api projects/gitlab-org%2Fcli/merge_requests?state=merged&per_page=100&order_by=updated_at&sort=desc&source_branch=feat%2F%C3%A9 --hostname gitlab.com",
+            "api projects/gitlab-org%2Fcli/merge_requests?state=opened&per_page=100&order_by=updated_at&sort=desc&source_branch=feat%2F%C3%A9 --hostname gitlab.com",
             string.Join(' ', runner.Calls.Single().Arguments));
     }
 
@@ -94,7 +94,7 @@ public sealed class ForgeProviderTests
     {
         var runner = new FakeForgeRunner(_ => new ForgeOutputModel(1, string.Empty, "glab: 401 Unauthorized (HTTP 401)"));
 
-        var exception = Assert.Throws<ForgeException>(() => new GitLabProvider(runner).List(GitLabRemote, ".", new MergeRequestQueryModel(MergeRequestStateFilter.Open, 100)));
+        var exception = Assert.Throws<ForgeException>(() => new GitLabProvider(runner).List(GitLabRemote, ".", new MergeRequestQueryModel(100)));
 
         Assert.Equal("« glab » n’est pas authentifié sur gitlab.com : lancez « glab auth login --hostname gitlab.com » dans un terminal.", exception.Message);
     }

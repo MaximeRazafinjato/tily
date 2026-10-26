@@ -53,12 +53,11 @@ public sealed class ForgeFeed
     {
         var path = command.Path ?? throw new InvalidOperationException("Chemin manquant.");
         var request = command.Request;
-        var state = MergeRequestStateFilters.Parse(command.State);
         _lists.Enqueue(() =>
         {
             try
             {
-                _post(new { type = "forge.listed", request, path, list = _service.List(path, state) });
+                _post(new { type = "forge.listed", request, path, list = _service.List(path) });
             }
             catch (Exception exception)
             {

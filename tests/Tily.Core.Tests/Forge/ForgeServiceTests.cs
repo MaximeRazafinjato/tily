@@ -20,7 +20,7 @@ public sealed class ForgeServiceTests
     {
         var service = ServiceWith(GitHubAnswering(ForgeProviderTests.GitHubJson));
 
-        var list = service.List(_folder, MergeRequestStateFilter.All);
+        var list = service.List(_folder);
 
         Assert.Equal((ForgeKind.GitHub, 2, false, "MaximeRazafinjato"), (list.Forge.Kind, list.Items.Count, list.Truncated, list.CurrentUser));
     }
@@ -31,8 +31,8 @@ public sealed class ForgeServiceTests
         var runner = GitHubAnswering("[]");
         var service = ServiceWith(runner);
 
-        service.List(_folder, MergeRequestStateFilter.Open);
-        service.List(_folder, MergeRequestStateFilter.Open);
+        service.List(_folder);
+        service.List(_folder);
 
         Assert.Single(runner.Calls, call => call.Arguments[0] == "api");
     }
