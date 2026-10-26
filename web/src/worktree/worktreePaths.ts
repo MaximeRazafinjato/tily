@@ -22,6 +22,11 @@ export const isWithinFolder = (path: string, folder: string): boolean => {
 
 export const sameFolder = (first: string, second: string): boolean => normalize(first) === normalize(second)
 
+export const parentFolder = (path: string): string => {
+  const trimmed = path.replace(/[\\/]+$/, '')
+  return trimmed.slice(0, trimmed.length - folderName(trimmed).length).replace(/[\\/]+$/, '')
+}
+
 export const repositoryLabel = (repository: string, project: string): string => {
   if (sameFolder(repository, project)) {
     return folderName(repository)

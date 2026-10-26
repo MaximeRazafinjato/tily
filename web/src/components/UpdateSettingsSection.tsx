@@ -2,23 +2,26 @@ import type { ChangeEvent } from 'react'
 import { UpdateStatus, type UpdateInfo } from '../bridge/updateMessages'
 import { useUpdateStore } from '../store/updateStore'
 import { checkForUpdates, downloadPercent, formatTime, showUpdateDialog } from '../update/updateActions'
-import { InfoTip } from './InfoTip'
-import { SETTINGS_BUTTON, SETTINGS_LABEL, SETTINGS_ROW, SETTINGS_SECONDARY } from './settingsStyles'
+import { Icon } from './Icon'
+import { IconName } from './iconName'
+import { SettingsField } from './SettingsField'
+import { SettingsPanel } from './SettingsPanel'
+import { SETTINGS_CHECKBOX, SETTINGS_ICON_BUTTON, SETTINGS_PRIMARY } from './settingsStyles'
 import { Spinner } from './Spinner'
 
 interface UpdateSettingsSectionProps {
-  sectionClassName: string
+  title: string
   autoCheck: boolean
   onAutoCheckChange: (autoCheck: boolean) => void
 }
 
-const PRIMARY = `${SETTINGS_BUTTON} border-tily-green text-tily-green-deep hover:bg-tily-green-soft`
+const CHECK_NOW = 'Rechercher maintenant'
 
 const checkedSuffix = (info: UpdateInfo): string => (info.checkedAt ? ` · vérifié à ${formatTime(info.checkedAt)}` : '')
 
 const describe = (info: UpdateInfo | null): { text: string; tone: string } => {
   if (!info || info.status === UpdateStatus.Idle) {
-    return { text: 'Aucune vérification depuis le lancement de Tily.', tone: 'text-tily-muted' }
+    return { text: 'Pas encore vérifié.', tone: 'text-tily-muted' }
   }
   switch (info.status) {
     case UpdateStatus.Checking:
@@ -36,34 +39,34 @@ const describe = (info: UpdateInfo | null): { text: string; tone: string } => {
   }
 }
 
-export function UpdateSettingsSection({ sectionClassName, autoCheck, onAutoCheckChange }: UpdateSettingsSectionProps) {
+export function UpdateSettingsSection({ title, autoCheck, onAutoCheckChange }: UpdateSettingsSectionProps) {
   const info = useUpdateStore((state) => state.info)
   const { text, tone } = describe(info)
   const busy = info?.status === UpdateStatus.Checking || info?.status === UpdateStatus.Downloading
   const handleAutoCheckChange = (event: ChangeEvent<HTMLInputElement>) => onAutoCheckChange(event.target.checked)
 
   return (
-    <section className="flex flex-col gap-2">
-      <h3 className={sectionClassName}>Mises à jour</h3>
-      <span className={SETTINGS_ROW}>
-        <label className="flex items-center gap-2">
+    <SettingsPanel title={title}>
+      <SettingsField label="Recherche" tip="Au démarrage puis toutes les 6 heures, auprès des releases publiques du dépôt GitHub. Rien n’est téléchargé ni installé sans votre clic sur « Installer et redémarrer ».">
+        <label className={SETTINGS_CHECKBOX}>
           <input type="checkbox" checked={autoCheck} onChange={handleAutoCheckChange} />
-          <span className={SETTINGS_LABEL}>Rechercher les mises à jour automatiquement</span>
+          Automatique
         </label>
-        <InfoTip text="Au démarrage puis toutes les 6 heures, auprès des releases publiques du dépôt GitHub. Rien n’est téléchargé ni installé sans votre clic sur « Installer et redémarrer »." />
-      </span>
-      <span className="flex items-center gap-3">
-        {busy && <Spinner size={11} className="text-tily-green" />}
-        <span className={`min-w-0 flex-1 text-[12px] ${tone}`}>{text}</span>
-        {info?.release && (
-          <button type="button" className={PRIMARY} onClick={showUpdateDialog}>
-            Voir la mise à jour
+      </SettingsField>
+      <SettingsField label="État">
+        <span className="flex items-center gap-2">
+          {busy && <Spinner size={11} className="text-tily-green" />}
+          <span className={`min-w-0 flex-1 text-[12px] ${tone}`}>{text}</span>
+          {info?.release && (
+            <button type="button" className={SETTINGS_PRIMARY} onClick={showUpdateDialog}>
+              Voir la mise à jour
+            </button>
+          )}
+          <button type="button" className={SETTINGS_ICON_BUTTON} aria-label={CHECK_NOW} aria-disabled={busy} data-tip={CHECK_NOW} onClick={busy ? undefined : checkForUpdates}>
+            <Icon name={IconName.Refresh} />
           </button>
-        )}
-        <button type="button" className={SETTINGS_SECONDARY} aria-disabled={busy} onClick={busy ? undefined : checkForUpdates}>
-          Rechercher maintenant
-        </button>
-      </span>
-    </section>
+        </span>
+      </SettingsField>
+    </SettingsPanel>
   )
 }
