@@ -1,6 +1,6 @@
 import { memo, useCallback, useEffect, useState, type MouseEvent } from 'react'
 import { OpenTarget, type ShellProfile } from '../bridge/messages'
-import { RightPanelView, SplitAxis, type Pane } from '../model/session'
+import { DEFAULT_SHELL, RightPanelView, SplitAxis, type Pane } from '../model/session'
 import { openPanelView } from '../panel/rightPanel'
 import { useAgentStore } from '../store/agentStore'
 import { useHostStore } from '../store/hostStore'
@@ -66,12 +66,9 @@ const FolderIcon = () => (
 )
 
 const DETACHED_LABEL = 'HEAD détachée'
-const LAST_FOLDER = /^(.+?)([\\/][^\\/]+[\\/]?)$/
+const LAST_FOLDER = /([^\\/]+)[\\/]*$/
 
-const pathParts = (path: string): { parent: string; folder: string } => {
-  const match = LAST_FOLDER.exec(path)
-  return match ? { parent: match[1], folder: match[2] } : { parent: '', folder: path }
-}
+const lastFolder = (path: string): string => LAST_FOLDER.exec(path)?.[1] ?? path
 
 const BranchIcon = () => (
   <svg {...ICON_PROPS} aria-hidden="true">
@@ -168,7 +165,6 @@ export const PaneView = memo(function PaneView({ pane, active, zoomed, onToggleZ
   }
   const branchTitle = context?.branch ? `Copier la branche « ${context.branch} »` : gitSummary(context)
   const branchLabel = context?.branch ?? (context?.detachedHead ? DETACHED_LABEL : null)
-  const { parent, folder } = pathParts(pane.path)
 
   return (
     <section
@@ -182,7 +178,7 @@ export const PaneView = memo(function PaneView({ pane, active, zoomed, onToggleZ
         onDoubleClick={handleHeaderDoubleClick}
       >
         <span className="flex min-w-0 flex-1 items-baseline gap-1">
-          <span className="mr-1 min-w-[2em] truncate font-semibold text-tily-ink">{pane.shell}</span>
+          {pane.shell !== DEFAULT_SHELL && <span className="mr-1 min-w-[2em] truncate font-semibold text-tily-ink">{pane.shell}</span>}
           {agent && (
             <span className="flex min-w-0 self-center">
               <AgentBadge agent={agent} />
@@ -193,16 +189,15 @@ export const PaneView = memo(function PaneView({ pane, active, zoomed, onToggleZ
               <AgentOwnerMark owner={pane.owner} />
             </span>
           )}
-          <span className="flex min-w-0 flex-1 font-mono whitespace-nowrap text-tily-green" data-tip={pane.path}>
-            {parent && <span className="min-w-[1.2em] truncate">{parent}</span>}
-            <span className={parent ? 'max-w-[calc(100%_-_1.2em)] shrink-0 truncate' : 'truncate'}>{folder}</span>
+          <span className="min-w-0 flex-1 truncate font-mono whitespace-nowrap text-tily-green" data-tip={pane.path}>
+            {lastFolder(pane.path)}
           </span>
         </span>
         {branchLabel && (
           <button
             type="button"
             className="flex max-w-[35%] min-w-0 shrink cursor-pointer items-center gap-1 rounded font-mono text-tily-muted hover:text-tily-ink @max-[520px]:hidden"
-            data-tip={withShortcut(`${gitSummary(context)} · Clic : vue Git`, gitShortcut)}
+            data-tip={withShortcut(`${gitSummary(context)} · Vue Git`, gitShortcut)}
             aria-label={`${branchLabel} : ouvrir la vue Git`}
             onClick={handleOpenGit}
           >

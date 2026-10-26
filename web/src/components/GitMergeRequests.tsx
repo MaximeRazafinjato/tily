@@ -64,12 +64,12 @@ export function GitMergeRequests({ root, branch }: GitMergeRequestsProps) {
         <button
           type="button"
           aria-expanded={expanded}
-          className="flex min-w-0 cursor-pointer items-center gap-[4px] rounded text-left text-[11px] font-semibold tracking-[0.06em] text-tily-muted uppercase hover:text-tily-ink"
+          className="flex min-w-0 cursor-pointer items-center gap-[4px] rounded text-left text-[11px] font-semibold tracking-[0.06em] text-tily-ink uppercase"
           onClick={toggleMergeRequests}
         >
           <Icon name={IconName.Chevron} size={10} className={`shrink-0 translate-y-[0.5px] transition-transform ${expanded ? 'rotate-90' : ''}`} />
           <span className="truncate">{sectionTitle(forge?.kind)}</span>
-          <span className="shrink-0 text-[11px] font-normal tracking-normal normal-case">{count}</span>
+          <span className="shrink-0 text-[11px] font-normal tracking-normal text-tily-muted normal-case">{count}</span>
         </button>
         {current?.loading && <Spinner />}
         <span className="ml-auto" />

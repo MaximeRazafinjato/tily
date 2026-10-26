@@ -37,12 +37,12 @@ export function McpSettingsSection({ sectionClassName, mcp }: McpSettingsSection
       <span className="flex items-center gap-3">
         <span className={`text-[11px] ${tone}`}>{text}</span>
         {mcp.installed && (
-          <button type="button" className={SETTINGS_SECONDARY} data-tip={`Retire le serveur « tily » de ${mcp.configFile} et ferme le canal local`} onClick={removeMcpServer}>
+          <button type="button" className={SETTINGS_SECONDARY} data-tip={`Retirer le serveur « tily » de ${mcp.configFile}`} onClick={removeMcpServer}>
             Désactiver
           </button>
         )}
         {(!mcp.installed || otherCopy) && mcp.available && (
-          <button type="button" className={PRIMARY} data-tip={`Déclare le serveur « tily » dans ${mcp.configFile} (niveau utilisateur de Claude Code) en gardant ses autres serveurs et réglages ; effet aux prochaines sessions claude`} onClick={installMcpServer}>
+          <button type="button" className={PRIMARY} data-tip={`Déclarer le serveur « tily » dans ${mcp.configFile}`} onClick={installMcpServer}>
             {otherCopy ? 'Activer pour cette copie' : 'Activer'}
           </button>
         )}

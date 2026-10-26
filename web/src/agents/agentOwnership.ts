@@ -15,6 +15,6 @@ const ownerLocation = (session: Session | null, owner: string): string | undefin
 export const ownerTip = (session: Session | null, owner: string): string => {
   const location = ownerLocation(session, owner)
   return location
-    ? `Créé par Claude Code depuis « ${location} » : il peut y lancer et y interrompre des commandes sans vous demander.`
-    : 'Créé par Claude Code depuis un pane aujourd’hui fermé.'
+    ? `Créé par Claude Code depuis « ${location} »`
+    : 'Créé par Claude Code depuis un pane aujourd’hui fermé'
 }

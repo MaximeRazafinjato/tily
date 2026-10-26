@@ -32,6 +32,7 @@ export enum IconName {
   Push = 'push',
   Refresh = 'refresh',
   Remote = 'remote',
+  RemoteOff = 'remoteOff',
   Search = 'search',
   Settings = 'settings',
   Sidebar = 'sidebar',

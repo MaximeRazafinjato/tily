@@ -60,7 +60,7 @@ export function HeaderWorkspaceItem({ workspace, siblings, counts, agents, activ
         <button
           type="button"
           aria-current={active || undefined}
-          data-tip={`${name} · Double-clic pour renommer`}
+          data-tip={name}
           className="flex h-full max-w-[200px] min-w-0 cursor-pointer items-center text-left text-[13px]"
           onDoubleClick={handleRename}
           onKeyDown={handleKeyDown}

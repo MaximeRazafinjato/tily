@@ -76,7 +76,7 @@ const commandItems = (session: Session, shells: ShellProfile[]): PaletteItem[] =
     bound('settings', 'Paramètres', Command.Settings),
     bound('settings-export', 'Exporter les préférences…', Command.SettingsExport),
     bound('settings-import', 'Importer les préférences…', Command.SettingsImport),
-    bound('search-terminals', 'Rechercher dans tous les terminaux…', Command.SearchTerminals, 'Alt + Entrée dans la recherche'),
+    bound('search-terminals', 'Rechercher dans tous les terminaux…', Command.SearchTerminals, 'Alt+Entrée dans la recherche'),
     bound('restore-tab', 'Rouvrir le dernier onglet fermé', Command.RestoreTab),
     bound('toggle-sidebar', session.sidebarCollapsed ? 'Afficher les workspaces' : 'Masquer les workspaces', Command.ToggleSidebar),
     bound('focus-sidebar', 'Aller au panneau des workspaces', Command.FocusSidebar),

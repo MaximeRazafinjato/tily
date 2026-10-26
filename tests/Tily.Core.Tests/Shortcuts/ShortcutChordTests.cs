@@ -61,6 +61,6 @@ public sealed class ShortcutChordTests
     {
         var shown = ShortcutChord.Display("Ctrl+Shift+ArrowLeft");
 
-        Assert.Equal("Ctrl + Maj + ←", shown);
+        Assert.Equal("Ctrl+Maj+←", shown);
     }
 }

@@ -36,9 +36,9 @@ const shortcutDetail = (command: Command) => {
 }
 
 const itemsFor = (canCopy: boolean, zoomed: boolean, actions: TerminalMenuActions): ActionMenuItem[] => [
-  { id: 'copy', label: 'Copier', detail: <MenuShortcut keys="Ctrl + Maj + C" />, disabled: !canCopy, run: actions.copy },
+  { id: 'copy', label: 'Copier', detail: <MenuShortcut keys="Ctrl+Maj+C" />, disabled: !canCopy, run: actions.copy },
   { id: 'copy-last-output', label: 'Copier la sortie de la dernière commande', run: actions.copyLastOutput },
-  { id: 'paste', label: 'Coller', detail: <MenuShortcut keys="Ctrl + Maj + V" />, run: actions.paste },
+  { id: 'paste', label: 'Coller', detail: <MenuShortcut keys="Ctrl+Maj+V" />, run: actions.paste },
   { id: 'select-all', label: 'Tout sélectionner', run: actions.selectAll },
   { id: 'clear-scrollback', label: 'Effacer l’historique de défilement', run: actions.clearScrollback },
   { id: 'split-x', label: 'Split côte à côte', detail: shortcutDetail(Command.SplitSideBySide), run: actions.splitSideBySide },

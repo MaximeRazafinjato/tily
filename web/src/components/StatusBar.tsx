@@ -5,7 +5,7 @@ import { useGitStore } from '../store/gitStore'
 import { StatusLevel, useHostStore } from '../store/hostStore'
 import { useStatusLogStore } from '../store/statusLogStore'
 import { useWorktreeStore } from '../store/worktreeStore'
-import { entryFullDate, entryTime, toggleStatusLog } from '../statusLog/statusLogActions'
+import { toggleStatusLog } from '../statusLog/statusLogActions'
 import { formatCommandDuration } from '../terminal/commandNotices'
 import { Icon } from './Icon'
 import { IconName } from './iconName'
@@ -20,6 +20,8 @@ const STATUS_CLASSES: Record<StatusLevel, string> = {
   [StatusLevel.Error]: 'text-tily-error',
 }
 
+const INFO_FADE_MS = 8000
+
 const untilTomorrow = (): number => {
   const now = new Date()
   return new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).getTime() - now.getTime()
@@ -27,6 +29,7 @@ const untilTomorrow = (): number => {
 
 export function StatusBar() {
   const [today, setToday] = useState(() => new Date())
+  const [fadedAt, setFadedAt] = useState('')
   const status = useHostStore((state) => state.status)
   const unsaved = useHostStore((state) => state.unsaved)
   const logShortcut = useShortcutText(Command.ToggleStatusLog)
@@ -42,6 +45,16 @@ export function StatusBar() {
     return () => clearTimeout(timer)
   }, [today])
 
+  useEffect(() => {
+    if (status.level !== StatusLevel.Info || !status.at) {
+      return
+    }
+    const timer = setTimeout(() => setFadedAt(status.at), INFO_FADE_MS)
+    return () => clearTimeout(timer)
+  }, [status.at, status.level])
+
+  const statusText = status.level === StatusLevel.Info && status.at !== '' && fadedAt === status.at ? '' : status.text
+
   return (
     <>
       {logOpen && <StatusLogDrawer today={today} />}
@@ -54,11 +67,11 @@ export function StatusBar() {
           className="flex h-full min-w-0 flex-1 cursor-pointer items-center gap-[6px] px-3 text-left hover:bg-tily-green-hover"
           onClick={toggleStatusLog}
         >
-          <span className="flex shrink-0" data-tip={withShortcut(logOpen ? 'Masquer le journal' : 'Afficher le journal des messages', logShortcut)}>
+          <span className="flex shrink-0" data-tip={withShortcut(logOpen ? 'Masquer le journal' : 'Afficher le journal', logShortcut)}>
             <Icon name={IconName.Chevron} size={10} className={`text-tily-muted transition-transform ${logOpen ? 'rotate-90' : '-rotate-90'}`} />
           </span>
           {spinning && <Spinner size={10} className="shrink-0 text-tily-green" />}
-          <span className="truncate py-1 [text-box:trim-both_cap_alphabetic]">{busy ? busyLabel(busy, busyRefs) : status.text}</span>
+          <span className="truncate py-1 [text-box:trim-both_cap_alphabetic]">{busy ? busyLabel(busy, busyRefs) : statusText}</span>
         </button>
         <span role="status" className="sr-only">
           {status.text}
@@ -73,11 +86,6 @@ export function StatusBar() {
             <Spinner size={10} className="shrink-0 text-tily-green" />
             {`Effacement de « ${purge.name} » : ${purge.files.toLocaleString('fr-FR')} fichiers (${formatCommandDuration(purge.elapsedMs)})`}
           </span>
-        )}
-        {status.at && !spinning && (
-          <time dateTime={status.at} data-tip={`Message du ${entryFullDate(status)}`} className="shrink-0 px-3 text-tily-muted tabular-nums">
-            {entryTime(status, today)}
-          </time>
         )}
         {unsaved && (
           <span className="shrink-0 px-3 text-tily-error" data-tip="La dernière sauvegarde a échoué : la session restera en l’état d’avant tant qu’une écriture ne réussit pas.">

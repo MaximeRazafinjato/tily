@@ -166,7 +166,7 @@ export const BrowserPaneView = memo(function BrowserPaneView({ pane, active, zoo
         </button>
         <BrowserAddressBar url={state?.url ?? pane.url} editing={editing} onNavigate={handleNavigate} onLeave={handleLeaveAddress} />
         {errors > 0 && (
-          <button type="button" className="flex h-5 shrink-0 cursor-pointer items-center gap-1 rounded px-1 font-mono text-tily-error hover:bg-tily-green-hover" data-tip={`${errorsLabel(errors)} depuis le dernier chargement (console et réseau) · clic : outils de développement`} aria-label={errorsLabel(errors)} onClick={handleDevTools}>
+          <button type="button" className="flex h-5 shrink-0 cursor-pointer items-center gap-1 rounded px-1 font-mono text-tily-error hover:bg-tily-green-hover" data-tip={`${errorsLabel(errors)} depuis le dernier chargement`} aria-label={errorsLabel(errors)} onClick={handleDevTools}>
             <ErrorIcon />
             {errors}
           </button>

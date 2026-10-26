@@ -8,6 +8,7 @@ import { keepTabInside } from './focusTrap'
 import { SETTINGS_BROWSE, SETTINGS_BUTTON, SETTINGS_HINT, SETTINGS_INPUT, SETTINGS_LABEL, SETTINGS_SECONDARY } from './settingsStyles'
 import { Spinner } from './Spinner'
 import { Icon } from './Icon'
+import { InfoTip } from './InfoTip'
 import { IconName } from './iconName'
 import { WorktreeFailureDetails } from './WorktreeFailureDetails'
 
@@ -94,9 +95,9 @@ export function WorktreeDialog({ draft, sources, plan, planPending, busy, failur
   return (
     <div className="absolute inset-0 z-30 flex items-start justify-center bg-tily-paper/60 pt-[10vh]" onPointerDown={handleBackdropPointerDown} onMouseDown={handleBackdropMouseDown}>
       <form role="dialog" aria-label="Créer un worktree" className="flex max-h-[80vh] w-[560px] max-w-[94vw] flex-col rounded-lg border border-tily-line bg-tily-panel shadow-xl" onKeyDown={keepTabInside} onSubmit={handleSubmit}>
-        <div className="flex items-baseline justify-between border-b border-tily-line px-4 py-3">
+        <div className="flex items-center gap-2 border-b border-tily-line px-4 py-3">
           <h2 className="text-[15px] font-semibold text-tily-ink">Créer un worktree</h2>
-          <span className={SETTINGS_HINT}>Entrée crée · Échap ferme</span>
+          <InfoTip text="Les ports de développement du worktree sont toujours remplacés par des ports libres." />
         </div>
         <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 py-4">
           <div className="flex flex-col gap-1">
@@ -176,23 +177,28 @@ export function WorktreeDialog({ draft, sources, plan, planPending, busy, failur
             {plan?.error && <span className="text-[11px] text-tily-error">{plan.error}</span>}
           </fieldset>
           <fieldset className="flex flex-col gap-2" disabled={busy}>
-            <label className={RADIO_LABEL}>
-              <input type="checkbox" checked={draft.install} onChange={handleInstallChange} />
-              Lancer pnpm install dans le terminal du worktree (si package.json existe)
-            </label>
-            <label className={RADIO_LABEL}>
-              <input type="checkbox" checked={draft.database} onChange={handleDatabaseChange} />
-              Répliquer la base de données (PostgreSQL sous Docker ou SQL Server)
-            </label>
-            <span className={SETTINGS_HINT}>Les ports de développement sont toujours remplacés par des ports libres.</span>
+            <span className="flex items-center gap-2">
+              <label className={RADIO_LABEL}>
+                <input type="checkbox" checked={draft.install} onChange={handleInstallChange} />
+                pnpm install
+              </label>
+              <InfoTip text="Lancé dans le terminal du worktree, si package.json existe." />
+            </span>
+            <span className="flex items-center gap-2">
+              <label className={RADIO_LABEL}>
+                <input type="checkbox" checked={draft.database} onChange={handleDatabaseChange} />
+                Répliquer la base
+              </label>
+              <InfoTip text="PostgreSQL sous Docker ou SQL Server." />
+            </span>
           </fieldset>
           {failure && <WorktreeFailureDetails failure={failure} />}
         </div>
         <div className="flex items-center justify-end gap-2 border-t border-tily-line px-4 py-3">
-          <button type="button" className={SETTINGS_SECONDARY} onClick={closeWorktreeDialog}>
+          <button type="button" className={SETTINGS_SECONDARY} data-tip="Échap" onClick={closeWorktreeDialog}>
             {busy ? 'Fermer' : 'Annuler'}
           </button>
-          <button type="submit" className={PRIMARY} disabled={!canCreate}>
+          <button type="submit" className={PRIMARY} disabled={!canCreate} data-tip="Entrée">
             {busy && <Spinner size={10} className="text-tily-green" />}
             {busy ? 'Création…' : 'Créer'}
           </button>

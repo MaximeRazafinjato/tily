@@ -18,7 +18,7 @@ interface ProjectItem extends SearchItem {
   project: Project
 }
 
-const OPEN_FOOTER = 'Entrée : nouveau workspace (ou terminal déjà ouvert) · Maj + Entrée : nouvel onglet dans le workspace actif'
+const OPEN_FOOTER = 'Entrée : nouveau workspace (ou terminal déjà ouvert) · Maj+Entrée : nouvel onglet dans le workspace actif'
 
 const LABELS: Record<WorktreePickerKind, { label: string; placeholder: string; empty: string }> = {
   [WorktreePickerKind.Source]: { label: 'Créer un worktree depuis…', placeholder: 'Projet source du worktree…', empty: 'Aucun projet trouvé.' },

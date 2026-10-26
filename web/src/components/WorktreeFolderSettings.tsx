@@ -54,7 +54,7 @@ export function WorktreeFolderSettings({ worktrees, folders, projectsRoot, onCha
                   <span className={`${SETTINGS_HINT} min-w-0 flex-1 truncate font-mono`} data-tip={entry.folder}>
                     {entry.folder}
                   </span>
-                  <button type="button" className={SETTINGS_SECONDARY} data-tip="Les prochains worktrees de ce projet reviendront au dossier ci-dessus" onClick={handleRemove}>
+                  <button type="button" className={SETTINGS_SECONDARY} data-tip="Retirer le dossier de ce projet" onClick={handleRemove}>
                     Retirer
                   </button>
                 </li>

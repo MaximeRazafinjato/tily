@@ -19,8 +19,8 @@ interface WorkspaceContextMenuProps {
 }
 
 const moveItems = ({ position, count }: MenuPlace, move: (offset: number) => void): ActionMenuItem[] => [
-  { id: 'move-up', label: 'Monter', detail: <MenuShortcut keys="Alt + ↑" />, disabled: position <= 0, run: () => move(-1) },
-  { id: 'move-down', label: 'Descendre', detail: <MenuShortcut keys="Alt + ↓" />, disabled: position < 0 || position >= count - 1, run: () => move(1) },
+  { id: 'move-up', label: 'Monter', detail: <MenuShortcut keys="Alt+↑" />, disabled: position <= 0, run: () => move(-1) },
+  { id: 'move-down', label: 'Descendre', detail: <MenuShortcut keys="Alt+↓" />, disabled: position < 0 || position >= count - 1, run: () => move(1) },
 ]
 
 const worktreeItems = (worktrees: WorktreeTarget[]): ActionMenuItem[] =>

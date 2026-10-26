@@ -37,7 +37,7 @@ export function GitBanners({ state, busy }: GitBannersProps) {
             <button type="button" className={GIT_PRIMARY} aria-disabled={conflicts > 0 || busy !== null} data-tip={conflicts > 0 ? 'Marquez d’abord tous les fichiers résolus' : 'Terminer l’opération'} onClick={handleContinue}>
               Terminer
             </button>
-            <button type="button" className={GIT_SECONDARY} data-tip="Revenir à l’état d’avant l’opération" onClick={abortOperation}>
+            <button type="button" className={GIT_SECONDARY} data-tip="Abandonner l’opération" onClick={abortOperation}>
               Abandonner
             </button>
           </div>
@@ -55,7 +55,7 @@ export function GitBanners({ state, busy }: GitBannersProps) {
             <button type="button" className={GIT_SECONDARY} onClick={pullBranch}>
               Pull
             </button>
-            <button type="button" className={GIT_DANGER} data-tip="git push --force-with-lease, après confirmation" onClick={forcePush}>
+            <button type="button" className={GIT_DANGER} data-tip="Push --force-with-lease" onClick={forcePush}>
               Forcer le push…
             </button>
           </div>

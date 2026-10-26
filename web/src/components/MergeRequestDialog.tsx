@@ -89,7 +89,6 @@ export function MergeRequestDialog() {
             <h2 className="text-[15px] font-semibold text-tily-ink">{title}</h2>
             {data && <span className={`${SETTINGS_HINT} truncate font-mono`}>{`${data.forge.host} · ${data.forge.project}`}</span>}
           </div>
-          <span className={`${SETTINGS_HINT} shrink-0`}>{`Ctrl + Entrée ${editing ? 'enregistre' : 'crée'} · Échap ferme`}</span>
         </div>
         <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 py-4">
           {!data && !form.loadError && (
@@ -139,10 +138,10 @@ export function MergeRequestDialog() {
               {form.closeArmed ? 'Confirmer la fermeture' : `Fermer la ${noun}`}
             </button>
           )}
-          <button type="button" className={SETTINGS_SECONDARY} onClick={closeMergeRequestForm}>
+          <button type="button" className={SETTINGS_SECONDARY} data-tip="Échap" onClick={closeMergeRequestForm}>
             {submitting ? 'Fermer' : 'Annuler'}
           </button>
-          <button type="submit" className={PRIMARY} disabled={!canSubmitMergeRequest(form)}>
+          <button type="submit" className={PRIMARY} disabled={!canSubmitMergeRequest(form)} data-tip="Ctrl+Entrée">
             {submitting && <Spinner size={10} className="text-tily-green" />}
             {submitLabel}
           </button>

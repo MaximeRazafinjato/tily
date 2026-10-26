@@ -92,4 +92,4 @@ export const formatChord = (chord: string): string =>
   chord
     .split(SEPARATOR)
     .map((part) => DISPLAY_NAMES[part] ?? part)
-    .join(' + ')
+    .join('+')

@@ -88,7 +88,7 @@ export function GitRefRow({ rowKey, icon, name, meta, metaTip, tip, current = fa
           {meta}
         </span>
       )}
-      <button type="button" tabIndex={-1} className={`${ROW_ACTION} opacity-0 group-focus-within:opacity-100 group-hover:opacity-100`} aria-label={`Actions de ${name}`} data-tip="Actions (clic droit, Maj + F10)" onClick={handleMoreClick}>
+      <button type="button" tabIndex={-1} className={`${ROW_ACTION} opacity-0 group-focus-within:opacity-100 group-hover:opacity-100`} aria-label={`Actions de ${name}`} data-tip="Actions (Maj+F10)" onClick={handleMoreClick}>
         <Icon name={IconName.More} />
       </button>
     </div>

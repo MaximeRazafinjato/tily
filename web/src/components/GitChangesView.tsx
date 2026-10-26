@@ -1,4 +1,4 @@
-import { useMemo, useState, type KeyboardEvent } from 'react'
+import { useMemo, useState, type KeyboardEvent, type ReactNode } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 import { GitDiffSource, type GitState } from '../bridge/gitMessages'
 import { changeMenu, changeMenuLabel, discardSelection, toggleSelection } from '../git/gitChangeMenu'
@@ -17,9 +17,9 @@ import { ROW_ACTION, ROW_STAGE_BUTTON, ROW_UNSTAGE_BUTTON } from './rightPanelSt
 interface GitChangesViewProps {
   state: GitState
   busy: string | null
+  footer: ReactNode
 }
 
-const KEYBOARD_TIP = 'Entrée : diff · Espace : stage ou unstage · Suppr : abandonner · Ctrl ou Maj + clic : sélection multiple · clic droit : actions'
 const MENU_OFFSET_PX = 16
 
 const hiddenNote = (shown: number, total: number) =>
@@ -54,7 +54,7 @@ const openSelectionMenu = (rows: GitChangeRow[], row: GitChangeRow, x: number, y
   openGitMenu({ x, y, label: changeMenuLabel(selected), items: changeMenu(selected, state), restoreFocus })
 }
 
-export function GitChangesView({ state, busy }: GitChangesViewProps) {
+export function GitChangesView({ state, busy, footer }: GitChangesViewProps) {
   const { file, commit, selection } = useGitStore(useShallow((store) => ({ file: store.file, commit: store.commit, selection: store.changeSelection.keys })))
   const [focusKey, setFocusKey] = useState<string | null>(null)
   const rows = useMemo(() => changeRows(state.conflicts, state.staged, state.unstaged), [state.conflicts, state.staged, state.unstaged])
@@ -142,13 +142,13 @@ export function GitChangesView({ state, busy }: GitChangesViewProps) {
         {empty && <p className="px-[12px] py-[6px] text-[12px] text-tily-muted italic">Aucune modification : l’arbre de travail est propre.</p>}
         {state.conflicts.length > 0 && (
           <>
-            <GitGroupHeader title="Conflits" count={state.conflicts.length} tip="Ouvrez chaque fichier dans l’éditeur, résolvez-le puis marquez-le résolu" />
+            <GitGroupHeader title="Conflits" count={state.conflicts.length} />
             {renderRows(GitRowGroup.Conflict)}
           </>
         )}
         {state.unstagedTotal > 0 && (
           <>
-            <GitGroupHeader title="Unstaged" count={state.unstagedTotal} tip={KEYBOARD_TIP}>
+            <GitGroupHeader title="Unstaged" count={state.unstagedTotal}>
               <button type="button" className={`${ROW_ACTION} hover:text-tily-error`} aria-label="Tout abandonner" data-tip="Abandonner toutes les modifications unstaged" onClick={handleDiscardAll}>
                 <Icon name={IconName.Discard} />
               </button>
@@ -162,7 +162,7 @@ export function GitChangesView({ state, busy }: GitChangesViewProps) {
         )}
         {state.stagedTotal > 0 && (
           <>
-            <GitGroupHeader title="Staged" count={state.stagedTotal} tip={KEYBOARD_TIP}>
+            <GitGroupHeader title="Staged" count={state.stagedTotal}>
               <button type="button" className={ROW_UNSTAGE_BUTTON} aria-label="Unstage de tout" data-tip="Unstage de tout" onClick={handleUnstageAll}>
                 <Icon name={IconName.Minus} />
               </button>
@@ -172,6 +172,7 @@ export function GitChangesView({ state, busy }: GitChangesViewProps) {
           </>
         )}
       </div>
+      {footer}
       <GitCommitBox state={state} busy={busy} />
     </div>
   )

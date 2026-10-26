@@ -39,6 +39,7 @@ export function Header({ workspaceName, renaming, sidebarCollapsed, leaderActive
       <div className="flex min-w-0 items-baseline gap-4">
         <span className="text-[17px] font-semibold text-tily-green">Tily</span>
         {!navigation &&
+          (sidebarCollapsed || renaming) &&
           (workspaceName === null ? (
             <span className="text-[16px] text-tily-muted">Aucun workspace</span>
           ) : renaming ? (
@@ -53,12 +54,12 @@ export function Header({ workspaceName, renaming, sidebarCollapsed, leaderActive
         <UpdateButton />
         <button
           type="button"
-          className="flex h-[26px] cursor-pointer items-center gap-1.5 rounded border border-tily-line px-2 text-tily-muted hover:bg-tily-green-hover hover:text-tily-ink"
+          aria-label="Paramètres"
+          className="flex h-[26px] cursor-pointer items-center rounded border border-tily-line px-2 text-tily-muted hover:bg-tily-green-hover hover:text-tily-ink"
           data-tip={settingsTip}
           onClick={onOpenSettings}
         >
-          <Icon name={IconName.Settings} className="translate-y-px" />
-          <span className="text-xs">Paramètres</span>
+          <Icon name={IconName.Settings} size={14} />
         </button>
       </div>
     </header>

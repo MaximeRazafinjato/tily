@@ -14,7 +14,7 @@ import { cancelClose, confirmClose } from '../terminal/closeGuard'
 import { confirmDelete, focusFileTree } from '../explorer/fileExplorerActions'
 import { useExplorerStore } from '../store/explorerStore'
 import { focusGitPanel, takeFocusFromCoveredTerminals } from '../git/gitFocus'
-import { openWorkspaceNotes, toggleRightPanel } from '../panel/rightPanel'
+import { openWorkspaceNotes, togglePanelView, toggleRightPanel } from '../panel/rightPanel'
 import { useGitStore } from '../store/gitStore'
 import { usePreviewStore } from '../store/previewStore'
 import { useMcpConsentStore } from '../store/mcpConsentStore'
@@ -151,6 +151,8 @@ const handleNewTabIn = (workspaceId: string): void => {
   selectWorkspace(workspaceId)
   newTab(DEFAULT_SHELL)
 }
+
+const togglePanelFromTabBar = (view: RightPanelView): void => togglePanelView(view, true)
 
 const handleOpenTerminalAt = (path: string): void => {
   const { session, newTabAt } = useSessionStore.getState()
@@ -334,8 +336,8 @@ export function AppShell({ session }: AppShellProps) {
           workspace={current}
           shells={availableShells}
           renamingTabId={tabRenameOrigin === RenameOrigin.TabBar ? renamingTabId : null}
-          panelOpen={Boolean(currentTab.explorer)}
-          onTogglePanel={toggleRightPanel}
+          panelView={currentTab.explorer ? (currentTab.panel ?? RightPanelView.Files) : null}
+          onTogglePanel={togglePanelFromTabBar}
           onSelect={selectTab}
           onStartRename={startRenamingTab}
           onCommitRename={handleCommitTabRename}

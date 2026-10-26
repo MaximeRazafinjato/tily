@@ -36,7 +36,7 @@ export function ProjectPicker({ projects, root, error, onClose, onSelect }: Proj
       onClose={onClose}
       onRun={handleRun}
       onRunAlternate={handleRunInActiveWorkspace}
-      footer="Entrée : nouveau workspace · Maj + Entrée : nouvel onglet dans le workspace actif"
+      footer="Entrée : nouveau workspace · Maj+Entrée : nouvel onglet dans le workspace actif"
     />
   )
 }

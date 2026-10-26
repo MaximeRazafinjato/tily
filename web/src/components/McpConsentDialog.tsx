@@ -49,7 +49,6 @@ function McpConsentContent({ request, waiting }: { request: McpConsentRequest; w
       <div role="alertdialog" aria-label={TITLE} className="flex max-h-[76vh] w-[560px] max-w-[94vw] flex-col rounded-lg border border-tily-line bg-tily-panel shadow-xl" onKeyDown={keepTabInside}>
         <div className="flex items-baseline justify-between border-b border-tily-line px-4 py-3">
           <h2 className="text-[15px] font-semibold text-tily-ink">{TITLE}</h2>
-          <span className="text-[11px] text-tily-muted">Entrée ou Échap refuse</span>
         </div>
         <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-4 py-4">
           <dl className="grid grid-cols-[auto_1fr] items-baseline gap-x-3 gap-y-2">
@@ -64,7 +63,7 @@ function McpConsentContent({ request, waiting }: { request: McpConsentRequest; w
           <p className="text-[11px] text-tily-muted">Sans réponse dans les 2 minutes, la demande est refusée.{waiting > 0 ? ` ${waitingLabel(waiting)}` : ''}</p>
         </div>
         <div className="flex items-center justify-end gap-2 border-t border-tily-line px-4 py-3">
-          <button ref={refuseRef} type="button" className={SECONDARY} onClick={handleRefuse}>
+          <button ref={refuseRef} type="button" className={SECONDARY} data-tip="Entrée ou Échap" onClick={handleRefuse}>
             Refuser
           </button>
           <button type="button" className={PRIMARY} aria-disabled={!armed} onClick={handleAllow}>

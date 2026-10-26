@@ -70,13 +70,13 @@ export function PaneSearchBar() {
       <span role="status" className={`min-w-16 px-1 text-center text-[11px] whitespace-nowrap tabular-nums ${valid ? 'text-tily-muted' : 'text-tily-error'}`}>
         {label}
       </span>
-      <button type="button" tabIndex={-1} className={`${BAR_BUTTON} translate-y-px self-center`} aria-label="Occurrence précédente" data-tip="Occurrence précédente, vers le haut (Entrée)" onPointerDown={handleButtonPointerDown} onClick={handlePrevious}>
+      <button type="button" tabIndex={-1} className={`${BAR_BUTTON} translate-y-px self-center`} aria-label="Occurrence précédente" data-tip="Occurrence précédente (Entrée)" onPointerDown={handleButtonPointerDown} onClick={handlePrevious}>
         <Icon name={IconName.Chevron} size={10} className="-rotate-90" />
       </button>
-      <button type="button" tabIndex={-1} className={`${BAR_BUTTON} translate-y-[0.5px] self-center`} aria-label="Occurrence suivante" data-tip="Occurrence suivante, vers le bas (Maj + Entrée)" onPointerDown={handleButtonPointerDown} onClick={handleNext}>
+      <button type="button" tabIndex={-1} className={`${BAR_BUTTON} translate-y-[0.5px] self-center`} aria-label="Occurrence suivante" data-tip="Occurrence suivante (Maj+Entrée)" onPointerDown={handleButtonPointerDown} onClick={handleNext}>
         <Icon name={IconName.Chevron} size={10} className="rotate-90" />
       </button>
-      <button type="button" tabIndex={-1} className={`${BAR_BUTTON} text-[11px]`} aria-label="Chercher dans tous les terminaux" data-tip="Chercher dans tous les terminaux (Alt + Entrée)" onPointerDown={handleButtonPointerDown} onClick={openGlobalSearch}>
+      <button type="button" tabIndex={-1} className={`${BAR_BUTTON} text-[11px]`} aria-label="Chercher dans tous les terminaux" data-tip="Chercher dans tous les terminaux (Alt+Entrée)" onPointerDown={handleButtonPointerDown} onClick={openGlobalSearch}>
         Tous
       </button>
       <button type="button" tabIndex={-1} className={`${BAR_BUTTON} translate-y-[0.5px] self-center hover:text-tily-error`} aria-label="Fermer la recherche" data-tip="Fermer la recherche (Échap)" onPointerDown={handleButtonPointerDown} onClick={closePaneSearch}>

@@ -28,7 +28,7 @@ const OPEN_TONES: Record<MergeRequestReview, string> = {
   [MergeRequestReview.ReviewRequired]: 'text-tily-warning',
 }
 
-export const MERGE_REQUEST_LINK_HINT = 'Clic : navigateur · Maj + clic : pane navigateur de Tily'
+export const MERGE_REQUEST_LINK_HINT = 'Ouvrir dans le navigateur'
 
 export const kindNoun = (kind: ForgeKind | undefined): string => {
   if (kind === undefined) {
@@ -76,7 +76,6 @@ export const mergeRequestTip = (item: MergeRequest): string =>
     item.reviewers.length > 0 ? `reviewers : ${userList(item.reviewers)}` : null,
     item.labels.length > 0 ? `labels : ${item.labels.join(', ')}` : null,
     `mise à jour ${updatedText(item)}`,
-    MERGE_REQUEST_LINK_HINT,
   ]
     .filter(Boolean)
     .join(' · ')

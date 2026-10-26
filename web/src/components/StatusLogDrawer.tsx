@@ -79,10 +79,10 @@ export function StatusLogDrawer({ today }: { today: Date }) {
         <button type="button" className={`${TEXT_BUTTON} aria-pressed:bg-tily-green-soft aria-pressed:text-tily-green-deep`} aria-pressed={problemsOnly} data-tip={problemsOnly ? 'Afficher tous les messages' : 'N’afficher que les avertissements et les erreurs'} onClick={handleToggleProblems}>
           Avertissements et erreurs
         </button>
-        <button type="button" className={TEXT_BUTTON} aria-disabled={empty} data-tip="Copier tout le journal dans le presse-papiers" onClick={handleCopy}>
+        <button type="button" className={TEXT_BUTTON} aria-disabled={empty} data-tip="Copier le journal" onClick={handleCopy}>
           Copier
         </button>
-        <button type="button" className={TEXT_BUTTON} aria-disabled={empty} data-tip="Effacer tous les messages du journal" onClick={handleClear}>
+        <button type="button" className={TEXT_BUTTON} aria-disabled={empty} data-tip="Effacer le journal" onClick={handleClear}>
           Effacer
         </button>
         <button type="button" className={PANEL_HEADER_BUTTON} aria-label="Masquer le journal" data-tip={hideTip} onClick={closeStatusLog}>

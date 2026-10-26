@@ -10,7 +10,7 @@ const LAST_SEPARATOR = /^(.*)\\([^\\]+)$/
 const LOADING = 'Chargement des fichiers…'
 const NO_MATCH = 'Aucun fichier ne correspond à la recherche.'
 const TRUNCATED = 'Liste incomplète (plus de 20 000 fichiers, ou parcours hors dépôt arrêté après 3 secondes) : un fichier absent de la liste ne peut pas être trouvé ici.'
-const FOOTER = 'Entrée : éditeur · Alt + Entrée : aperçu · Maj + Entrée : afficher dans l’arbre · Ctrl + Entrée : insérer le chemin dans le terminal'
+const FOOTER = 'Entrée : éditeur · Alt+Entrée : aperçu · Maj+Entrée : afficher dans l’arbre · Ctrl+Entrée : insérer le chemin dans le terminal'
 
 const CHANGED_HINT = 'modifié'
 const RECENT_HINT = 'récent'
