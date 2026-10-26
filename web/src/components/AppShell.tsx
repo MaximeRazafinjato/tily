@@ -238,7 +238,7 @@ export function AppShell({ session }: AppShellProps) {
       closeConfirmation: state.closeConfirmation,
     })),
   )
-  const { startRenamingWorkspace, startRenamingTab, openPalette, closePalette, openSettings, closeSettings } = useUiStore.getState()
+  const { startRenamingTab, openPalette, closePalette, openSettings, closeSettings } = useUiStore.getState()
   const deleteRequest = useExplorerStore((state) => state.deleteRequest)
   const gitConfirmation = useGitStore((state) => state.confirmation)
   const unsavedPreview = usePreviewStore((state) => state.pendingAction !== null)
@@ -320,11 +320,6 @@ export function AppShell({ session }: AppShellProps) {
     }
     toggleSidebar()
   }
-  const handleStartRename = () => {
-    if (workspace) {
-      startRenamingWorkspace(workspace.id, RenameOrigin.Header)
-    }
-  }
 
   const renderMain = (current: Workspace) => {
     const currentTab = activeTab(current)
@@ -374,7 +369,6 @@ export function AppShell({ session }: AppShellProps) {
         }
         onToggleSidebar={handleToggleSidebar}
         onOpenSettings={handleOpenSettings}
-        onStartRename={handleStartRename}
         onCommitRename={handleCommitRename}
         onCancelRename={finishRename}
       />
