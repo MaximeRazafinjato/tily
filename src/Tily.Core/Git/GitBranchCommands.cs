@@ -20,8 +20,7 @@ public static class GitBranchCommands
             repository.RequireCommit(startPoint);
         }
 
-        var before = repository.HeadSha();
-        var branchBefore = repository.CurrentBranch();
+        var (before, branchBefore) = repository.HeadAndBranch();
         var arguments = checkout ? new List<string> { "switch", "-c", branch } : ["branch", branch];
         if (startPoint is not null)
         {
@@ -46,8 +45,7 @@ public static class GitBranchCommands
     {
         var name = GitNames.RequireRevision(reference);
         repository.RequireNoOperation();
-        var before = repository.HeadSha();
-        var branchBefore = repository.CurrentBranch();
+        var (before, branchBefore) = repository.HeadAndBranch();
         string? created = null;
         string label;
         GitOutputModel output;
@@ -80,14 +78,15 @@ public static class GitBranchCommands
         }
 
         GitRepository.Require(output, $"Checkout de « {label} » impossible.");
+        var (after, branchAfter) = repository.HeadAndBranch();
         var record = new GitUndoRecordModel
         {
             Kind = GitUndoKind.Switch,
             Label = $"Checkout de « {label} »",
             HeadBefore = before,
-            HeadAfter = repository.HeadSha(),
+            HeadAfter = after,
             BranchBefore = branchBefore,
-            BranchAfter = repository.CurrentBranch(),
+            BranchAfter = branchAfter,
             RefName = created
         };
         return new GitOutcomeModel(target == CommitTarget ? $"Checkout de {label} : HEAD détachée." : $"Checkout de « {label} » terminé.", Undo: record);
