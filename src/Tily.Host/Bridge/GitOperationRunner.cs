@@ -8,12 +8,14 @@ public sealed class GitOperationRunner
 {
     private readonly Func<string?, GitRepository> _open;
     private readonly Action<object> _post;
-    private readonly Action _completed;
+    private readonly Action<GitChangeScope> _completed;
     private readonly BackgroundQueue _queue;
+    private static readonly HashSet<string> WorkingTreeOperations = ["git.stage", "git.unstage", "git.discard", "git.stageLines", "git.unstageLines", "git.discardLines", "git.ignore", "git.resolve"];
+
     private readonly ConcurrentDictionary<string, byte> _forceAllowed = new(StringComparer.OrdinalIgnoreCase);
     private readonly GitAutoFetchSchedule _autoFetches = new();
 
-    public GitOperationRunner(Func<string?, GitRepository> open, Action<object> post, Action completed, Action<Exception> onError)
+    public GitOperationRunner(Func<string?, GitRepository> open, Action<object> post, Action<GitChangeScope> completed, Action<Exception> onError)
     {
         _open = open;
         _post = post;
@@ -98,7 +100,7 @@ public sealed class GitOperationRunner
         }
         finally
         {
-            _completed();
+            _completed(WorkingTreeOperations.Contains(command.Type) ? GitChangeScope.WorkingTree : GitChangeScope.Repository);
         }
     }
 
@@ -128,7 +130,7 @@ public sealed class GitOperationRunner
             finally
             {
                 _post(new { type = "git.autoFetchEnded", path = repository.Root });
-                _completed();
+                _completed(GitChangeScope.Repository);
             }
         }
         catch (Exception exception) when (exception is GitCommandException or IOException or UnauthorizedAccessException)

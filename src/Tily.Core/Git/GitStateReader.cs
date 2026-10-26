@@ -38,6 +38,27 @@ public static class GitStateReader
             worktreesRead.GetAwaiter().GetResult());
     }
 
+    public static GitStateModel? ReadWorkingTree(GitRepository repository, GitStateModel previous, GitUndoRecordModel? previousUndo, GitUndoRecordModel? undo, Func<string, bool> forcePushAllowed)
+    {
+        var status = repository.Status();
+        var operation = repository.Operation();
+        if (status.Head != previous.Head || operation != previous.Operation)
+        {
+            return null;
+        }
+
+        return previous with
+        {
+            Staged = status.Staged,
+            Unstaged = status.Unstaged,
+            Conflicts = status.Conflicts,
+            StagedTotal = status.StagedTotal,
+            UnstagedTotal = status.UnstagedTotal,
+            Undo = ReferenceEquals(undo, previousUndo) ? previous.Undo : GitUndo.Describe(repository, undo, status.Head, operation),
+            ForcePushAllowed = status.Head.Branch is { } branch && forcePushAllowed(branch)
+        };
+    }
+
     public static string Signature(GitStateModel state) =>
         string.Join('\n', new[] { state.Head.Sha ?? string.Empty, state.Head.Branch ?? string.Empty, state.Head.Upstream ?? string.Empty }
             .Concat(state.Branches.Select(branch => $"{branch.Name} {branch.Sha}"))
