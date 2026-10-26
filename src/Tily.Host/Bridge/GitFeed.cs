@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text.Json;
 using Tily.Core.Git;
 using Tily.Core.Session;
@@ -12,6 +13,7 @@ public sealed class GitFeed : IDisposable
     private readonly Action<object> _post;
     private readonly GitRunner _runner = new();
     private readonly BackgroundQueue _reads;
+    private readonly BackgroundQueue _lookups;
     private readonly GitOperationRunner _operations;
     private readonly Func<bool> _autoFetch;
     private readonly object _sync = new();
@@ -22,13 +24,19 @@ public sealed class GitFeed : IDisposable
     private int _historyCount = GitHistoryReader.PageSize;
     private string? _lastState;
     private string? _lastSignature;
-    private int _refreshQueued;
+    private string? _displayRoot;
+    private GitStateModel? _lastModel;
+    private GitUndoRecordModel? _lastUndo;
+    private long _statusReadAt;
+    private long _repositoryReadAt;
+    private int _pendingRefresh;
 
     public GitFeed(Action<object> post, Func<bool> autoFetch, Action<Exception> onError)
     {
         _post = post;
         _autoFetch = autoFetch;
         _reads = new BackgroundQueue(onError);
+        _lookups = new BackgroundQueue(onError);
         _operations = new GitOperationRunner(Open, post, ScheduleRefresh, onError);
     }
 
@@ -78,6 +86,7 @@ public sealed class GitFeed : IDisposable
     private void Follow(string path)
     {
         GitLocationModel? location;
+        var displayRead = path.Length == 0 ? null : Task.Run(() => GitPathMarks.DisplayRootFrom(_runner, path, string.Empty));
         try
         {
             location = path.Length == 0 ? null : GitRepository.Locate(_runner, path);
@@ -88,6 +97,7 @@ public sealed class GitFeed : IDisposable
             return;
         }
 
+        var displayRoot = displayRead?.GetAwaiter().GetResult() is { Length: > 0 } shown ? shown : location?.Root;
         bool followed;
         lock (_sync)
         {
@@ -100,12 +110,16 @@ public sealed class GitFeed : IDisposable
             if (followed)
             {
                 _watcher?.Dispose();
-                _watcher = location is null ? null : new GitWatcher(location, ScheduleRefresh);
+                _watcher = location is null ? null : new GitWatcher(location, Changed);
                 _location = location;
                 _historyCount = GitHistoryReader.PageSize;
                 _lastState = null;
                 _lastSignature = null;
+                _lastModel = null;
+                _lastUndo = null;
             }
+
+            _displayRoot = displayRoot;
         }
 
         if (path.Length == 0)
@@ -159,29 +173,56 @@ public sealed class GitFeed : IDisposable
     private string? Inaccessible(string path) =>
         GitRepository.AccessProblem(_runner, path) is { } problem ? $"Dépôt Git illisible dans {path} : {problem}" : null;
 
-    public void RefreshSoon() => ScheduleRefresh();
+    public void RefreshSoon() => ScheduleRefresh(GitChangeScope.Repository);
 
-    private void ScheduleRefresh()
+    private void Changed(GitChangeModel change)
     {
-        if (Interlocked.Exchange(ref _refreshQueued, 1) == 0)
+        lock (_sync)
+        {
+            var readAt = change.Scope.HasFlag(GitChangeScope.Repository) ? _repositoryReadAt : _statusReadAt;
+            if (change.LastEvent < readAt)
+            {
+                return;
+            }
+        }
+
+        ScheduleRefresh(change.Scope);
+    }
+
+    private void ScheduleRefresh(GitChangeScope scope)
+    {
+        if (Interlocked.Or(ref _pendingRefresh, (int)scope) == 0)
         {
             _reads.Enqueue(() =>
             {
-                Interlocked.Exchange(ref _refreshQueued, 0);
-                Refresh(false, false, true);
+                var pending = (GitChangeScope)Interlocked.Exchange(ref _pendingRefresh, 0);
+                Refresh(false, false, true, pending == GitChangeScope.WorkingTree);
             });
         }
     }
 
-    private void Refresh(bool forceState, bool forceHistory, bool announceUnchanged = false)
+    private void MarkRead(GitChangeScope scope)
+    {
+        var now = Stopwatch.GetTimestamp();
+        lock (_sync)
+        {
+            _statusReadAt = now;
+            _repositoryReadAt = scope == GitChangeScope.Repository ? now : _repositoryReadAt;
+        }
+    }
+
+    private void Refresh(bool forceState, bool forceHistory, bool announceUnchanged = false, bool workingTreeOnly = false)
     {
         GitLocationModel? location;
         string path;
         GitHistoryScope scope;
         int count;
+        string? displayRoot;
+        GitStateModel? previous;
+        GitUndoRecordModel? previousUndo;
         lock (_sync)
         {
-            (location, path, scope, count) = (_location, _path, _scope, _historyCount);
+            (location, path, scope, count, displayRoot, previous, previousUndo) = (_location, _path, _scope, _historyCount, _displayRoot, _lastModel, _lastUndo);
         }
 
         if (location is null || path.Length == 0)
@@ -190,10 +231,19 @@ public sealed class GitFeed : IDisposable
         }
 
         var repository = new GitRepository(_runner, location);
+        var undo = _operations.Journal.Get(location.Root);
+        bool ForceAllowed(string branch) => _operations.IsForceAllowed(location.Root, branch);
         GitStateModel state;
         try
         {
-            state = GitStateReader.Read(repository, _operations.Journal.Get(location.Root), branch => _operations.IsForceAllowed(location.Root, branch));
+            MarkRead(GitChangeScope.WorkingTree);
+            var workingTree = workingTreeOnly && previous is not null ? GitStateReader.ReadWorkingTree(repository, previous, previousUndo, undo, ForceAllowed) : null;
+            if (workingTree is null)
+            {
+                MarkRead(GitChangeScope.Repository);
+            }
+
+            state = workingTree ?? GitStateReader.Read(repository, undo, ForceAllowed);
         }
         catch (GitCommandException exception)
         {
@@ -214,12 +264,12 @@ public sealed class GitFeed : IDisposable
 
             postState = forceState || json != _lastState;
             postHistory = forceState || forceHistory || signature != _lastSignature;
-            (_lastState, _lastSignature) = (json, signature);
+            (_lastState, _lastSignature, _lastModel, _lastUndo) = (json, signature, state, undo);
         }
 
         if (postState)
         {
-            _post(new { type = "git.state", path, state, displayRoot = GitPathMarks.DisplayRootFrom(_runner, path, location.Root) });
+            _post(new { type = "git.state", path, state, displayRoot = displayRoot ?? location.Root });
         }
         else if (announceUnchanged)
         {
@@ -252,11 +302,35 @@ public sealed class GitFeed : IDisposable
             _historyCount = Math.Clamp(count, GitHistoryReader.PageSize, GitHistoryReader.MaxCommits);
         }
 
-        _reads.Enqueue(() => Refresh(false, true));
+        _reads.Enqueue(RefreshHistory);
+    }
+
+    private void RefreshHistory()
+    {
+        GitLocationModel? location;
+        GitStateModel? state;
+        GitHistoryScope scope;
+        int count;
+        lock (_sync)
+        {
+            (location, state, scope, count) = (_location, _lastModel, _scope, _historyCount);
+            if (location is not null && state is not null)
+            {
+                _lastSignature = $"{GitStateReader.Signature(state)}\n{scope}\n{count}";
+            }
+        }
+
+        if (location is null || state is null)
+        {
+            Refresh(false, true);
+            return;
+        }
+
+        PostHistory(new GitRepository(_runner, location), state, scope, count);
     }
 
     private void Read(BridgeCommandModel command, string type, Func<GitRepository, object> read) =>
-        _reads.Enqueue(() =>
+        _lookups.Enqueue(() =>
         {
             try
             {

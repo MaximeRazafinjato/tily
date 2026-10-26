@@ -6,21 +6,26 @@ public static class GitRefsReader
     private const string HeadsPrefix = "refs/heads/";
     private const string RemotesPrefix = "refs/remotes/";
     private const string TagsPrefix = "refs/tags/";
-    private const string RefFormat = "--format=%(refname)%1f%(objectname)%1f%(*objectname)%1f%(upstream:short)%1f%(upstream:track,nobracket)%1f%(symref)";
+    private const string RefFormat = "--format=%(refname)%1f%(objectname)%1f%(*objectname)%1f%(upstream:short)%1f%(upstream:track,nobracket)%1f%(symref)%1f%(HEAD)";
+    private const string CurrentMarker = "*";
     private const string StashFormat = "--format=%H%x1f%P%x1f%an%x1f%ae%x1f%at%x1f%gs";
     private const int StashFields = 6;
 
-    public static GitRefsModel Read(GitRepository repository, GitHeadModel head)
+    public static GitRefsModel Read(GitRepository repository)
     {
-        var remotes = repository.Remotes();
-        var merged = head.Unborn ? [] : Lines(repository.Read("for-each-ref", "--merged=HEAD", "--format=%(refname)", "refs/heads")).ToHashSet(StringComparer.Ordinal);
+        var remotesRead = Task.Run(repository.Remotes);
+        var mergedRead = Task.Run(() => repository.Run("for-each-ref", "--merged=HEAD", "--format=%(refname)", "refs/heads"));
+        var refs = Lines(repository.Read(new GitRunOptionsModel(NeutralLocale: true), "for-each-ref", RefFormat, "refs/heads", "refs/remotes", "refs/tags"));
+        var remotes = remotesRead.GetAwaiter().GetResult();
+        var mergedOutput = mergedRead.GetAwaiter().GetResult();
+        var merged = mergedOutput.Succeeded ? Lines(mergedOutput.Output).ToHashSet(StringComparer.Ordinal) : [];
         var branches = new List<GitBranchModel>();
         var remoteBranches = new List<GitRemoteBranchModel>();
         var tags = new List<GitTagModel>();
-        foreach (var line in Lines(repository.Read(new GitRunOptionsModel(NeutralLocale: true), "for-each-ref", RefFormat, "refs/heads", "refs/remotes", "refs/tags")))
+        foreach (var line in refs)
         {
             var fields = line.Split(Separator);
-            if (fields.Length < 6)
+            if (fields.Length < 7)
             {
                 continue;
             }
@@ -30,7 +35,7 @@ public static class GitRefsReader
             {
                 var name = refName[HeadsPrefix.Length..];
                 var (ahead, behind, gone) = ParseTrack(track);
-                branches.Add(new GitBranchModel(name, sha, upstream.Length > 0 ? upstream : null, ahead, behind, gone, name == head.Branch, merged.Contains(refName)));
+                branches.Add(new GitBranchModel(name, sha, upstream.Length > 0 ? upstream : null, ahead, behind, gone, fields[6] == CurrentMarker, merged.Contains(refName)));
             }
             else if (refName.StartsWith(RemotesPrefix, StringComparison.Ordinal) && symref.Length == 0)
             {

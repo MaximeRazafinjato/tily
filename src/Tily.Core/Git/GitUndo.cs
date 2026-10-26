@@ -10,14 +10,17 @@ public static class GitUndo
 
     private static readonly HashSet<GitUndoKind> RewritingKinds = [GitUndoKind.Commit, GitUndoKind.Amend, GitUndoKind.Merge, GitUndoKind.Rebase, GitUndoKind.CherryPick, GitUndoKind.Revert];
 
-    public static GitUndoInfoModel? Describe(GitRepository repository, GitUndoRecordModel? record, GitHeadModel head, GitOperationKind? operation)
+    public static Task<bool>? StartPublicationCheck(GitRepository repository, GitUndoRecordModel? record) =>
+        record is { Published: false, HeadAfter: { } after } && RewritingKinds.Contains(record.Kind) ? Task.Run(() => repository.IsPublished(after)) : null;
+
+    public static GitUndoInfoModel? Describe(GitRepository repository, GitUndoRecordModel? record, GitHeadModel head, GitOperationKind? operation, Task<bool>? publication = null)
     {
         if (record is null)
         {
             return null;
         }
 
-        var reason = Blocker(repository, record, head, operation);
+        var reason = Blocker(repository, record, head, operation, publication);
         return new GitUndoInfoModel(record.Label, reason is null, reason);
     }
 
@@ -111,7 +114,7 @@ public static class GitUndo
         }
     }
 
-    private static string? Blocker(GitRepository repository, GitUndoRecordModel record, GitHeadModel head, GitOperationKind? operation)
+    private static string? Blocker(GitRepository repository, GitUndoRecordModel record, GitHeadModel head, GitOperationKind? operation, Task<bool>? publication = null)
     {
         if (operation is not null)
         {
@@ -135,7 +138,7 @@ public static class GitUndo
                 return "aucun état antérieur à restaurer";
             }
 
-            return RewritingKinds.Contains(record.Kind) && !record.Published && record.HeadAfter is not null && repository.IsPublished(record.HeadAfter)
+            return RewritingKinds.Contains(record.Kind) && !record.Published && record.HeadAfter is not null && (publication?.GetAwaiter().GetResult() ?? repository.IsPublished(record.HeadAfter))
                 ? "un push a déjà publié les commits"
                 : null;
         }

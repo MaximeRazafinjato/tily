@@ -5,10 +5,8 @@ public static class GitHistoryCommands
     public static GitOutcomeModel Merge(GitRepository repository, string? reference)
     {
         var target = GitNames.RequireRevision(reference);
-        repository.RequireCommit(target);
-        repository.RequireNoOperation();
-        var before = repository.HeadSha() ?? throw new GitCommandException("Aucun commit sur la branche courante.", string.Empty);
-        var branch = repository.CurrentBranch();
+        var (head, branch) = RequireTarget(repository, target);
+        var before = head ?? throw new GitCommandException("Aucun commit sur la branche courante.", string.Empty);
         var output = repository.Run("merge", "--no-edit", target);
         return Conclude(repository, output, new GitUndoRecordModel { Kind = GitUndoKind.Merge, Label = $"Merge de « {target} »", HeadBefore = before, BranchBefore = branch },
             $"Merge de « {target} » dans « {branch ?? "HEAD"} » terminé.", "Le merge a échoué.", "Merge interrompu");
@@ -17,10 +15,9 @@ public static class GitHistoryCommands
     public static GitOutcomeModel Rebase(GitRepository repository, string? reference)
     {
         var target = GitNames.RequireRevision(reference);
-        repository.RequireCommit(target);
-        repository.RequireNoOperation();
-        var branch = repository.CurrentBranch() ?? throw new GitCommandException("HEAD détachée : faites le checkout d’une branche avant le rebase.", string.Empty);
-        var before = repository.HeadSha() ?? throw new GitCommandException("Aucun commit sur la branche courante.", string.Empty);
+        var (head, current) = RequireTarget(repository, target);
+        var branch = current ?? throw new GitCommandException("HEAD détachée : faites le checkout d’une branche avant le rebase.", string.Empty);
+        var before = head ?? throw new GitCommandException("Aucun commit sur la branche courante.", string.Empty);
         var output = repository.Run("rebase", target);
         return Conclude(repository, output, new GitUndoRecordModel { Kind = GitUndoKind.Rebase, Label = $"Rebase sur « {target} »", HeadBefore = before, BranchBefore = branch },
             $"Rebase de « {branch} » sur « {target} » terminé.", "Le rebase a échoué.", "Rebase interrompu");
@@ -28,11 +25,7 @@ public static class GitHistoryCommands
 
     public static GitOutcomeModel CherryPick(GitRepository repository, string? commit)
     {
-        var sha = repository.RequireCommit(commit);
-        repository.RequireNoOperation();
-        var before = repository.HeadSha() ?? throw new GitCommandException("Aucun commit sur la branche courante.", string.Empty);
-        var branch = repository.CurrentBranch();
-        var isMerge = GitHistoryReader.Parents(repository.Read("rev-list", "--parents", "-n", "1", sha).Trim()).Count > 2;
+        var (sha, isMerge, before, branch) = RequirePick(repository, commit);
         var output = isMerge ? repository.Run("cherry-pick", "-m", "1", sha) : repository.Run("cherry-pick", sha);
         return Conclude(repository, output, new GitUndoRecordModel { Kind = GitUndoKind.CherryPick, Label = $"Cherry-pick de {GitRepository.Short(sha)}", HeadBefore = before, BranchBefore = branch },
             $"Cherry-pick de {GitRepository.Short(sha)} sur « {branch ?? "HEAD"} » terminé.", "Le cherry-pick a échoué.", "Cherry-pick interrompu");
@@ -40,11 +33,7 @@ public static class GitHistoryCommands
 
     public static GitOutcomeModel Revert(GitRepository repository, string? commit)
     {
-        var sha = repository.RequireCommit(commit);
-        repository.RequireNoOperation();
-        var before = repository.HeadSha() ?? throw new GitCommandException("Aucun commit sur la branche courante.", string.Empty);
-        var branch = repository.CurrentBranch();
-        var isMerge = GitHistoryReader.Parents(repository.Read("rev-list", "--parents", "-n", "1", sha).Trim()).Count > 2;
+        var (sha, isMerge, before, branch) = RequirePick(repository, commit);
         var output = isMerge ? repository.Run("revert", "--no-edit", "-m", "1", sha) : repository.Run("revert", "--no-edit", sha);
         if (!output.Succeeded && repository.Operation() is null && repository.HeadSha() == before && IsClean(repository.Status()))
         {
@@ -71,8 +60,8 @@ public static class GitHistoryCommands
         }
 
         repository.RequireNoOperation();
-        var before = repository.HeadSha() ?? throw new GitCommandException("Aucun commit sur la branche courante.", string.Empty);
-        var branch = repository.CurrentBranch();
+        var (head, branch) = repository.HeadAndBranch();
+        var before = head ?? throw new GitCommandException("Aucun commit sur la branche courante.", string.Empty);
         var indexTree = kind == GitUndoKind.ResetMixed ? GitRepository.ValueOf(repository.Run("write-tree")) : null;
         var backup = kind == GitUndoKind.ResetHard ? GitRepository.ValueOf(repository.Run("stash", "create")) : null;
         GitRepository.Require(repository.Run("reset", $"--{mode}", "-q", sha), "Le reset a échoué.");
@@ -88,6 +77,25 @@ public static class GitHistoryCommands
             Backup = backup
         };
         return new GitOutcomeModel($"Reset {mode} de « {branch ?? "HEAD"} » vers {GitRepository.Short(sha)} terminé.", Undo: record);
+    }
+
+    private static (string? Head, string? Branch) RequireTarget(GitRepository repository, string target)
+    {
+        var targetRead = Task.Run(() => repository.RequireCommit(target));
+        var head = repository.HeadAndBranch();
+        targetRead.GetAwaiter().GetResult();
+        repository.RequireNoOperation();
+        return head;
+    }
+
+    private static (string Sha, bool IsMerge, string Before, string? Branch) RequirePick(GitRepository repository, string? commit)
+    {
+        var commitRead = Task.Run(() => repository.RequireCommitAndParents(commit));
+        var (head, branch) = repository.HeadAndBranch();
+        var (sha, parents) = commitRead.GetAwaiter().GetResult();
+        repository.RequireNoOperation();
+        var before = head ?? throw new GitCommandException("Aucun commit sur la branche courante.", string.Empty);
+        return (sha, parents.Count > 1, before, branch);
     }
 
     private static bool IsClean(GitStatusModel status) =>
@@ -106,12 +114,12 @@ public static class GitHistoryCommands
             return new GitOutcomeModel($"{interrupted} : {GitText.Count(conflicts, "fichier en conflit", "fichiers en conflit")}.", true, pending with { Pending = true });
         }
 
-        var after = repository.HeadSha();
+        var (after, branch) = repository.HeadAndBranch();
         if (after is null || after == pending.HeadBefore)
         {
             return new GitOutcomeModel("Déjà à jour : rien à faire.");
         }
 
-        return new GitOutcomeModel(success, Undo: pending with { HeadAfter = after, BranchAfter = repository.CurrentBranch(), Published = repository.IsPublished(after) });
+        return new GitOutcomeModel(success, Undo: pending with { HeadAfter = after, BranchAfter = branch, Published = repository.IsPublished(after) });
     }
 }

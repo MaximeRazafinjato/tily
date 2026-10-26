@@ -278,5 +278,61 @@ public sealed class GitReadTests : IDisposable
         Assert.Equal([GitDiffLineKind.Added], rootDiff.Hunks[0].Lines.Select(line => line.Kind));
     }
 
+    [Fact]
+    public void ReadCommit_WhenMergeCommit_ThenComparesWithFirstParent()
+    {
+        _sandbox.Commit("Base", ("a.txt", "a\n"));
+        _sandbox.Git("switch", "-q", "-c", "feature");
+        _sandbox.Commit("Feature", ("f.txt", "f\n"));
+        _sandbox.Git("switch", "-q", "main");
+        _sandbox.Commit("Main", ("m.txt", "m\n"));
+        _sandbox.Git("merge", "-q", "--no-edit", "feature");
+        var merge = _sandbox.Head();
+
+        var details = GitDiffReader.ReadCommit(_sandbox.Repository, merge);
+        var diff = GitDiffReader.Read(_sandbox.Repository, new GitDiffRequestModel(GitDiffSource.Commit, "f.txt", null, merge, false));
+
+        Assert.Equal([("f.txt", GitChangeKind.Added)], details.Files.Select(file => (file.Path, file.Kind)));
+        Assert.Equal([(GitDiffLineKind.Added, "f")], diff.Hunks[0].Lines.Select(line => (line.Kind, line.Text)));
+    }
+
+    [Fact]
+    public void ReadCommit_WhenUnknownCommit_ThenFailsInFrench()
+    {
+        _sandbox.Commit("Base", ("a.txt", "a\n"));
+
+        var failure = Assert.Throws<GitCommandException>(() => GitDiffReader.ReadCommit(_sandbox.Repository, "inconnu"));
+
+        Assert.Equal("Commit introuvable : inconnu.", failure.Message);
+    }
+
+    [Fact]
+    public void ReadWorkingTree_WhenOnlyFilesChanged_ThenUpdatesChangesAndKeepsReferences()
+    {
+        _sandbox.Commit("Base", ("a.txt", "a\n"));
+        var previous = GitStateReader.Read(_sandbox.Repository, null, _ => false);
+        _sandbox.Write("a.txt", "modifié\n");
+        _sandbox.Write("b.txt", "b\n");
+        _sandbox.Git("add", "b.txt");
+
+        var state = GitStateReader.ReadWorkingTree(_sandbox.Repository, previous, null, null, _ => false);
+
+        Assert.NotNull(state);
+        Assert.Equal([("b.txt", true), ("a.txt", false)], state.Staged.Select(change => (change.Path, true)).Concat(state.Unstaged.Select(change => (change.Path, false))));
+        Assert.Same(previous.Branches, state.Branches);
+    }
+
+    [Fact]
+    public void ReadWorkingTree_WhenHeadMoved_ThenAsksForFullRead()
+    {
+        _sandbox.Commit("Base", ("a.txt", "a\n"));
+        var previous = GitStateReader.Read(_sandbox.Repository, null, _ => false);
+        _sandbox.Commit("Suite", ("a.txt", "b\n"));
+
+        var state = GitStateReader.ReadWorkingTree(_sandbox.Repository, previous, null, null, _ => false);
+
+        Assert.Null(state);
+    }
+
     public void Dispose() => _sandbox.Dispose();
 }

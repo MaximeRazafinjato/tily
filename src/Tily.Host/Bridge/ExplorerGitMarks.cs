@@ -63,7 +63,7 @@ public sealed class ExplorerGitMarks : IDisposable
             if (force || !string.Equals(location?.Root, _location?.Root, StringComparison.OrdinalIgnoreCase) || !string.Equals(displayRoot, _displayRoot, StringComparison.OrdinalIgnoreCase))
             {
                 _watcher?.Dispose();
-                _watcher = location is null ? null : new GitWatcher(location, ScheduleMarks);
+                _watcher = location is null ? null : new GitWatcher(location, _ => ScheduleMarks());
                 _location = location;
                 _displayRoot = displayRoot;
                 _lastMarks = null;

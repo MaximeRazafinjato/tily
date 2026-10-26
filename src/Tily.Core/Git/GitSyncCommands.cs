@@ -55,16 +55,18 @@ public static class GitSyncCommands
 
     public static GitOutcomeModel Pull(GitRepository repository)
     {
-        var branch = repository.CurrentBranch() ?? throw new GitCommandException("HEAD détachée : faites le checkout d’une branche avant le pull.", string.Empty);
-        if (repository.Config($"branch.{branch}.merge") is null)
+        var configRead = Task.Run(repository.ConfigSnapshot);
+        var (before, current) = repository.HeadAndBranch();
+        var branch = current ?? throw new GitCommandException("HEAD détachée : faites le checkout d’une branche avant le pull.", string.Empty);
+        var config = configRead.GetAwaiter().GetResult();
+        if (config.Get($"branch.{branch}.merge") is null)
         {
             throw new GitCommandException($"La branche « {branch} » ne suit aucune branche distante : faites d’abord un push pour la publier.", string.Empty);
         }
 
         repository.RequireNoOperation();
-        var before = repository.HeadSha();
         var arguments = new List<string> { "pull" };
-        if (repository.Config($"branch.{branch}.rebase") is null && repository.Config("pull.rebase") is null)
+        if (config.Get($"branch.{branch}.rebase") is null && config.Get("pull.rebase") is null)
         {
             arguments.Add("--no-rebase");
         }
@@ -128,9 +130,10 @@ public static class GitSyncCommands
 
     private static PushTargetModel Target(GitRepository repository, string branch)
     {
-        var upstreamRemote = repository.Config($"branch.{branch}.remote");
-        var merge = repository.Config($"branch.{branch}.merge");
-        var pushRemote = repository.Config($"branch.{branch}.pushRemote") ?? repository.Config("remote.pushDefault");
+        var config = repository.ConfigSnapshot();
+        var upstreamRemote = config.Get($"branch.{branch}.remote");
+        var merge = config.Get($"branch.{branch}.merge");
+        var pushRemote = config.Get($"branch.{branch}.pushRemote") ?? config.Get("remote.pushDefault");
         if (upstreamRemote is not null && upstreamRemote != "." && merge is not null && merge.StartsWith(HeadsPrefix, StringComparison.Ordinal))
         {
             var remote = pushRemote ?? upstreamRemote;
