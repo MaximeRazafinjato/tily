@@ -6,13 +6,15 @@ import { assignLeader, assignShortcut, isDefaultBinding, resetCommand, type Shor
 import { MAX_LEADER_TIMEOUT_SECONDS, MIN_LEADER_TIMEOUT_SECONDS } from '../keyboard/shortcutRules'
 import { normalize } from '../palette/searchFilter'
 import type { ShortcutField } from '../store/shortcutStore'
-import { InfoTip } from './InfoTip'
+import { Icon } from './Icon'
+import { IconName } from './iconName'
 import { ShortcutCapture } from './ShortcutCapture'
 import { ShortcutRow } from './ShortcutRow'
-import { SETTINGS_HINT, SETTINGS_INPUT, SETTINGS_LABEL, SETTINGS_ROW, SETTINGS_SECONDARY } from './settingsStyles'
+import { SettingsPanel } from './SettingsPanel'
+import { SETTINGS_HINT, SETTINGS_ICON_BUTTON, SETTINGS_INPUT, SETTINGS_LABEL } from './settingsStyles'
 
 interface ShortcutSettingsSectionProps {
-  sectionClassName: string
+  title: string
   shortcuts: ShortcutSettings
   defaults: ShortcutSettings
   onChange: (shortcuts: ShortcutSettings) => void
@@ -22,8 +24,10 @@ const LEADER_TIMEOUTS = Array.from({ length: MAX_LEADER_TIMEOUT_SECONDS - MIN_LE
 const FILTER_ID = 'settings-shortcut-filter'
 const TIMEOUT_ID = 'settings-leader-timeout'
 const COLUMN = 'text-[11px] text-tily-muted'
+const GROUP_TITLE = 'mt-2 text-[11px] font-semibold tracking-wide text-tily-muted uppercase'
+const RESET_ALL = 'Rétablir tous les raccourcis par défaut'
 
-export function ShortcutSettingsSection({ sectionClassName, shortcuts, defaults, onChange }: ShortcutSettingsSectionProps) {
+export function ShortcutSettingsSection({ title, shortcuts, defaults, onChange }: ShortcutSettingsSectionProps) {
   const [filter, setFilter] = useState('')
   const [notice, setNotice] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -44,18 +48,18 @@ export function ShortcutSettingsSection({ sectionClassName, shortcuts, defaults,
   const groups = COMMAND_GROUPS.map((group) => ({ ...group, entries: group.entries.filter((entry) => normalize(entry.label).includes(query)) })).filter((group) => group.entries.length > 0)
 
   return (
-    <section className="flex flex-col gap-2">
-      <div className={SETTINGS_ROW}>
-        <h3 className={sectionClassName}>Raccourcis clavier</h3>
-        <InfoTip text="Cliquez sur un raccourci puis appuyez sur la combinaison voulue ; Échap annule. Un raccourci déjà pris passe à la nouvelle commande. Un raccourci direct passe par Ctrl ou Alt (Ctrl+lettre seule reste au shell, sauf Ctrl+P) ; après le Leader, une touche seule, avec Maj au besoin." />
-      </div>
+    <SettingsPanel
+      title={title}
+      grid={false}
+      tip="Cliquez sur un raccourci puis appuyez sur la combinaison voulue ; Échap annule. Un raccourci déjà pris passe à la nouvelle commande. Un raccourci direct passe par Ctrl ou Alt (Ctrl+lettre seule reste au shell, sauf Ctrl+P) ; après le Leader, une touche seule, avec Maj au besoin."
+    >
       <div className="grid grid-cols-[minmax(0,1fr)_150px_150px_20px] items-baseline gap-2">
         <span className={SETTINGS_LABEL}>Touche Leader</span>
         <ShortcutCapture chord={shortcuts.leader} label="Touche Leader" read={chordOf} onCapture={handleLeader} />
         <select id={TIMEOUT_ID} className={SETTINGS_INPUT} aria-label="Délai du Leader" data-tip="Délai d’expiration du Leader" value={shortcuts.leaderTimeoutSeconds} onChange={handleTimeoutChange}>
           {LEADER_TIMEOUTS.map((seconds) => (
             <option key={seconds} value={seconds}>
-              {`${seconds} s${seconds === defaults.leaderTimeoutSeconds ? ' (par défaut)' : ''}`}
+              {`${seconds} s${seconds === defaults.leaderTimeoutSeconds ? ' (défaut)' : ''}`}
             </option>
           ))}
         </select>
@@ -63,8 +67,8 @@ export function ShortcutSettingsSection({ sectionClassName, shortcuts, defaults,
       </div>
       <span className="flex gap-2">
         <input id={FILTER_ID} type="search" className={SETTINGS_INPUT} value={filter} placeholder="Filtrer les commandes…" aria-label="Filtrer les commandes" spellCheck={false} onChange={handleFilterChange} />
-        <button type="button" className={`${SETTINGS_SECONDARY} shrink-0`} data-tip="Rétablir tous les raccourcis par défaut" onClick={handleResetAll}>
-          Tout rétablir
+        <button type="button" className={SETTINGS_ICON_BUTTON} aria-label={RESET_ALL} data-tip={RESET_ALL} onClick={handleResetAll}>
+          <Icon name={IconName.Undo} />
         </button>
       </span>
       <p role="status" className={error ? 'text-[11px] text-tily-error' : SETTINGS_HINT}>
@@ -77,7 +81,7 @@ export function ShortcutSettingsSection({ sectionClassName, shortcuts, defaults,
       </div>
       {groups.map((group) => (
         <div key={group.title} className="flex flex-col gap-1">
-          <h4 className={COLUMN}>{group.title}</h4>
+          <h4 className={GROUP_TITLE}>{group.title}</h4>
           <ul className="flex flex-col gap-1">
             {group.entries.map((entry) => (
               <ShortcutRow key={entry.command} entry={entry} binding={shortcuts.bindings[entry.command] ?? { direct: '', leader: '' }} isDefault={isDefaultBinding(shortcuts, defaults, entry.command)} onAssign={handleAssign} onReset={handleReset} />
@@ -86,6 +90,6 @@ export function ShortcutSettingsSection({ sectionClassName, shortcuts, defaults,
         </div>
       ))}
       {groups.length === 0 && <p className={SETTINGS_HINT}>Aucune commande ne correspond.</p>}
-    </section>
+    </SettingsPanel>
   )
 }
