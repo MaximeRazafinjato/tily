@@ -1,7 +1,7 @@
 import { AgentState, type PaneAgent } from '../bridge/messages'
 import { folderName, panesOf, type Session, type Tab, type Workspace } from '../model/session'
 
-const AGENT_LABELS: Record<string, string> = { claude: 'Claude Code', codex: 'Codex CLI' }
+const AGENT_LABELS: Record<string, string> = { claude: 'Claude Code' }
 
 export const STATE_LABELS: Record<AgentState, string> = {
   [AgentState.Working]: 'En cours',

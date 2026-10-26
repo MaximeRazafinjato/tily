@@ -24,7 +24,7 @@ internal static class TilyTools
 
     private const string LayoutDescription =
         "Disposition complète de Tily : workspaces, onglets et panes, avec pour chaque pane son identifiant, son dossier, sa branche Git, son shell, "
-        + "l’état de l’agent qui y tourne (Claude Code, Codex) et s’il a déjà démarré. Le pane appelant porte « caller: true », "
+        + "l’état de l’agent qui y tourne (Claude Code) et s’il a déjà démarré. Le pane appelant porte « caller: true », "
         + "le workspace, l’onglet et le pane affichés portent « active: true ». Un pane jamais affiché depuis le lancement de Tily n’a pas encore démarré : "
         + "son shell ne tourne pas. Un onglet ou un pane créé par un agent porte « owner » (le pane de cet agent) et, s’il a été créé par vous, « mine: true ».";
 
