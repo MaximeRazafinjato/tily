@@ -11,6 +11,7 @@ public static class ShortcutCatalog
     [
         new("palette", "Ctrl+P", "P"),
         new("newTab", "Ctrl+Shift+T", "T"),
+        new("newClaudeTab", "Ctrl+Shift+K", "C"),
         new("splitSideBySide", "Ctrl+Shift+D", "V"),
         new("splitTopBottom", "Ctrl+Shift+H", "H"),
         new("newWorkspace", "Ctrl+Shift+W", "W"),

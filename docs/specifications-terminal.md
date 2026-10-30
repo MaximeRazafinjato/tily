@@ -332,6 +332,8 @@ Les raccourcis se modifient dans Paramètres, section « Raccourcis clavier » :
 
 Leader puis un chiffre de 1 à 9 (touches de la rangée du haut, sans Maj en AZERTY) affiche l’onglet correspondant du workspace actif, 9 affichant le dernier, comme les navigateurs et le préfixe de tmux ; un onglet absent est signalé dans la barre de statut.
 
+Leader puis C, ou Ctrl + Maj + K, ouvre un nouvel onglet qui lance Claude Code (`claude`), dans le dossier et avec le shell du pane actif, comme « Nouvel onglet » ; la palette le propose sous « Nouvel onglet Claude Code ».
+
 Leader puis N ouvre la création d’un worktree (section 10) ; aucun raccourci direct.
 
 Leader puis U ouvre un navigateur côte à côte du pane actif (section 6, « Panes navigateur ») ; aucun raccourci direct.

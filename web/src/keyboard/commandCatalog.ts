@@ -45,6 +45,7 @@ export const COMMAND_GROUPS: CommandGroup[] = [
     title: 'Onglets',
     entries: [
       { command: Command.NewTab, label: 'Nouvel onglet', hint: 'onglet' },
+      { command: Command.NewClaudeTab, label: 'Nouvel onglet Claude Code', hint: 'onglet Claude Code' },
       { command: Command.NextTab, label: 'Onglet suivant', hint: 'onglet suivant' },
       { command: Command.PreviousTab, label: 'Onglet précédent', hint: 'onglet précédent' },
       { command: Command.MoveTabLeft, label: 'Déplacer l’onglet vers la gauche', hint: 'onglet vers la gauche' },
