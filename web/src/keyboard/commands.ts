@@ -1,6 +1,7 @@
 export enum Command {
   Palette = 'palette',
   NewTab = 'newTab',
+  NewClaudeTab = 'newClaudeTab',
   SplitSideBySide = 'splitSideBySide',
   SplitTopBottom = 'splitTopBottom',
   NewWorkspace = 'newWorkspace',

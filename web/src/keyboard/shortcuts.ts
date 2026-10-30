@@ -7,7 +7,7 @@ import { equalizeActiveTab, focusPaneToward, selectTabNumber, swapPaneToward } f
 import { focusWorkspacePanel } from '../components/workspacePanel'
 import { useSessionStore } from '../store/sessionStore'
 import { requestApplicationClose } from '../terminal/closeGuard'
-import { closePaneKeepingText, movePaneToNewTab, restoreClosedTab } from '../terminal/tabLifecycle'
+import { closePaneKeepingText, movePaneToNewTab, openClaudeTab, restoreClosedTab } from '../terminal/tabLifecycle'
 import { focusPane, joinNextWaitingPane, scrollPaneToCommand } from '../terminal/terminalActions'
 import { CommandDirection } from '../terminal/commandOutput'
 import { togglePaneZoom } from '../terminal/paneZoom'
@@ -185,6 +185,9 @@ export const runCommand = (command: Command): void => {
       break
     case Command.NewTab:
       sessionStore.newTab(currentShell())
+      break
+    case Command.NewClaudeTab:
+      openClaudeTab(currentShell())
       break
     case Command.SplitSideBySide:
       sessionStore.splitPane(SplitAxis.Horizontal)
