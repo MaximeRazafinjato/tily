@@ -131,6 +131,7 @@ MR/PR GitHub et GitLab par les CLI `gh` et `glab` (spec, §10), derrière `Forge
 Gestion native des worktrees, au comportement de `wtr` / `rmwt` (spec, §10) : `WorktreeCreator`, `WorktreeRemover`, réplication de base (`IDatabaseReplicator`) et corbeille (`WorktreeTrash`).
 
 - Hors du sélecteur de projets, le projet d'un dépôt est le dossier de premier niveau de la racine qui contient son dépôt principal.
+- `ClaudeLaunchCommand` construit la commande `claude` tapée dans Windows PowerShell 5.1 : premier message ramené à une ligne et borné, échappé pour la ligne de commande native (guillemets doubles, antislashs qui les précèdent ou terminent le message) puis entre guillemets simples, apostrophes typographiques doublées ; `--` le précède s'il commence par un tiret. Elle est calculée avant la création, pour qu'un message refusé ne laisse aucun worktree.
 - `Plan` n'écrit rien. Une nouvelle branche est créée par `worktree add --no-track -b` après un fetch de la base : sans amont, le premier push la publie sous son nom.
 - `worktree-projects.json` est protégé par un verrou statique, partagé dans le processus par toutes les instances de `WorktreeProjectsRepository`, car `WorktreeFeed` y écrit le dépôt et `SettingsService` le dossier.
 - Ports : mêmes fichiers et même expression que `Invoke-RandomizeWorktreePorts`, port libre testé par `TcpListener`, remplacement délimité (jamais dans `15173` ni `1.5173`), BOM conservé.

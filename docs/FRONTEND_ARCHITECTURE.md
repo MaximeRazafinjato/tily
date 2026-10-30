@@ -180,7 +180,7 @@ Worktrees natifs (section 10 de la spec). Création, suppression et effacement s
 
 - L'hôte exécute les opérations une à une, dans l'ordre d'envoi. Chacune porte un numéro tiré de `requestListeners` et reste dans `worktreeStore.tasks` jusqu'à son bilan ; les opérations du serveur MCP entrent dans la même file.
 - `worktrees.create` ne part que quand le plan à jour (`worktrees.plan`, redemandé à chaque modification) donne un dossier sans erreur.
-- `openCreatedWorktree` confie à `runAtStart` `claude` dans le pane du workspace créé, puis l'installation dans le même pane ou, avec Claude, dans un pane en dessous ; le pane de Claude reste actif.
+- `openCreatedWorktree`, comme `openOwnedWorktree` pour le serveur MCP, confie à `runAtStart` la commande `claude` reçue de l'hôte (avec le premier message) dans le pane du workspace créé, puis l'installation dans le même pane ou, avec Claude, dans un pane en dessous ; le pane de Claude reste actif.
 - Suppression : une seule case « Fermer ces onglets et panes » pour tous les panes concernés ; à la confirmation, `requestClose` porte sur ces panes, qui se ferment (onglet entier quand tous ses panes sont dans le worktree), puis `worktrees.remove` part. Un refus de l'hôte rouvre la confirmation avec « Réessayer ». L'annulation d'une suppression demandée par le serveur MCP, ici ou dans `closeGuard`, est signalée à `requestListeners`.
 - `worktreePaths.ts` compare les dossiers sans casse et rattache les panes à leur worktree d'après `worktreeRoot` des contextes Git.
 
