@@ -39,6 +39,7 @@ public sealed class BridgeCommandModel
     public string? Base { get; init; }
     public string? Folder { get; init; }
     public string? Command { get; init; }
+    public string? ClaudePrompt { get; init; }
     public string? Fingerprint { get; init; }
     public string? Content { get; init; }
     public string? Color { get; init; }

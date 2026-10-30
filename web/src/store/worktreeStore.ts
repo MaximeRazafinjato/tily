@@ -17,6 +17,7 @@ export interface WorktreeDraft {
   rememberFolder: boolean
   install: boolean
   claude: boolean
+  claudePrompt: string
   database: boolean
 }
 

@@ -41,7 +41,7 @@ const openDraft = (folder: string, preset: DraftPreset, source: { path: string }
   clearTimeout(planTimer)
   setPicker(null)
   setCreateFailure(null)
-  setDraft({ project: folder, repository: '', remember: false, branch: '', mode: WorktreeBranchMode.New, base: '', folder: null, rememberFolder: false, install: true, claude: true, database: true, ...preset })
+  setDraft({ project: folder, repository: '', remember: false, branch: '', mode: WorktreeBranchMode.New, base: '', folder: null, rememberFolder: false, install: true, claude: true, claudePrompt: '', database: true, ...preset })
   bridge.send({ type: 'worktrees.sources', request: requestSources(), ...source })
 }
 
@@ -102,7 +102,7 @@ export const submitWorktree = (): void => {
   setCreateFailure(null)
   const request = newAgentRequest()
   queueWorktreeTask({ request, operation: WorktreeOperation.Create, fromDialog: true }, 'Création du worktree')
-  bridge.send({ type: 'worktrees.create', request, repository: draft.repository, branch: draft.branch, mode: draft.mode, base: draft.base || undefined, install: draft.install, claude: draft.claude, database: draft.database, project: draft.project, remember: draft.remember, folder: draft.folder ?? undefined, rememberFolder: draft.rememberFolder && folderChanged(draft, plan) })
+  bridge.send({ type: 'worktrees.create', request, repository: draft.repository, branch: draft.branch, mode: draft.mode, base: draft.base || undefined, install: draft.install, claude: draft.claude, claudePrompt: draft.claudePrompt || undefined, database: draft.database, project: draft.project, remember: draft.remember, folder: draft.folder ?? undefined, rememberFolder: draft.rememberFolder && folderChanged(draft, plan) })
 }
 
 export const openWorktreePicker = (kind: WorktreePickerKind): void => {
