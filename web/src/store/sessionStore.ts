@@ -63,12 +63,14 @@ interface SessionState {
   newWorkspace: (name: string, path: string, shell: string) => string
   renameWorkspace: (workspaceId: string, name: string) => void
   setWorkspaceNote: (workspaceId: string, note: string) => void
+  setWorkspaceColor: (workspaceId: string, color: string | undefined) => void
   moveWorkspace: (workspaceId: string, offset: number) => void
   moveWorkspaceBefore: (workspaceId: string, beforeWorkspaceId?: string) => void
   newTab: (shell: string) => void
   newTabAt: (path: string, shell: string) => void
   renameTab: (tabId: string, name: string) => void
   resetTabName: (tabId: string) => void
+  setTabColor: (tabId: string, color: string | undefined) => void
   moveTab: (tabId: string, targetWorkspaceId: string, beforeTabId?: string) => void
   moveActiveTab: (offset: number) => void
   shiftTab: (tabId: string, offset: number) => void
@@ -236,6 +238,16 @@ export const useSessionStore = create<SessionState>()((set, get) => ({
       }),
     })),
 
+  setWorkspaceColor: (workspaceId, color) =>
+    set((state) => ({
+      session: mutateSession(state.session, (draft) => {
+        const workspace = findWorkspace(draft, workspaceId)
+        if (workspace) {
+          workspace.color = color
+        }
+      }),
+    })),
+
   moveWorkspace: (workspaceId, offset) =>
     set((state) => ({
       session: mutateSession(state.session, (draft) => {
@@ -299,6 +311,16 @@ export const useSessionStore = create<SessionState>()((set, get) => ({
         if (tab) {
           tab.manual = false
           tab.name = paneName(activePane(tab)) || tab.name
+        }
+      }),
+    })),
+
+  setTabColor: (tabId, color) =>
+    set((state) => ({
+      session: mutateSession(state.session, (draft) => {
+        const tab = draft.workspaces.flatMap((workspace) => workspace.tabs).find((candidate) => candidate.id === tabId)
+        if (tab) {
+          tab.color = color
         }
       }),
     })),

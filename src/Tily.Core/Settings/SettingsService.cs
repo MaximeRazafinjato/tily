@@ -112,7 +112,7 @@ public sealed class SettingsService
         settings.WorktreeFolders = NormalizedFolders(settings.WorktreeFolders ?? []);
         settings.Git ??= GitSettingsModel.Default;
         settings.Updates ??= UpdateSettingsModel.Default;
-        settings.Appearance = (settings.Appearance ?? AppearanceSettingsModel.Default).Clamped();
+        settings.Appearance = (settings.Appearance ?? AppearanceSettingsModel.Default).Normalized();
         settings.Shortcuts = ShortcutRules.Resolve(settings.Shortcuts);
         _shells.Save(settings.Shells);
         _editor.Save(new EditorSettingsModel(settings.Editor));
@@ -129,7 +129,7 @@ public sealed class SettingsService
 
     public AppearanceSettingsModel SaveAppearance(AppearanceSettingsModel appearance)
     {
-        var clamped = appearance.Clamped();
+        var clamped = appearance.Normalized();
         _appearance.Save(clamped);
         return clamped;
     }
@@ -190,7 +190,7 @@ public sealed class SettingsService
             WorktreeFolders = _worktreeProjects.Folders(),
             Git = document.Git ?? GitSettingsModel.Default,
             Updates = document.Updates ?? UpdateSettingsModel.Default,
-            Appearance = (document.Appearance ?? AppearanceSettingsModel.Default).Clamped(),
+            Appearance = (document.Appearance ?? AppearanceSettingsModel.Default).Normalized(),
             Shortcuts = document.Shortcuts ?? ShortcutSettingsModel.Default
         };
         var validation = Validate(settings);

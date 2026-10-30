@@ -459,6 +459,18 @@ public sealed class SettingsServiceTests : IDisposable
     }
 
     [Fact]
+    public void SaveAppearance_ThenLoad_KeepsColorsNormalized()
+    {
+        var service = new SettingsService(_directory);
+        var appearance = (AppearanceSettingsModel.Default with { Accent = "#C98FA5" }).WithProjectColor(@"C:\Files\Projects\tily", "#6FB3B0").WithProjectColor(@"C:\Files\Projectsutre", "bleu");
+
+        service.SaveAppearance(appearance);
+
+        var expected = (AppearanceSettingsModel.Default with { Accent = "#c98fa5" }).WithProjectColor(@"C:\Files\Projects\tily", "#6fb3b0");
+        Assert.Equal(expected, service.Load().Appearance);
+    }
+
+    [Fact]
     public void Load_WhenAppearanceFileEmptyObject_ThenDefaultFontSize()
     {
         var service = new SettingsService(_directory);

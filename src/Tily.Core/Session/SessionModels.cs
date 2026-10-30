@@ -45,6 +45,7 @@ public sealed class WorkspaceModel
     public string Active { get; set; } = string.Empty;
     public bool? Expanded { get; set; }
     public string? Note { get; set; }
+    public string? Color { get; set; }
 }
 
 public sealed class TabModel
@@ -56,6 +57,7 @@ public sealed class TabModel
     public bool Explorer { get; set; }
     public string? Panel { get; set; }
     public string? Owner { get; set; }
+    public string? Color { get; set; }
     public SplitNodeModel Tree { get; set; } = new();
 }
 

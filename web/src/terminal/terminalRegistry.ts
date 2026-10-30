@@ -1,4 +1,4 @@
-import { Terminal, type IMarker } from '@xterm/xterm'
+import { Terminal, type IMarker, type ITheme } from '@xterm/xterm'
 import { FitAddon } from '@xterm/addon-fit'
 import { WebglAddon } from '@xterm/addon-webgl'
 import { Unicode11Addon } from '@xterm/addon-unicode11'
@@ -6,7 +6,6 @@ import { ClipboardAddon } from '@xterm/addon-clipboard'
 import { SerializeAddon } from '@xterm/addon-serialize'
 import { WebLinksAddon } from '@xterm/addon-web-links'
 import { bridge } from '../bridge/bridge'
-import { ReleaseChannel } from '../bridge/messages'
 import { DEFAULT_FONT_SIZE } from '../model/appearance'
 import { allPanes, type Pane } from '../model/session'
 import { useSessionStore } from '../store/sessionStore'
@@ -34,10 +33,6 @@ const RESTORE_SEPARATORS: Record<RestoreKind, string> = {
 }
 const LINK_PATTERN = /(?:https?|HTTPS?|file|FILE):\/{2,3}[^\s"'!*(){}|\\^<>`]*[^\s"':,.!?{}|\\^~[\]`()<>]/
 const FONT_FAMILY = '"CaskaydiaCove Nerd Font Mono", "Cascadia Mono", "Cascadia Code", Consolas, "Symbols Nerd Font Mono", monospace'
-const TERMINAL_THEMES: Record<ReleaseChannel, { background: string; foreground: string; cursor: string; selectionBackground: string }> = {
-  [ReleaseChannel.Stable]: { background: '#121416', foreground: '#cdd1cd', cursor: '#8fb39f', selectionBackground: '#7a9f8b40' },
-  [ReleaseChannel.Beta]: { background: '#101318', foreground: '#c9ced5', cursor: '#88ade0', selectionBackground: '#6a96d440' },
-}
 
 enum Renderer {
   WebGl = 'webgl',
@@ -69,7 +64,7 @@ const primedText = new Map<string, { text: string; kind: RestoreKind }>()
 const initialCommands = new Map<string, string>()
 let scrollbackLines = DEFAULT_SCROLLBACK_LINES
 let fontSize = DEFAULT_FONT_SIZE
-let theme = TERMINAL_THEMES[ReleaseChannel.Stable]
+let theme: ITheme = {}
 let webglUnavailable = false
 
 const start = (handle: TerminalHandle, pane: Pane): void => {
@@ -228,8 +223,11 @@ export const terminalRegistry = {
     scrollbackLines = linesPerPane
   },
 
-  setChannel(channel: ReleaseChannel): void {
-    theme = TERMINAL_THEMES[channel]
+  setTheme(next: ITheme): void {
+    theme = next
+    handles.forEach((handle) => {
+      handle.terminal.options.theme = next
+    })
   },
 
   fontSize(): number {

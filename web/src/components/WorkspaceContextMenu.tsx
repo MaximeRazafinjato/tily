@@ -1,3 +1,4 @@
+import { openColorDialog } from '../appearance/appearanceActions'
 import { isManuallyNamed, type Session } from '../model/session'
 import { useSessionStore } from '../store/sessionStore'
 import type { WorktreeTarget } from '../worktree/worktreePaths'
@@ -32,6 +33,7 @@ const itemsFor = ({ workspaceId, tabId }: PanelMenuRequest, place: MenuPlace, ma
         { id: 'rename-tab', label: 'Renommer', detail: <MenuShortcut keys="F2" />, run: () => actions.startRenameTab(tabId) },
         { id: 'auto-name-tab', label: 'Reprendre le nom du dossier', disabled: !manual, run: () => useSessionStore.getState().resetTabName(tabId) },
         { id: 'duplicate-tab', label: 'Dupliquer l’onglet', run: () => actions.duplicateTab(tabId) },
+        { id: 'tab-color', label: 'Couleur…', run: () => openColorDialog({ workspaceId, tabId }) },
         ...moveItems(place, (offset) => actions.shiftTab(tabId, offset)),
         ...tabTransferItems(session, tabId),
         { id: 'close-tab', label: 'Fermer l’onglet', run: () => actions.closeTab(tabId) },
@@ -42,6 +44,7 @@ const itemsFor = ({ workspaceId, tabId }: PanelMenuRequest, place: MenuPlace, ma
         { id: 'rename-workspace', label: 'Renommer', detail: <MenuShortcut keys="F2" />, run: () => actions.startRenameWorkspace(workspaceId) },
         { id: 'new-tab', label: 'Nouvel onglet PowerShell', run: () => actions.newTabIn(workspaceId) },
         { id: 'open-notes', label: 'Notes du workspace', run: () => actions.openNotes(workspaceId) },
+        { id: 'workspace-color', label: 'Couleur…', run: () => openColorDialog({ workspaceId }) },
         ...moveItems(place, (offset) => actions.moveWorkspace(workspaceId, offset)),
         { id: 'collapse-others', label: 'Replier les autres', run: () => actions.collapseOthers(workspaceId) },
         { id: 'close-workspace', label: 'Fermer le workspace', run: () => actions.closeWorkspace(workspaceId) },

@@ -1,8 +1,10 @@
-import { useEffect, useState, type KeyboardEvent, type MouseEvent, type PointerEvent } from 'react'
-import { AttentionKind, PickTarget, type ImportedPreferences, type NotificationSettings, type PersistenceSettings, type PickedPath, type Settings, type SettingsSnapshot, type ShortcutSettings } from '../bridge/messages'
+import { useCallback, useEffect, useState, type KeyboardEvent, type MouseEvent, type PointerEvent } from 'react'
+import { AttentionKind, PickTarget, type AppearanceSettings, type ImportedPreferences, type NotificationSettings, type PersistenceSettings, type PickedPath, type Settings, type SettingsSnapshot, type ShortcutSettings } from '../bridge/messages'
 import type { WorktreeProjectFolder, WorktreeSettings } from '../bridge/worktreeMessages'
 import { revealInExplorer } from '../explorer/fileExplorerActions'
 import { useHostStore } from '../store/hostStore'
+import { useUiStore } from '../store/uiStore'
+import { AppearanceSettingsSection } from './AppearanceSettingsSection'
 import { AgentSettingsSection } from './AgentSettingsSection'
 import { Icon } from './Icon'
 import { IconName } from './iconName'
@@ -60,7 +62,8 @@ export function SettingsDialog({ snapshot, pickedPath, imported, onClose, onSave
   const [importWarnings, setImportWarnings] = useState<string[]>([])
   const [numberTexts, setNumberTexts] = useState<NumberTexts>({})
   const [closeHeld, setCloseHeld] = useState(false)
-  const [section, setSection] = useState(SettingsSection.Shells)
+  const [openedSection] = useState(() => useUiStore.getState().settingsSection)
+  const [section, setSection] = useState(openedSection)
   const [focusRequest, setFocusRequest] = useState<FocusRequest | null>(null)
   if (snapshot !== seenSnapshot) {
     setSeenSnapshot(snapshot)
@@ -93,9 +96,9 @@ export function SettingsDialog({ snapshot, pickedPath, imported, onClose, onSave
   const loaded = draft !== null
   useEffect(() => {
     if (loaded) {
-      document.getElementById(settingsTabId(SettingsSection.Shells))?.focus()
+      document.getElementById(settingsTabId(openedSection))?.focus()
     }
-  }, [loaded])
+  }, [loaded, openedSection])
 
   useEffect(() => {
     if (focusRequest) {
@@ -187,7 +190,8 @@ export function SettingsDialog({ snapshot, pickedPath, imported, onClose, onSave
   const handleTestNotification = () => testNotification(AttentionKind.Waiting)
   const handleTestDoneNotification = () => testNotification(AttentionKind.Done)
   const handleAutoCheckChange = (autoCheck: boolean) => updateDraft({ updates: { autoCheck } })
-  const handleFontSizeChange = (fontSize: number) => updateDraft({ appearance: { fontSize } })
+  const updateAppearance = useCallback((patch: Partial<AppearanceSettings>) => setDraft((current) => (current ? { ...current, appearance: { ...current.appearance, ...patch } } : current)), [])
+  const handleFontSizeChange = (fontSize: number) => updateAppearance({ fontSize })
   const handleShortcutsChange = (shortcuts: ShortcutSettings) => updateDraft({ shortcuts })
   const handleRevealFiles = () => {
     if (snapshot) {
@@ -202,6 +206,8 @@ export function SettingsDialog({ snapshot, pickedPath, imported, onClose, onSave
         return <ShellSettingsSection title={title} shellSettings={current.shellSettings} shells={settings.shells} editor={settings.editor} onShellsChange={handleShellsChange} onEditorChange={handleEditorChange} onPickShell={handlePickShell} onPickEditor={handlePickEditor} />
       case SettingsSection.Terminals:
         return <TerminalSettingsSection title={title} fontSize={settings.appearance.fontSize} numberText={numberText} onFontSizeChange={handleFontSizeChange} onNumberChange={handleNumberChange} />
+      case SettingsSection.Appearance:
+        return <AppearanceSettingsSection title={title} appearance={settings.appearance} onChange={updateAppearance} />
       case SettingsSection.Shortcuts:
         return <ShortcutSettingsSection title={title} shortcuts={settings.shortcuts} defaults={current.shortcutDefaults} onChange={handleShortcutsChange} />
       case SettingsSection.Projects:

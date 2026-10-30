@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { clearSeenCommandNotices } from './terminal/commandNotices'
 import { startAttentionNotifier } from './agents/attentionNotifier'
+import { receiveAppearance, receiveAppearanceCatalog, receiveProjects, startAppearanceProjects } from './appearance/appearanceActions'
 import { bridge } from './bridge/bridge'
 import { receiveBrowserFailure, receiveBrowserFocused, receiveBrowserState, receiveNewBrowserPane } from './browser/browserActions'
 import { receiveBrowserKey } from './browser/browserKeys'
@@ -63,12 +64,12 @@ export default function App() {
     const stopStatusLog = startStatusLog()
     const stopDeferredPreviews = startDeferredPreviews()
     const stopBrowserLayer = startBrowserLayer()
+    const stopAppearanceProjects = startAppearanceProjects()
     const { markFailed, markExited, markPathMissing, markAlive } = usePaneStore.getState()
     const subscriptions = [
       bridge.on('app.hello', (message) => {
-        document.documentElement.dataset.channel = message.channel
         setHello(message.version, message.name, message.shells, message.home, message.persistence)
-        terminalRegistry.setChannel(message.channel)
+        receiveAppearanceCatalog(message.theme)
         useShortcutStore.getState().setShortcuts(message.shortcuts)
         useStatusLogStore.getState().load(message.statusLog)
         terminalRegistry.configure(message.persistence.linesPerPane)
@@ -89,6 +90,8 @@ export default function App() {
         terminalRegistry.setFontSize(message.fontSize)
         setStatus(`Taille du texte des terminaux : ${message.fontSize} px`)
       }),
+      bridge.on('appearance.theme', (message) => receiveAppearance(message.state)),
+      bridge.on('appearance.projectsResolved', (message) => receiveProjects(message.projects)),
       bridge.on('settings.result', (message) => {
         applySettings({ settings: message.settings, shellSettings: message.shellSettings, files: message.files, warnings: message.warnings, agents: message.agents, mcp: message.mcp, notifications: message.notifications, shortcutDefaults: message.shortcutDefaults }, message.shells, message.persistence)
         useShortcutStore.getState().setShortcuts(message.settings.shortcuts)
@@ -219,6 +222,7 @@ export default function App() {
       stopStatusLog()
       stopDeferredPreviews()
       stopBrowserLayer()
+      stopAppearanceProjects()
       stopAutosave?.()
       subscriptions.forEach((unsubscribe) => unsubscribe())
     }

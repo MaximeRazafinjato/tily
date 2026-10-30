@@ -1,7 +1,10 @@
+import { HIGHLIGHTED_NAME, highlightStyle } from './highlightStyle'
+
 interface TruncatedNameProps {
   name: string
   siblings: string[]
   className?: string
+  highlight?: string
 }
 
 const SEPARATORS = '-_.'
@@ -43,12 +46,23 @@ const sharedPrefix = (name: string, siblings: string[]): string => {
   return cut < name.length ? name.slice(0, cut) : ''
 }
 
-export function TruncatedName({ name, siblings, className = '' }: TruncatedNameProps) {
+export function TruncatedName({ name, siblings, className = '', highlight }: TruncatedNameProps) {
   const prefix = sharedPrefix(name, siblings)
-  return (
-    <span className={`flex min-w-0 whitespace-nowrap ${className}`}>
+  const parts = (
+    <>
       <span className="min-w-[1.2em] truncate">{prefix || name}</span>
       {prefix && <span className="max-w-[calc(100%_-_1.2em)] shrink-0 truncate">{name.slice(prefix.length)}</span>}
+    </>
+  )
+  return (
+    <span className={`flex min-w-0 whitespace-nowrap ${className}`}>
+      {highlight ? (
+        <span className={HIGHLIGHTED_NAME} style={highlightStyle(highlight)}>
+          {parts}
+        </span>
+      ) : (
+        parts
+      )}
     </span>
   )
 }

@@ -14,7 +14,7 @@ public static class GitContext
 
     public static GitContextModel Resolve(string path)
     {
-        var (gitDirectory, worktreeRoot) = FindGitDirectory(path);
+        var (gitDirectory, worktreeRoot, _) = FindRepository(path);
         if (gitDirectory is null)
         {
             return GitContextModel.None;
@@ -32,7 +32,18 @@ public static class GitContext
             : new GitContextModel(true, null, true, worktreeRoot);
     }
 
-    private static (string? GitDirectory, string? WorktreeRoot) FindGitDirectory(string path)
+    public static string? MainRepositoryRoot(string path)
+    {
+        var (gitDirectory, worktreeRoot, repositoryRoot) = FindRepository(path);
+        if (gitDirectory is null)
+        {
+            return null;
+        }
+
+        return worktreeRoot is null ? repositoryRoot : Directory.GetParent(gitDirectory)?.Parent?.Parent?.FullName ?? repositoryRoot;
+    }
+
+    private static (string? GitDirectory, string? WorktreeRoot, string? RepositoryRoot) FindRepository(string path)
     {
         var current = Directory.Exists(path) ? new DirectoryInfo(path) : null;
         while (current is not null)
@@ -40,20 +51,20 @@ public static class GitContext
             var entry = Path.Combine(current.FullName, GitEntry);
             if (Directory.Exists(entry))
             {
-                return (entry, null);
+                return (entry, null, current.FullName);
             }
 
             if (File.Exists(entry))
             {
                 var resolved = ResolveGitFile(entry, current.FullName);
                 var linked = resolved is not null && string.Equals(Path.GetFileName(Path.GetDirectoryName(resolved)), WorktreesFolder, StringComparison.OrdinalIgnoreCase);
-                return (resolved, linked ? current.FullName : null);
+                return (resolved, linked ? current.FullName : null, current.FullName);
             }
 
             current = current.Parent;
         }
 
-        return (null, null);
+        return (null, null, null);
     }
 
     private static string? ResolveGitFile(string gitFile, string baseDirectory)

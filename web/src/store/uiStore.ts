@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { SettingsSection } from '../components/settingsSections'
 
 export enum RenameOrigin {
   Header = 'header',
@@ -44,7 +45,8 @@ interface UiState {
   openProjectPicker: () => void
   closeProjectPicker: () => void
   settingsOpen: boolean
-  openSettings: () => void
+  settingsSection: SettingsSection
+  openSettings: (section?: SettingsSection) => void
   closeSettings: () => void
   closeConfirmation: CloseConfirmation | null
   showCloseConfirmation: (confirmation: CloseConfirmation) => void
@@ -82,7 +84,8 @@ export const useUiStore = create<UiState>()((set) => ({
   openProjectPicker: () => set({ projectPickerOpen: true, paletteOpen: false, settingsOpen: false }),
   closeProjectPicker: () => set({ projectPickerOpen: false }),
   settingsOpen: false,
-  openSettings: () => set({ settingsOpen: true, paletteOpen: false, projectPickerOpen: false }),
+  settingsSection: SettingsSection.Shells,
+  openSettings: (settingsSection = SettingsSection.Shells) => set({ settingsOpen: true, settingsSection, paletteOpen: false, projectPickerOpen: false }),
   closeSettings: () => set({ settingsOpen: false }),
   closeConfirmation: null,
   showCloseConfirmation: (closeConfirmation) => set({ closeConfirmation }),

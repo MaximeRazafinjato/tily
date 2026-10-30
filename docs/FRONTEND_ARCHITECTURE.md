@@ -10,9 +10,9 @@ Une section par dossier de `web/src` : rôle, invariants et choix non évidents.
 
 `main.tsx` importe `index.css` et monte `App` en `StrictMode`, qui monte deux fois en développement : chaque boucle ou abonnement démarré par `App` rend sa fonction d'arrêt.
 
-`App` est l'unique aiguillage des messages de l'hôte : un `bridge.on` par type, qui confie le message à la fonction `receive…` de son dossier. Il démarre les boucles et notifieurs (`startAttentionNotifier`, `startExternalDrops`, `startStatusLog`, `startDeferredPreviews`, `startBrowserLayer`, `startTextAutosave`), puis envoie `app.ready`.
+`App` est l'unique aiguillage des messages de l'hôte : un `bridge.on` par type, qui confie le message à la fonction `receive…` de son dossier. Il démarre les boucles et notifieurs (`startAppearanceProjects`, `startAttentionNotifier`, `startExternalDrops`, `startStatusLog`, `startDeferredPreviews`, `startBrowserLayer`, `startTextAutosave`), puis envoie `app.ready`.
 
-- À `app.hello`, il pose `data-channel` sur `<html>`, configure les modules et injecte le texte de la session précédente ; il ne charge la session qu'une fois la police de symboles Nerd Font chargée.
+- À `app.hello`, il applique la couleur reçue, configure les modules et injecte le texte de la session précédente ; il ne charge la session qu'une fois la police de symboles Nerd Font chargée.
 - Une réponse numérotée va d'abord à son écouteur (`dispatchReply`) : `browser.reply` et `worktrees.*`, dont `worktrees.done` et `worktrees.failed` vont aussi à l'interface. `terminal.activityResult` va à `paneActivity` s'il porte un numéro attendu, sinon à `closeGuard`. `dialog.picked` est routé par champ : formulaire de worktree, dépôt d'un projet, sinon Paramètres (`hostStore.pickedPath`).
 - À chaque nouvelle session, il détruit les terminaux et les vues navigateur des panes disparus, puis sauvegarde (voir « Flux »).
 
@@ -28,7 +28,7 @@ Modèle pur, sans React ni DOM : session, panes navigateur, bornes de la taille 
 
 ### `src/bridge/`
 
-`bridge.ts` envoie et reçoit par `window.chrome.webview` ; `sendWithFiles` joint des fichiers déposés. `messages.ts` et les fichiers par domaine (`browserMessages.ts`, `forgeMessages.ts`, `gitMessages.ts`, `mcpMessages.ts`, `previewMessages.ts`, `statusLogMessages.ts`, `updateMessages.ts`, `worktreeMessages.ts`) sont le miroir du contrat C# décrit dans `docs/BACKEND_ARCHITECTURE.md` : un message se change des deux côtés à la fois.
+`bridge.ts` envoie et reçoit par `window.chrome.webview` ; `sendWithFiles` joint des fichiers déposés. `messages.ts` et les fichiers par domaine (`appearanceMessages.ts`, `browserMessages.ts`, `forgeMessages.ts`, `gitMessages.ts`, `mcpMessages.ts`, `previewMessages.ts`, `statusLogMessages.ts`, `updateMessages.ts`, `worktreeMessages.ts`) sont le miroir du contrat C# décrit dans `docs/BACKEND_ARCHITECTURE.md` : un message se change des deux côtés à la fois.
 
 `requestListeners.ts` tire des numéros de requête à partir de 1 000 000 (`newAgentRequest`), pour ne jamais croiser les numéros propres à chaque store, et associe à chacun un écouteur de réponse. Il sert au serveur MCP et à l'interface : création et suppression de worktree par le formulaire, `browser.snapshot` et toute commande de `requestBrowser`. L'annulation d'une suppression de worktree est signalée à son écouteur (`CANCELLED_REPLY`).
 
@@ -37,7 +37,7 @@ Modèle pur, sans React ni DOM : session, panes navigateur, bornes de la taille 
 Stores Zustand. Seule la session est persistée.
 
 - `sessionStore` : la session et toutes ses mutations, écrites sur un brouillon Immer. Seuls les objets modifiés changent d'identité et une mutation sans effet rend la même session : ni rendu ni sauvegarde. `change` applique une mutation donnée (serveur MCP) ; `browserPanes.ts` et `paneMoves.ts` portent des mutations du brouillon. Un onglet dupliqué n'appartient à aucun agent.
-- Reçu de l'hôte : `hostStore` (shells, projets, contextes Git par pane, réglages, statut, Leader, « Non enregistré »), `shortcutStore`, `agentStore`, `statusLogStore`, `browserStore`, `updateStore`.
+- Reçu de l'hôte : `hostStore` (shells, projets, contextes Git par pane, réglages, statut, Leader, « Non enregistré »), `appearanceStore` (thème, préréglages, projet et couleur de projet par dossier, cible de la fenêtre « Couleur »), `shortcutStore`, `agentStore`, `statusLogStore`, `browserStore`, `updateStore`.
 - Interface : `uiStore` (renommages et leur origine, palette, sélecteur de projets et Paramètres mutuellement exclusifs, glisser, pane agrandi, confirmation de fermeture), `paneStore`, `pasteStore`, `commandStore`, `terminalSearchStore` (texte et options partagés par la barre d'un pane et la recherche globale).
 - Fonctions : `explorerStore`, `gitStore`, `forgeStore`, `mergeRequestFormStore`, `worktreeStore`, `previewStore`, `projectOpenStore`, `filePickerStore`, `commitPickerStore`, `mcpConsentStore`.
 
@@ -197,6 +197,10 @@ Panes navigateur (section 6 de la spec). Un `Pane` de type `PaneKind.Browser` ga
 - `restoreBrowserFocus` rend le focus à la page du pane actif après un raccourci renvoyé par la page ou la fin du Leader, si rien d'autre ne l'a pris. `browser.key` passe par `handleForwardedKey` (`browserKeys.ts`).
 - `requestBrowser` (`browserRequests.ts`) numérote une commande `browser.*` et attend son `browser.reply`, avec un délai.
 
+### `src/appearance/`
+
+`appearanceActions.ts` (section 3 de la spec, « Couleurs ») : aucun calcul de couleur côté web. `receiveAppearance` pose les tokens `--color-tily-*` reçus sur `<html>` et le thème du terminal. `startAppearanceProjects` envoie `appearance.projects` quand l'ensemble des dossiers des panes actifs des workspaces change. Les couleurs de workspace et d'onglet sont des mutations de session ; celle d'un projet est appliquée tout de suite dans `appearanceStore` et part à l'hôte après une courte pause, pour ne pas écrire `appearance.json` à chaque mouvement du sélecteur. Elles ne font que surligner un nom (`TruncatedName`, `highlightStyle.ts`, `useWorkspaceHighlight`) : un onglet n'hérite pas de son workspace.
+
 ### `src/agents/`
 
 États des agents (section 11 de la spec). L'hôte lit les états écrits par les hooks Claude Code ; le web les reçoit dans `agent.states` et les présente.
@@ -232,7 +236,7 @@ Import Tailwind, police de symboles Nerd Font embarquée, tokens `--color-tily-*
 - `--font-mono` est réservée au contenu de code : terminaux, diff, aperçu et édition de fichiers, sorties de commandes, texte collé, détail MCP, lignes de la recherche dans les terminaux, code des notes de version. Tout le reste est en `--font-sans`, en 11, 12, 13 ou 15 px, la racine étant à 13 px.
 - Les couleurs saturées d'état d'agent (`--color-tily-status-*`) sont réservées aux icônes et pastilles d'agents. Le diff, les huit voies du graphe Git, les MR/PR fusionnées et la syntaxe ont leurs tokens.
 - Contour `:focus-visible` global en `tily-focus` ; barres de défilement fines, sans flèches et discrètes partout, terminaux compris.
-- En bêta (`html[data-channel='beta']`), accents, fonds, bordures, textes et barres de défilement prennent le bleu de l'icône Tily Beta ; couleurs d'état, de diff, de voies Git et de syntaxe ne changent pas.
+- Les valeurs de `@theme` sont celles de la couleur par défaut ; l'hôte remplace accents, fonds, bordures, textes et barres de défilement selon la couleur affichée (`appearance.theme`). Couleurs d'état, de diff, de voies Git et de syntaxe ne changent pas.
 
 ## Flux
 
@@ -246,7 +250,7 @@ Import Tailwind, police de symboles Nerd Font embarquée, tokens `--color-tily-*
 - Le modèle et le pont ne connaissent pas React. Les composants ne contiennent pas de logique métier : ils appellent les actions du store.
 - Les handlers sont des fonctions nommées (`handleSelect`, `handleClose`), pas de lambdas inline avec logique dans le JSX.
 - Enums TypeScript plutôt que types union pour les valeurs fermées (`SplitAxis`, `StatusLevel`, `Renderer`). `erasableSyntaxOnly` est désactivé pour cela.
-- Couleurs via les tokens `tily-*` de `index.css`, jamais en dur dans les composants. Le thème xterm.js est centralisé dans `terminalRegistry`, fond, texte, curseur et sélection suivant le canal reçu dans `app.hello` (`setChannel`).
+- Couleurs via les tokens `tily-*` de `index.css`, jamais en dur dans les composants. Le thème xterm.js est centralisé dans `terminalRegistry` (`setTheme`), fourni par l'hôte avec la couleur de Tily ; la palette ANSI reste celle de xterm.js. Une couleur choisie par l'utilisateur (pastille, surlignage d'un nom) passe en style en ligne.
 - Textes visibles en français. Les termes Git restent en anglais et invariables, employés comme des noms : Push, Pull, Fetch, Stash, Stage / Unstage (Staged / Unstaged), Merge, Rebase, Amend, Checkout, Cherry-pick (« Push vers origin/main », « Faites un pull »).
 - Fichiers de moins de 400 lignes, un composant exporté par fichier.
 - Interface sobre (section 3 de la spec) : une action secondaire est un bouton icône seul avec `aria-label` et infobulle « action (raccourci) », sans geste secondaire (double-clic, glisser, clic droit), sauf le Ctrl + clic sur la branche de l'en-tête d'un pane, qui ouvre la vue Git et que son infobulle rappelle ; les actions principales et les états importants gardent leur texte ; aucune aide clavier permanente dans un dialogue, le raccourci va dans l'infobulle de son bouton (« Entrée », « Échap ») ; une explication détaillée va dans un `InfoTip`.

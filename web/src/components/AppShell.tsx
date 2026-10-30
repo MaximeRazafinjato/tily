@@ -19,6 +19,7 @@ import { useGitStore } from '../store/gitStore'
 import { usePreviewStore } from '../store/previewStore'
 import { useMcpConsentStore } from '../store/mcpConsentStore'
 import { usePasteStore } from '../store/pasteStore'
+import { useAppearanceStore } from '../store/appearanceStore'
 import { mergeRequestFormOpen } from '../store/mergeRequestFormStore'
 import { worktreeModalOpen } from '../store/worktreeStore'
 import { filePickerOpen } from '../store/filePickerStore'
@@ -34,6 +35,7 @@ import { McpConsentDialog } from './McpConsentDialog'
 import { MergeRequestContextMenu } from './MergeRequestContextMenu'
 import { MergeRequestDialog } from './MergeRequestDialog'
 import { PasteConfirmDialog } from './PasteConfirmDialog'
+import { ColorDialog } from './ColorDialog'
 import { CommandPalette } from './CommandPalette'
 import { DeleteConfirmDialog } from './DeleteConfirmDialog'
 import { EmptyState } from './EmptyState'
@@ -181,7 +183,7 @@ const handleCancelGit = (): void => {
 
 const confirmationOpen = (): boolean => {
   const { settingsOpen, closeConfirmation } = useUiStore.getState()
-  return settingsOpen || closeConfirmation !== null || useExplorerStore.getState().deleteRequest !== null || useGitStore.getState().confirmation !== null || usePasteStore.getState().request !== null || useMcpConsentStore.getState().queue.length > 0 || worktreeModalOpen() || mergeRequestFormOpen() || filePickerOpen() || commitPickerOpen() || globalSearchOpen() || usePreviewStore.getState().pendingAction !== null
+  return settingsOpen || closeConfirmation !== null || useExplorerStore.getState().deleteRequest !== null || useGitStore.getState().confirmation !== null || usePasteStore.getState().request !== null || useMcpConsentStore.getState().queue.length > 0 || worktreeModalOpen() || mergeRequestFormOpen() || filePickerOpen() || commitPickerOpen() || globalSearchOpen() || usePreviewStore.getState().pendingAction !== null || useAppearanceStore.getState().colorTarget !== null
 }
 
 const modalOpen = (): boolean => {
@@ -408,6 +410,7 @@ export function AppShell({ session }: AppShellProps) {
       {gitConfirmation && <GitConfirmDialog confirmation={gitConfirmation} onConfirm={handleConfirmGit} onCancel={handleCancelGit} />}
       {closeConfirmation && <CloseConfirmDialog confirmation={closeConfirmation} onConfirm={confirmClose} onCancel={handleCancelClose} />}
       <PasteConfirmDialog />
+      <ColorDialog />
       {unsavedPreview && <UnsavedPreviewDialog />}
       <McpConsentDialog />
       <Tooltip />

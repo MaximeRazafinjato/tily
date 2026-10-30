@@ -50,6 +50,7 @@ export interface Tab {
   explorer?: boolean
   panel?: RightPanelView
   owner?: string
+  color?: string
 }
 
 export interface Workspace {
@@ -59,6 +60,7 @@ export interface Workspace {
   active: string
   expanded?: boolean
   note?: string
+  color?: string
 }
 
 export interface ClosedTab {
