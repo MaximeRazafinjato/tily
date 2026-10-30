@@ -28,4 +28,12 @@ public sealed class BrowserPageScriptTests
 
         Assert.Equal((true, true), (script.Contains("new Set([])"), script.Contains($"type: '{BrowserPageScript.KeyMessage}'")));
     }
+
+    [Fact]
+    public void Keys_WhenTilyDrivesThePage_ThenChordsLeftToThePage()
+    {
+        var script = BrowserPageScript.Keys(["Ctrl+P"]);
+
+        Assert.Contains($"window.{BrowserPageDriver.DrivingFlag} ||", script);
+    }
 }

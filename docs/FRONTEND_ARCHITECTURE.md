@@ -215,7 +215,7 @@ Outils du serveur MCP calculés côté interface (section 11 de la spec), un mod
 - `run` écrit par `terminal.input(…, false)`, qui passe par `onData` comme une frappe sans prendre le focus ; jamais dans le pane appelant, ni sur un shell terminé, un programme plein écran ou une commande en cours. `close` ne vise jamais le pane appelant ni son onglet, et se passe d'accord seulement pour un élément entièrement à l'agent et au repos.
 - `waitFor` ne relit que les lignes nouvelles grâce à un repère xterm.js et laisse ConPTY finir de dessiner avant de conclure.
 - Une suppression de worktree est refusée pour le dépôt principal, pour le worktree du pane appelant et tant qu'une autre confirmation de suppression est affichée ; sinon la confirmation de l'interface s'ouvre préremplie avec l'agent demandeur.
-- Outils navigateur : sans pane indiqué, le dernier navigateur ouvert ou désigné par l'agent, sinon son dernier navigateur, sinon le seul de son onglet ou de Tily ; un navigateur jamais affiché est refusé.
+- Outils navigateur : sans pane indiqué, le dernier navigateur ouvert ou désigné par l'agent, sinon son dernier navigateur, sinon le seul de son onglet ou de Tily ; un navigateur jamais affiché est refusé. Les actions dans la page (`mcpBrowserInput.ts`) relaient l'élément visé et leurs options à l'hôte, qui les exécute.
 
 ### `src/statusLog/`
 

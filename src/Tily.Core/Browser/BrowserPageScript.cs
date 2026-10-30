@@ -51,7 +51,7 @@ public static class BrowserPageScript
             return [event.ctrlKey && 'Ctrl', event.altKey && 'Alt', event.shiftKey && !character && 'Shift', key].filter(Boolean).join('+');
           };
           window.addEventListener('keydown', (event) => {
-            if (event.isComposing || !window.__tilyChords.has(chordOf(event))) {
+            if (event.isComposing || window.__tilyDriving || !window.__tilyChords.has(chordOf(event))) {
               return;
             }
             event.preventDefault();

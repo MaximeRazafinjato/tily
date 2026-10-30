@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using System.Text.Json;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
@@ -13,12 +14,15 @@ internal sealed class BrowserView : IDisposable
     public const string ProfileName = "browser";
     private const double OffscreenLeft = -20000;
     private static readonly TimeSpan ErrorsDelay = TimeSpan.FromMilliseconds(250);
+    private static readonly TimeSpan SettleTimeout = TimeSpan.FromSeconds(2);
+    private static readonly BrowserViewportSizeModel DrivenSize = BrowserViewports.DesktopCapture;
     private static readonly string[] ConsoleEvents = [DevToolsConsole.ConsoleApiCalled, DevToolsConsole.ExceptionThrown, DevToolsConsole.EntryAdded];
 
     private readonly BrowserCallbacks _callbacks;
     private readonly DevToolsNetwork _network = new();
-    private readonly List<BrowserNavigationWaiter> _navigations = [];
+    private readonly BrowserNavigations _navigations;
     private readonly List<CoreWebView2DevToolsProtocolEventReceiver> _receivers = [];
+    private readonly SemaphoreSlim _driving = new(1, 1);
     private CoreWebView2? _core;
     private string? _keysScriptId;
     private Rect _bounds;
@@ -34,6 +38,7 @@ internal sealed class BrowserView : IDisposable
         PaneId = paneId;
         Viewport = viewport;
         _callbacks = callbacks;
+        _navigations = new BrowserNavigations(TimedOut);
         Control = new WebView2 { Visibility = Visibility.Collapsed, DefaultBackgroundColor = Microsoft.UI.Colors.White };
         Control.GotFocus += (_, _) => _callbacks.Focused(this);
         _errorsTimer = Control.DispatcherQueue.CreateTimer();
@@ -127,9 +132,9 @@ internal sealed class BrowserView : IDisposable
         await core.ExecuteScriptAsync(script);
     }
 
-    public Task<BrowserNavigationModel> NavigateAsync(string url, TimeSpan timeout) => WaitForNavigationAsync(() => Require().Navigate(url), timeout);
+    public Task<BrowserNavigationModel> NavigateAsync(string url, TimeSpan timeout) => _navigations.WaitAsync(() => Require().Navigate(url), timeout);
 
-    public Task<BrowserNavigationModel> ReloadAsync(TimeSpan timeout) => WaitForNavigationAsync(() => Require().Reload(), timeout);
+    public Task<BrowserNavigationModel> ReloadAsync(TimeSpan timeout) => _navigations.WaitAsync(() => Require().Reload(), timeout);
 
     public void Back()
     {
@@ -162,34 +167,59 @@ internal sealed class BrowserView : IDisposable
         Log.ErrorCount(),
         BrowserViewports.Name(Viewport));
 
-    public async Task<BrowserCaptureModel> CaptureAsync(BrowserViewport viewport, bool fullPage)
+    public Task<BrowserCaptureModel> CaptureAsync(BrowserViewport viewport, bool fullPage)
     {
-        var core = Require();
         var size = BrowserViewports.Capture(viewport);
-        _capturing = true;
-        try
+        return DriveAsync(size, async core =>
         {
-            if (!_visible)
-            {
-                Canvas.SetLeft(Control, OffscreenLeft);
-                Control.Width = size.Width;
-                Control.Height = size.Height;
-                Control.Visibility = Visibility.Visible;
-            }
-
-            await BrowserDevTools.EmulateAsync(core, size);
-            await BrowserDevTools.SettleAsync(core);
             var (width, height) = fullPage ? await BrowserDevTools.ContentSizeAsync(core) : (size.Width, size.Height);
             var data = await BrowserDevTools.ScreenshotAsync(core, width, height, fullPage);
             return new BrowserCaptureModel(data, width, height, size.Scale, BrowserViewports.Name(viewport), core.Source, core.DocumentTitle);
+        });
+    }
+
+    public async Task<T> DriveAsync<T>(BrowserViewportSizeModel? emulated, Func<CoreWebView2, Task<T>> action)
+    {
+        var core = Require();
+        await _driving.WaitAsync();
+        _capturing = true;
+        try
+        {
+            var offscreen = Control.Visibility != Visibility.Visible;
+            if (offscreen)
+            {
+                Canvas.SetLeft(Control, OffscreenLeft);
+                Control.Width = emulated?.Width ?? PaneWidth(DrivenSize.Width);
+                Control.Height = emulated?.Height ?? DrivenSize.Height;
+                Control.Visibility = Visibility.Visible;
+            }
+
+            if (emulated is not null)
+            {
+                await BrowserDevTools.EmulateAsync(core, emulated);
+            }
+
+            if (offscreen || emulated is not null)
+            {
+                await BrowserDevTools.SettleAsync(core);
+            }
+
+            return await action(core);
         }
         finally
         {
             _capturing = false;
-            await ApplyViewportAsync();
+            if (emulated is not null)
+            {
+                await ApplyViewportAsync();
+            }
+
             Layout();
+            _driving.Release();
         }
     }
+
+    public Task<BrowserNavigationModel?> FollowAsync(Func<Task> action, TimeSpan timeout) => _navigations.FollowAsync(action, SettleQuietlyAsync, timeout);
 
     public async Task<string> SnapshotAsync() => Control.Visibility == Visibility.Visible ? await BrowserDevTools.PreviewAsync(Require()) : string.Empty;
 
@@ -201,9 +231,27 @@ internal sealed class BrowserView : IDisposable
         }
     }
 
+    private double PaneWidth(double available) => Viewport == BrowserViewport.Mobile ? Math.Min(BrowserViewports.MobilePaneWidth, available) : available;
+
+    private async Task SettleQuietlyAsync()
+    {
+        if (_core is not { } core)
+        {
+            return;
+        }
+
+        try
+        {
+            await BrowserDevTools.SettleAsync(core).WaitAsync(SettleTimeout);
+        }
+        catch (Exception exception) when (exception is COMException or InvalidOperationException or ArgumentException or TimeoutException)
+        {
+        }
+    }
+
     private void Layout()
     {
-        var width = Viewport == BrowserViewport.Mobile ? Math.Min(BrowserViewports.MobilePaneWidth, _bounds.Width) : _bounds.Width;
+        var width = PaneWidth(_bounds.Width);
         Canvas.SetLeft(Control, _bounds.X + (_bounds.Width - width) / 2);
         Canvas.SetTop(Control, _bounds.Y);
         Control.Width = Math.Max(0, width);
@@ -216,32 +264,9 @@ internal sealed class BrowserView : IDisposable
         }
     }
 
-    private async Task<BrowserNavigationModel> WaitForNavigationAsync(Action start, TimeSpan timeout)
-    {
-        var waiter = new BrowserNavigationWaiter();
-        _navigations.Add(waiter);
-        start();
-        try
-        {
-            return await waiter.Completion.Task.WaitAsync(timeout);
-        }
-        catch (TimeoutException)
-        {
-            return new BrowserNavigationModel(_core?.Source ?? string.Empty, _core?.DocumentTitle ?? string.Empty, false, null, "La page n’a pas fini de charger dans le délai imparti.", Log.ErrorCount());
-        }
-        finally
-        {
-            _navigations.Remove(waiter);
-        }
-    }
-
     private void HandleNavigationStarting(CoreWebView2 sender, CoreWebView2NavigationStartingEventArgs args)
     {
-        foreach (var waiter in _navigations.Where(waiter => waiter.NavigationId is null))
-        {
-            waiter.NavigationId = args.NavigationId;
-        }
-
+        _navigations.Started(args.NavigationId);
         Loading = true;
         Log.StartLoad();
         _lastErrors = 0;
@@ -254,11 +279,7 @@ internal sealed class BrowserView : IDisposable
         var status = args.HttpStatusCode > 0 ? args.HttpStatusCode : (int?)null;
         var error = args.IsSuccess ? null : $"Chargement impossible : {args.WebErrorStatus}.";
         var result = new BrowserNavigationModel(sender.Source, sender.DocumentTitle, args.IsSuccess, status, error, Log.ErrorCount());
-        foreach (var waiter in _navigations.Where(waiter => waiter.NavigationId == args.NavigationId).ToList())
-        {
-            waiter.Completion.TrySetResult(result);
-        }
-
+        _navigations.Completed(args.NavigationId, result);
         PostState();
     }
 
@@ -362,17 +383,15 @@ internal sealed class BrowserView : IDisposable
         }
     }
 
+    private BrowserNavigationModel TimedOut(string error) => new(_core?.Source ?? string.Empty, _core?.DocumentTitle ?? string.Empty, false, null, error, Log.ErrorCount());
+
     private void PostState() => _callbacks.StateChanged(this);
 
     private CoreWebView2 Require() => _core ?? throw new InvalidOperationException("Le navigateur de ce pane démarre encore : réessayez dans un instant.");
 
     public void Dispose()
     {
-        foreach (var waiter in _navigations.ToList())
-        {
-            waiter.Completion.TrySetException(new InvalidOperationException("Le pane navigateur a été fermé."));
-        }
-
+        _navigations.Close();
         _errorsTimer.Stop();
         Control.Close();
     }

@@ -148,17 +148,19 @@ Serveur MCP (spec, §11, « Pilotage par Claude Code (MCP) »), partie partagée
 - Un pipe par instance : `tily-mcp-` et un hachage du dossier de données, résolu comme l'hôte (`TILY_DATA_DIR`, sinon `%LOCALAPPDATA%\Tily`).
 - Pipe `CurrentUserOnly` des deux côtés : réservé au compte courant. `FirstPipeInstance` : une seconde instance sur le même dossier échoue au lieu de détourner les appels.
 - Une connexion par appel, une ligne JSON dans chaque sens, appels servis en parallèle.
-- Arguments vérifiés avant envoi : commande d'une ligne, dossier résolu par rapport au dossier de l'agent, adresse normalisée, capture `.png` dans un dossier existant.
+- Arguments vérifiés avant envoi : commande d'une ligne, dossier résolu par rapport au dossier de l'agent, adresse normalisée, capture `.png` dans un dossier existant, élément visé d'une seule façon (`BrowserTargets`), touche connue (`BrowserKeys`), direction de défilement.
 - `ClaudeMcpInstaller` déclare le serveur `tily` dans `~\.claude.json` en gardant le reste ; une déclaration Tily se reconnaît à son exécutable `tily-mcp.exe` ; un serveur `tily` étranger n'est jamais remplacé ni retiré.
 
 ### Browser/
 
-Panes navigateur (spec, §6, « Panes navigateur »), partie sans interface : adresses, journaux console et réseau, script de page.
+Panes navigateur (spec, §6, « Panes navigateur »), partie sans interface : adresses, journaux console et réseau, scripts de page, interactions pilotées par Claude Code.
 
 - `BrowserAddress` complète une saisie (`localhost:5173`, une IP ou un nom sans point en `http://`, sinon `https://` ; chemin Windows en `file:///`) et n'admet que http, https, file et `about:blank`.
 - `BrowserLog` garde console et réseau dans des tampons circulaires ; un numéro de chargement permet de ne lire que le dernier ; `ErrorCount` compte à l'arrivée, donc au-delà des tampons.
 - `DevToolsConsole` ignore `Log.entryAdded` de source `network`, déjà dans le réseau ; `DevToolsNetwork` ne compte pas une requête annulée comme une erreur.
-- `BrowserPageScript.Keys`, injecté dans chaque page, intercepte avant elle les combinaisons de Tily (`ShortcutRules.InterceptedChords`), calculées comme côté web (`keyChords.ts`), et les envoie à l'hôte (`tily.key`).
+- `BrowserPageScript.Keys`, injecté dans chaque page, intercepte avant elle les combinaisons de Tily (`ShortcutRules.InterceptedChords`), calculées comme côté web (`keyChords.ts`), et les envoie à l'hôte (`tily.key`), sauf pendant une touche pressée par Claude (`window.__tilyDriving`).
+- `BrowserPageDriver` construit les appels au script d'interaction (`BrowserPageElements` : rôles, noms, états, valeurs ; `BrowserPageActions` : plan de la page, recherche d'un élément, point visé, champ, défilement), installé une fois par document dans `window.__tilyDriver` et exécuté par `Runtime.evaluate`. Les références (`e12`) sont des `WeakRef` gardées dans la page, jamais dans le DOM ; un refus attendu revient en `{ error }` en français, lu par `BrowserPageResults`. Une valeur affectée à une liste déroulante passe par le setter du prototype, que les frameworks à état contrôlé (React) voient changer.
+- `BrowserKeys` traduit une combinaison (`Ctrl+Shift+K`, alias français compris) en événements `Input.dispatchKeyEvent` : modificateurs pressés dans un ordre fixe, texte produit seulement sans Ctrl, Alt ni Meta.
 
 ### Shortcuts/
 
@@ -235,14 +237,15 @@ Mises à jour par les releases GitHub (spec, §13).
 
 - Le pipe n'est ouvert que si le serveur est déclaré ; au démarrage, la déclaration est recalée sur cette copie si l'exécutable déclaré a disparu.
 - Chaque appel devient `mcp.request`, terminé par `mcp.response` ; avant `app.ready`, il échoue (« Tily démarre encore »). Le pane appelant vient de `TILY_PANE_ID`, hérité par Claude Code puis par `tily-mcp.exe`. L'attente se fait sur le pool de threads.
-- Délais de réponse : 10 s par défaut ; délai demandé plus 5 s pour l'attente d'un motif ; 125 s pour `run`, `interrupt` et `close`, qui peuvent attendre l'accord de l'utilisateur ; 10 min pour créer ou supprimer un worktree ; 60 s pour les outils navigateur qui attendent une navigation ou une capture.
+- Délais de réponse : 10 s par défaut ; délai demandé plus 5 s pour l'attente d'un motif ; 125 s pour `run`, `interrupt` et `close`, qui peuvent attendre l'accord de l'utilisateur ; 10 min pour créer ou supprimer un worktree ; 60 s pour les outils navigateur qui attendent une navigation, une capture ou une action dans la page.
 - La réponse de `layout` reçoit la branche de chaque pane.
 
-### Panes navigateur (`BrowserFeed`, `BrowserView`, `BrowserDevTools`)
+### Panes navigateur (`BrowserFeed`, `BrowserView`, `BrowserDevTools`, `BrowserNavigations`, `BrowserDriver`, `BrowserInput`)
 
 - `browser.*` est routé avant tout autre traitement. Une `BrowserView` par pane, avec le profil WebView2 distinct `browser` : cookies et sessions séparés de l'interface et conservés. Saisie automatique et mots de passe y restent actifs.
 - Les récepteurs d'événements DevTools sont gardés dans un champ : sinon le ramasse-miettes les libère et la collecte s'arrête sans bruit. `browser.state` regroupe les changements du nombre d'erreurs, pour qu'une page qui inonde sa console n'inonde pas le pont.
-- La vue masquée est placée hors champ le temps d'une capture ; `browser.snapshot` donne l'image instantanée que l'interface montre à la place de la vue masquée.
+- La vue masquée est placée hors champ le temps d'une capture ou d'une action (`DriveAsync`, qui les exécute une à une par vue) ; `browser.snapshot` donne l'image instantanée que l'interface montre à la place de la vue masquée.
+- `BrowserDriver` enchaîne les actions de Claude : clic, double clic et molette par `Input.dispatchMouseEvent`, saisie par `Input.insertText`, touches par `Input.dispatchKeyEvent` (`BrowserInput`). Des coordonnées visent la page émulée au viewport de la capture le temps de l'action. Une action suivie d'une navigation l'attend (`BrowserNavigations.FollowAsync`) ; la page n'a pas besoin du focus Windows, que l'utilisateur garde.
 - Une fenêtre demandée avec taille ou position (popup de connexion MSAL) s'ouvre dans une fenêtre WebView2 qui partage la session et garde `window.opener` ; toute autre devient `browser.newPane`.
 - `tily.key` rend le focus à l'interface puis devient `browser.key` ; quand les raccourcis changent, le script est réinscrit et rejoué.
 
@@ -286,7 +289,7 @@ Les types TypeScript sont dans `web/src/bridge/` : `messages.ts` (application, s
 - MCP : `mcp.response` (réponse à un `mcp.request`).
 - Mises à jour : `update.check` (vérification), `update.install` (téléchargement), `update.cancel` (annule le téléchargement), `update.apply` (installation et redémarrage).
 - Journal de la barre de statut : `statusLog.append` (ajoute un message), `statusLog.clear` (vide le journal).
-- Navigateur : `browser.attach` (crée la vue du pane), `browser.bounds` (rectangle et visibilité), `browser.snapshot` (image affichée à la place de la vue masquée), `browser.navigate`, `browser.back`, `browser.reload` (navigation), `browser.viewport` (bureau ou mobile), `browser.devtools` (outils de développement), `browser.focus` (focus dans la page), `browser.close` (libère la vue), `browser.console`, `browser.network` (journaux filtrés), `browser.screenshot` (capture PNG).
+- Navigateur : `browser.attach` (crée la vue du pane), `browser.bounds` (rectangle et visibilité), `browser.snapshot` (image affichée à la place de la vue masquée), `browser.navigate`, `browser.back`, `browser.reload` (navigation), `browser.viewport` (bureau ou mobile), `browser.devtools` (outils de développement), `browser.focus` (focus dans la page), `browser.close` (libère la vue), `browser.console`, `browser.network` (journaux filtrés), `browser.screenshot` (capture PNG), `browser.elements` (plan de la page avec références), `browser.click`, `browser.type`, `browser.press`, `browser.scroll`, `browser.evaluate` (actions de Claude Code dans la page).
 
 ### Hôte → web
 
