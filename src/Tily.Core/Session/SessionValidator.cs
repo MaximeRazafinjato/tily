@@ -1,3 +1,4 @@
+using Tily.Core.Appearance;
 using Tily.Core.Browser;
 
 namespace Tily.Core.Session;
@@ -99,6 +100,8 @@ public static class SessionValidator
             return ValidationResultModel.Fail("Note du workspace trop longue.");
         }
 
+        workspace.Color = HexColor.Normalize(workspace.Color);
+
         foreach (var tab in workspace.Tabs)
         {
             var tabResult = ValidateTab(tab, ref nodeCount);
@@ -126,6 +129,7 @@ public static class SessionValidator
         }
 
         tab.Owner = ValidOwner(tab.Owner);
+        tab.Color = HexColor.Normalize(tab.Color);
         var treeResult = ValidateTree(tab.Tree, 0, ref nodeCount);
         if (!treeResult.IsValid)
         {

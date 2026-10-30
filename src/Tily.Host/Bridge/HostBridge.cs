@@ -3,6 +3,7 @@ using System.Reflection;
 using System.Text;
 using System.Text.Json;
 using Tily.Core.Agents;
+using Tily.Core.Appearance;
 using Tily.Core.Context;
 using Tily.Core.Projects;
 using Tily.Core.Session;
@@ -51,6 +52,7 @@ public sealed class HostBridge : IDisposable
     private readonly StatusLogFeed _statusLog;
     private readonly McpFeed _mcp;
     private readonly BrowserFeed _browsers;
+    private readonly AppearanceFeed _appearance;
     private SettingsModel _settings;
     private ShellPathsModel _shellPaths = ShellPathsModel.Empty;
     private PersistenceSettingsModel _persistence = PersistenceSettingsModel.Default;
@@ -63,7 +65,7 @@ public sealed class HostBridge : IDisposable
     private bool _closing;
     private DispatcherQueueTimer? _closeTimer;
 
-    public HostBridge(DispatcherQueue dispatcher, string dataDirectory, nint windowHandle, Action closeWindow, Action<string> setTitle, Canvas browserLayer, Action focusInterface)
+    public HostBridge(DispatcherQueue dispatcher, string dataDirectory, nint windowHandle, Action closeWindow, Action<string> setTitle, Canvas browserLayer, Action focusInterface, Action<WindowColorsModel> applyWindowColors)
     {
         _dispatcher = dispatcher;
         _windowHandle = windowHandle;
@@ -90,6 +92,8 @@ public sealed class HostBridge : IDisposable
         _updates = new UpdateFeed(Post, ApplicationVersion, dataDirectory);
         _mcp = new McpFeed(dataDirectory, Post, PostBackgroundError);
         _browsers = new BrowserFeed(browserLayer, () => _core?.Environment, Post, focusInterface, () => ShortcutRules.InterceptedChords(_settings.Shortcuts));
+        _appearance = new AppearanceFeed(() => _settings, _settingsService, Post, colors => _dispatcher.TryEnqueue(() => applyWindowColors(colors)), PostBackgroundError);
+        applyWindowColors(_appearance.Start());
         ApplySettings(_settings);
         _terminals.OutputReceived += HandleOutput;
         _terminals.CurrentDirectoryChanged += HandleCurrentDirectoryChanged;
@@ -252,6 +256,9 @@ public sealed class HostBridge : IDisposable
             case "appearance.fontSize":
                 SaveFontSize(command);
                 break;
+            case var type when type.StartsWith("appearance.", StringComparison.Ordinal):
+                _appearance.Handle(command);
+                break;
             case "attention.raise":
                 RaiseAttention(RequirePane(command), command);
                 break;
@@ -406,6 +413,7 @@ public sealed class HostBridge : IDisposable
         _terminals.UpdatePaths(_shellPaths);
         _updates.Configure(settings.Updates.AutoCheck);
         _browsers.UpdateShortcuts();
+        _appearance.Refresh();
     }
 
     private void PostSettings(bool saved)
@@ -430,7 +438,7 @@ public sealed class HostBridge : IDisposable
 
     private void SaveFontSize(BridgeCommandModel command)
     {
-        _settings.Appearance = _settingsService.SaveAppearance(new AppearanceSettingsModel(command.FontSize));
+        _settings.Appearance = _settingsService.SaveAppearance(_settings.Appearance with { FontSize = command.FontSize });
         Post(new { type = "appearance.changed", fontSize = _settings.Appearance.FontSize });
     }
 
@@ -466,6 +474,7 @@ public sealed class HostBridge : IDisposable
             text = text.Text,
             persistence = _persistence,
             appearance = _settings.Appearance,
+            theme = _appearance.Hello(),
             shortcuts = _settings.Shortcuts,
             statusLog = _statusLog.Entries(),
             recovery = recovery.Length > 0 ? recovery : null

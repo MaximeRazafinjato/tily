@@ -23,6 +23,7 @@ import { Command } from '../keyboard/commands'
 import { shortcutTextIn, useShortcutText, withShortcut } from '../keyboard/shortcutLabels'
 import { RightPanelView } from '../model/session'
 import { useShortcutStore } from '../store/shortcutStore'
+import { HIGHLIGHT_SHAPE, highlightStyle } from './highlightStyle'
 
 interface TabBarProps {
   workspace: Workspace
@@ -239,7 +240,9 @@ export function TabBar({ workspace, shells, renamingTabId, panelView, onTogglePa
                     onKeyDown={handleTabKeyDown}
                   >
                     {agentSummary ? <AgentStateIcon state={agentSummary.state} tip={agentSummary.tip} /> : commandNotice && <CommandNoticeIcon notice={commandNotice} />}
-                    <span className="min-w-0 truncate">{tab.name}</span>
+                    <span className={tab.color ? `min-w-0 truncate ${HIGHLIGHT_SHAPE}` : 'min-w-0 truncate'} style={highlightStyle(tab.color)}>
+                      {tab.name}
+                    </span>
                     {tab.owner && <AgentOwnerMark owner={tab.owner} />}
                   </button>
                 )}

@@ -74,6 +74,7 @@ const commandItems = (session: Session, shells: ShellProfile[]): PaletteItem[] =
     bound('toggle-notes', 'Afficher / masquer les notes du workspace', Command.ToggleNotes),
     bound('toggle-status-log', 'Afficher / masquer le journal des messages', Command.ToggleStatusLog),
     bound('settings', 'Paramètres', Command.Settings),
+    bound('appearance-settings', 'Couleur de Tily et palette du terminal…', Command.AppearanceSettings),
     bound('settings-export', 'Exporter les préférences…', Command.SettingsExport),
     bound('settings-import', 'Importer les préférences…', Command.SettingsImport),
     bound('search-terminals', 'Rechercher dans tous les terminaux…', Command.SearchTerminals, 'Alt+Entrée dans la recherche'),
@@ -84,6 +85,7 @@ const commandItems = (session: Session, shells: ShellProfile[]): PaletteItem[] =
   if (workspace) {
     items.push(
       bound('rename-workspace', 'Renommer le workspace', Command.RenameWorkspace),
+      bound('workspace-color', `Couleur du workspace ou du projet…${SEPARATOR}${workspace.name}`, Command.WorkspaceColor),
       bound('move-workspace-up', 'Monter le workspace', Command.MoveWorkspaceUp),
       bound('move-workspace-down', 'Descendre le workspace', Command.MoveWorkspaceDown),
       bound('close-workspace', `Fermer le workspace${SEPARATOR}${workspace.name}`, Command.CloseWorkspace),
@@ -134,6 +136,7 @@ const commandItems = (session: Session, shells: ShellProfile[]): PaletteItem[] =
     items.push(
       bound('rename-tab', 'Renommer l’onglet', Command.RenameTab),
       bound('duplicate-tab', 'Dupliquer l’onglet', Command.DuplicateTab),
+      bound('tab-color', `Couleur de l’onglet…${SEPARATOR}${tab.name}`, Command.TabColor),
       bound('close-tab', 'Fermer l’onglet', Command.CloseTab),
     )
     if (tab.manual) {

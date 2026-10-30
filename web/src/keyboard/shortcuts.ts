@@ -1,4 +1,5 @@
 import { bridge } from '../bridge/bridge'
+import { SettingsSection } from '../components/settingsSections'
 import { BrowserPlacement, openBrowser } from '../browser/browserActions'
 import { useHostStore } from '../store/hostStore'
 import { activePane, activeTab, activeWorkspace, DEFAULT_SHELL, RightPanelView, SplitAxis, type Workspace } from '../model/session'
@@ -147,9 +148,9 @@ const toggleSidebar = (): void => {
   toggle()
 }
 
-const openSettings = (): void => {
+const openSettings = (section = SettingsSection.Shells): void => {
   bridge.send({ type: 'settings.get' })
-  useUiStore.getState().openSettings()
+  useUiStore.getState().openSettings(section)
 }
 
 const FOCUS_DIRECTIONS: Partial<Record<Command, Direction>> = {
@@ -197,6 +198,9 @@ export const runCommand = (command: Command): void => {
       break
     case Command.Settings:
       openSettings()
+      break
+    case Command.AppearanceSettings:
+      openSettings(SettingsSection.Appearance)
       break
     case Command.SettingsExport:
       openSettings()

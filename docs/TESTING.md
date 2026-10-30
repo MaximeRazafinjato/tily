@@ -6,7 +6,7 @@ L'interface web n'a pas de tests automatisés : elle se vérifie dans l'applicat
 
 ## Organisation
 
-Un dossier par espace de noms testé (`Agents/`, `Browser/`, `Context/`, `Files/`, `Forge/`, `Git/`, `Mcp/`, `Projects/`, `Session/`, `Settings/`, `Shell/`, `Shortcuts/`, `StatusLog/`, `Terminal/`, `Updates/`, `Worktrees/`), une classe par type testé, suffixe `Tests`.
+Un dossier par espace de noms testé (`Agents/`, `Appearance/`, `Browser/`, `Context/`, `Files/`, `Forge/`, `Git/`, `Mcp/`, `Projects/`, `Session/`, `Settings/`, `Shell/`, `Shortcuts/`, `StatusLog/`, `Terminal/`, `Updates/`, `Worktrees/`), une classe par type testé, suffixe `Tests`.
 
 Nommage des méthodes : `Méthode_QuandCondition_AlorsRésultat` en anglais technique (`Validate_WhenActivePaneUnknown_ThenFails`). Structure Given / When / Then séparée par des lignes vides, une assertion principale par test.
 
@@ -14,6 +14,7 @@ Nommage des méthodes : `Méthode_QuandCondition_AlorsRésultat` en anglais tech
 
 | Catégorie | Exemple | Contrainte |
 | --- | --- | --- |
+| Couleurs | `HexColorTests`, `OklchColorTests` (aller-retour, gamut), `AccentThemeTests` (palettes stable et bêta calculées proches des valeurs historiques, bornes de l'accent, thème du terminal), `AccentResolverTests` (couleur de Tily ou défaut du canal, couleur de projet par dossier ; projet d'un sous-dossier, d'un worktree lié et d'un dépôt hors racine, dans un dossier temporaire au nom accentué) | Aucune E/S, sauf les dossiers temporaires de `AccentResolverTests`. |
 | Unitaires purs | `ShortcutChordTests`, `ShortcutRulesTests` (combinaisons canoniques, réservées, conflits, défauts libérés, délai), `SessionValidatorTests`, `SessionValidatorBrowserTests` (adresse et largeur d'un pane navigateur), `OscCwdParserTests`, `DroppedPathsTests` (protection des chemins déposés selon le shell), `ShellCatalogTests`, `WindowTitleTests`, `UserErrorMessageTests`, `GitAutoFetchScheduleTests`, `GitNamesTests`, `PreviewTypesTests`, `PreviewAddressTests` | Aucune E/S, exécution instantanée. |
 | Persistance | `SessionRepositoryTests`, `PaneTextRepositoryTests`, `StatusLogRepositoryTests`, `ShortcutSettingsRepositoryTests` (seuls les écarts aux défauts écrits), `PersistenceSettingsRepositoryTests`, `ShellPathsRepositoryTests`, `SettingsServiceTests` (validation, export et import des préférences), `ProjectCatalogTests` | Dossier temporaire unique par test, supprimé dans `Dispose`. |
 | Fichiers et aperçu | `FileExplorerTests`, `FilePreviewTests`, `PreviewLinksTests`, `TextFileWriterTests` (encodage et fins de ligne conservés, refus d'un fichier modifié depuis sa lecture), `ProjectFilesTests` (bac à sable `GitSandbox`) | Dossier temporaire unique par test ; `ProjectFilesTests` crée un vrai dépôt (fichiers suivis, non suivis, ignorés, dépôt imbriqué). |

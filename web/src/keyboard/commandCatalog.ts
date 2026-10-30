@@ -17,6 +17,7 @@ export const COMMAND_GROUPS: CommandGroup[] = [
     entries: [
       { command: Command.Palette, label: 'Ouvrir la palette', hint: 'palette' },
       { command: Command.Settings, label: 'Paramètres', hint: 'paramètres' },
+      { command: Command.AppearanceSettings, label: 'Couleur de Tily et palette du terminal…', hint: 'couleur de Tily' },
       { command: Command.Projects, label: 'Ouvrir un projet', hint: 'projet' },
       { command: Command.OpenFile, label: 'Ouvrir un fichier du projet…', hint: 'fichier du projet' },
       { command: Command.SearchTerminals, label: 'Rechercher dans tous les terminaux…', hint: 'rechercher partout' },
@@ -34,6 +35,7 @@ export const COMMAND_GROUPS: CommandGroup[] = [
       { command: Command.ToggleSidebar, label: 'Afficher / masquer les workspaces', hint: 'workspaces' },
       { command: Command.FocusSidebar, label: 'Aller au panneau des workspaces', hint: 'panneau des workspaces' },
       { command: Command.RenameWorkspace, label: 'Renommer le workspace', hint: 'renommer le workspace' },
+      { command: Command.WorkspaceColor, label: 'Couleur du workspace ou du projet…', hint: 'couleur du workspace' },
       { command: Command.MoveWorkspaceUp, label: 'Monter le workspace', hint: 'monter le workspace' },
       { command: Command.MoveWorkspaceDown, label: 'Descendre le workspace', hint: 'descendre le workspace' },
       { command: Command.CloseWorkspace, label: 'Fermer le workspace', hint: 'fermer le workspace' },
@@ -51,6 +53,7 @@ export const COMMAND_GROUPS: CommandGroup[] = [
       { command: Command.RenameTab, label: 'Renommer l’onglet', hint: 'renommer l’onglet' },
       { command: Command.AutoNameTab, label: 'Reprendre le nom du dossier pour l’onglet', hint: 'nom du dossier' },
       { command: Command.DuplicateTab, label: 'Dupliquer l’onglet', hint: 'dupliquer l’onglet' },
+      { command: Command.TabColor, label: 'Couleur de l’onglet…', hint: 'couleur de l’onglet' },
       { command: Command.CloseTab, label: 'Fermer l’onglet', hint: 'fermer l’onglet' },
       { command: Command.CloseOtherTabs, label: 'Fermer les autres onglets', hint: 'fermer les autres onglets' },
       { command: Command.CloseTabsToRight, label: 'Fermer les onglets à droite', hint: 'fermer les onglets à droite' },

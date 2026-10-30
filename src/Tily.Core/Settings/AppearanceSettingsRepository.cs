@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Tily.Core.Appearance;
 using Tily.Core.Session;
 
 namespace Tily.Core.Settings;
@@ -11,7 +12,42 @@ public sealed record AppearanceSettingsModel(int FontSize = AppearanceSettingsMo
 
     public static readonly AppearanceSettingsModel Default = new();
 
-    public AppearanceSettingsModel Clamped() => this with { FontSize = Math.Clamp(FontSize, MinFontSize, MaxFontSize) };
+    public string? Accent { get; init; }
+    public Dictionary<string, string> ProjectColors { get; init; } = new(StringComparer.OrdinalIgnoreCase);
+
+    public AppearanceSettingsModel Normalized() => this with
+    {
+        FontSize = Math.Clamp(FontSize, MinFontSize, MaxFontSize),
+        Accent = HexColor.Normalize(Accent),
+        ProjectColors = (ProjectColors ?? [])
+            .Where(pair => !string.IsNullOrWhiteSpace(pair.Key) && HexColor.Normalize(pair.Value) is not null)
+            .GroupBy(pair => pair.Key.Trim(), StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(group => group.Key, group => HexColor.Normalize(group.Last().Value)!, StringComparer.OrdinalIgnoreCase)
+    };
+
+    public AppearanceSettingsModel WithProjectColor(string project, string? color)
+    {
+        var colors = new Dictionary<string, string>(ProjectColors, StringComparer.OrdinalIgnoreCase);
+        if (HexColor.Normalize(color) is { } normalized)
+        {
+            colors[project] = normalized;
+        }
+        else
+        {
+            colors.Remove(project);
+        }
+
+        return this with { ProjectColors = colors };
+    }
+
+    public bool Equals(AppearanceSettingsModel? other) =>
+        other is not null
+        && FontSize == other.FontSize
+        && Accent == other.Accent
+        && ProjectColors.Count == other.ProjectColors.Count
+        && ProjectColors.All(pair => other.ProjectColors.TryGetValue(pair.Key, out var color) && color == pair.Value);
+
+    public override int GetHashCode() => HashCode.Combine(FontSize, Accent, ProjectColors.Count);
 }
 
 public sealed class AppearanceSettingsRepository
@@ -40,7 +76,7 @@ public sealed class AppearanceSettingsRepository
 
         try
         {
-            return (JsonSerializer.Deserialize<AppearanceSettingsModel>(File.ReadAllText(_filePath), SessionRepository.JsonOptions) ?? AppearanceSettingsModel.Default).Clamped();
+            return (JsonSerializer.Deserialize<AppearanceSettingsModel>(File.ReadAllText(_filePath), SessionRepository.JsonOptions) ?? AppearanceSettingsModel.Default).Normalized();
         }
         catch (JsonException)
         {

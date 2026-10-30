@@ -228,6 +228,34 @@ public sealed class SessionValidatorTests
         Assert.Equal("Port de l’API : 5123", session.Workspaces[0].Note);
     }
 
+    [Theory]
+    [InlineData("#A98FC9", "#a98fc9")]
+    [InlineData("violet", null)]
+    public void Validate_WhenWorkspaceColor_ThenNormalizesOrDropsIt(string color, string? expected)
+    {
+        var session = SessionFactory.Initial();
+        session.Workspaces[0].Color = color;
+
+        var result = SessionValidator.Validate(session);
+
+        Assert.True(result.IsValid);
+        Assert.Equal(expected, session.Workspaces[0].Color);
+    }
+
+    [Theory]
+    [InlineData("#C98FA5", "#c98fa5")]
+    [InlineData("rose", null)]
+    public void Validate_WhenTabColor_ThenNormalizesOrDropsIt(string color, string? expected)
+    {
+        var session = SessionFactory.Initial();
+        session.Workspaces[0].Tabs[0].Color = color;
+
+        var result = SessionValidator.Validate(session);
+
+        Assert.True(result.IsValid);
+        Assert.Equal(expected, session.Workspaces[0].Tabs[0].Color);
+    }
+
     [Fact]
     public void Validate_WhenWorkspaceNoteTooLong_ThenFails()
     {

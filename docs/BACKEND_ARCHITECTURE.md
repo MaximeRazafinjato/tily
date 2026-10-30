@@ -59,9 +59,16 @@ Modèle de session (workspaces, onglets, splits, panes terminal ou navigateur, o
 - `Snapshot` rend les shells, les chemins des fichiers et des avertissements non bloquants : shell, éditeur (`CommandLocator` : chemin, `PATH` avec `PATHEXT`, App Paths), son `.wav`, dossier des projets ou des worktrees introuvables.
 - Import : version 1 ; `shells`, `editor`, `persistence` et `projectsRoot` obligatoires, autres clés (`shortcuts` comprise) facultatives. `Import` valide sans rien écrire et signale chaque valeur de persistance ramenée dans sa plage. L'export ne contient jamais la session, le texte ni les dossiers par projet.
 
+### Appearance/
+
+Couleurs de l'interface (spec, §3, « Couleurs »).
+
+- `AccentTheme` calcule en OKLCH, à partir d'une seule couleur d'accent, les tokens `tily-*` teintés (luminosité fixe, saturation proportionnelle à celle de l'accent), le thème xterm.js et les couleurs de la barre de titre ; l'accent est borné en luminosité et en saturation, une couleur hors gamut sRGB perd de la saturation sans changer de teinte. Les couleurs d'état, de diff, de voies Git et de syntaxe restent dans `index.css`.
+- `AccentResolver` construit le thème de la couleur de Tily, sinon du défaut du canal (`AccentPresets`), et donne le projet et la couleur de projet de chaque dossier (`ProjectsOf`), qui ne surligne qu'un nom. Le projet d'un dossier se lit sans lancer `git` (`GitContext.MainRepositoryRoot`) : dépôt principal d'un worktree, puis dossier de premier niveau de la racine des projets, sinon racine du dépôt hors de cette racine.
+
 ### Context/
 
-Contexte Git d'un dossier (`GitContext`) et actions locales (`LocalActions`) : Explorateur, éditeur (`editor.json`), liens.
+Contexte Git d'un dossier (`GitContext`, qui donne aussi le dépôt principal d'un worktree) et actions locales (`LocalActions`) : Explorateur, éditeur (`editor.json`), liens.
 
 - `GitContext` lit `.git`, `gitdir:` et `HEAD` sans lancer `git` : appelé à chaque `context.query` et pour chaque pane de `tily_layout`, il doit rester instantané.
 - La sélection dans l'Explorateur passe par `SHOpenFolderAndSelectItems`, sans ligne de commande : virgules et espaces ne gênent pas, contrairement à `explorer /select,`.
@@ -186,6 +193,7 @@ Mises à jour par les releases GitHub (spec, §13).
 
 ### Démarrage et fenêtre (`App`, `MainWindow`, `app.manifest`, `Assets/`)
 
+- Barre de titre et fond de la WebView2 suivent la couleur de Tily (`ApplyWindowColors`), calculée dès la construction du pont puis à chaque changement.
 - Dossier de données : `TILY_DATA_DIR`, réécrite en chemin absolu pour que le hook et `tily-mcp.exe` retrouvent l'instance, sinon `%LOCALAPPDATA%\Tily`, ou `%LOCALAPPDATA%\Tily Beta` en bêta (la variable est alors posée). Profil WebView2 de l'interface dans `WebView2\`.
 - `--remove-claude-hooks` (désinstallation) retire hooks et déclaration MCP, sauf si l'autre canal est installé : il les reprendra à son prochain lancement.
 - `app.manifest` : DPI `PerMonitorV2`, `longPathAware`.
@@ -249,6 +257,12 @@ Mises à jour par les releases GitHub (spec, §13).
 - Une fenêtre demandée avec taille ou position (popup de connexion MSAL) s'ouvre dans une fenêtre WebView2 qui partage la session et garde `window.opener` ; toute autre devient `browser.newPane`.
 - `tily.key` rend le focus à l'interface puis devient `browser.key` ; quand les raccourcis changent, le script est réinscrit et rejoué.
 
+### Couleurs (`AppearanceFeed`)
+
+- Le thème ne dépend que des réglages : calculé au démarrage, recalculé à chaque enregistrement, `appearance.theme` seulement s'il change.
+- `appearance.projects` (dossier du pane actif de chaque workspace) est résolu dans sa propre file, car trouver le projet lit le disque ; `appearance.projectsResolved` ne part que si le résultat change, et `app.hello` remet ce filtre à zéro.
+- `appearance.projectColor` n'écrit que `appearance.json` puis renvoie les projets ; un enregistrement des réglages les renvoie aussi.
+
 ### Mises à jour et journal (`UpdateFeed`, `StatusLogFeed`, `PathPicker`)
 
 - Rien n'est téléchargé sans `update.install`, refusé pour une copie non installée ; l'installeur va dans `updates\`, vidé au démarrage. `update.apply` exige que l'installeur vérifié existe encore ; il n'est lancé qu'à la fin de `HostBridge.Dispose`, terminaux arrêtés, attend la fin de Tily puis relance `Tily.exe` avec les droits de l'utilisateur d'origine.
@@ -267,13 +281,13 @@ Mises à jour par les releases GitHub (spec, §13).
 
 ## Contrat du pont
 
-Les types TypeScript sont dans `web/src/bridge/` : `messages.ts` (application, session, réglages, terminaux, agents, projets, explorateur), `gitMessages.ts`, `forgeMessages.ts`, `worktreeMessages.ts`, `previewMessages.ts`, `mcpMessages.ts`, `browserMessages.ts`, `updateMessages.ts`, `statusLogMessages.ts`. Les champs se lisent là et dans les modèles C#. Toute évolution se fait des deux côtés dans le même commit.
+Les types TypeScript sont dans `web/src/bridge/` : `messages.ts` (application, session, réglages, terminaux, agents, projets, explorateur), `appearanceMessages.ts`, `gitMessages.ts`, `forgeMessages.ts`, `worktreeMessages.ts`, `previewMessages.ts`, `mcpMessages.ts`, `browserMessages.ts`, `updateMessages.ts`, `statusLogMessages.ts`. Les champs se lisent là et dans les modèles C#. Toute évolution se fait des deux côtés dans le même commit.
 
 ### Web → hôte
 
 - Application : `app.ready` (interface prête : `app.hello` en retour, appels MCP acceptés), `window.title` (titre « workspace › onglet »), `window.close` (fermeture réelle, disposition et texte envoyés), `window.closeCancel` (fermeture annulée).
 - Session : `session.save` (session complète), `text.save` (texte des panes modifiés et panes à garder).
-- Réglages : `settings.get` (demande `settings.result`), `settings.save` (enregistre et applique), `settings.export` (sélecteur puis export), `settings.import` (sélecteur puis lecture sans écriture), `appearance.fontSize` (taille du texte choisie dans la palette), `dialog.pick` (sélecteur natif), `agents.installHooks`, `agents.removeHooks` (hooks Claude Code), `mcp.install`, `mcp.remove` (déclaration du serveur MCP).
+- Réglages : `settings.get` (demande `settings.result`), `settings.save` (enregistre et applique), `settings.export` (sélecteur puis export), `settings.import` (sélecteur puis lecture sans écriture), `appearance.fontSize` (taille du texte choisie dans la palette), `appearance.projects` (dossier du pane actif de chaque workspace), `appearance.projectColor` (couleur d'un projet, vide pour la retirer), `dialog.pick` (sélecteur natif), `agents.installHooks`, `agents.removeHooks` (hooks Claude Code), `mcp.install`, `mcp.remove` (déclaration du serveur MCP).
 - Attention : `attention.raise` (attente ou fin d'agent non acquittée), `attention.flash` (fin d'une commande longue), `attention.test` (aperçu d'une notification avec les réglages en cours d'édition).
 - Terminaux : `terminal.create` (lance le shell, commande initiale facultative), `terminal.input` (frappe), `terminal.resize` (dimensions), `terminal.ack` (caractères affichés, contre-pression), `terminal.close` (arrête le pane et ses processus), `terminal.activity` (programmes encore actifs ; `request` distingue le serveur MCP de la confirmation de fermeture), `terminal.drop` (fichiers déposés, en objets joints), `terminal.dropPath` (chemin d'une ligne de l'arbre des fichiers).
 - Projets et contexte : `projects.list` (projets du sélecteur), `projects.repositories` (dépôts d'un projet), `projects.rememberRepository` (dépôt par défaut d'un projet), `context.query` (contexte Git du dossier d'un pane), `context.open` (dossier dans l'éditeur ou l'Explorateur), `link.open` (lien d'un terminal hors de Tily).
@@ -293,8 +307,8 @@ Les types TypeScript sont dans `web/src/bridge/` : `messages.ts` (application, s
 
 ### Hôte → web
 
-- Application : `app.hello` (état initial, avec `recovery` après une quarantaine), `app.closing` (demande de fermeture avec l'activité des panes), `session.saved`, `session.saveFailed` (résultat d'une écriture), `error` (erreur à afficher, `pane` pour un échec `terminal.*` seulement).
-- Réglages : `settings.result` (réglages et état des intégrations pour l'écran Paramètres), `settings.exported`, `settings.imported` (à confirmer par `settings.save`), `appearance.changed` (taille enregistrée), `dialog.picked` (chemin choisi).
+- Application : `app.hello` (état initial, avec `theme` : couleur affichée et préréglages, et `recovery` après une quarantaine), `app.closing` (demande de fermeture avec l'activité des panes), `session.saved`, `session.saveFailed` (résultat d'une écriture), `error` (erreur à afficher, `pane` pour un échec `terminal.*` seulement).
+- Réglages : `settings.result` (réglages et état des intégrations pour l'écran Paramètres), `settings.exported`, `settings.imported` (à confirmer par `settings.save`), `appearance.changed` (taille enregistrée), `appearance.theme` (tokens et thème du terminal de la couleur de Tily), `appearance.projectsResolved` (projet et couleur de projet de chaque dossier), `dialog.picked` (chemin choisi).
 - Terminaux : `terminal.output` (sortie), `terminal.cwd` (OSC 7), `terminal.exit` (fin du shell), `terminal.pathMissing` (dossier disparu et repli), `terminal.dropped` (chemins mis en forme pour le shell), `terminal.activityResult` (panes actifs, `request` renvoyé, 0 sans numéro).
 - Agents : `agent.states` (agent de chaque pane qui en a un), `agent.join` (notification cliquée), `mcp.request` (outil appelé par Claude Code, nommé comme l'enum `McpTool` de `mcpMessages.ts`).
 - Projets et contexte : `projects.listed`, `projects.repositoriesFound`, `projects.repositoryRemembered`, `context.result`, réponses aux demandes correspondantes.
