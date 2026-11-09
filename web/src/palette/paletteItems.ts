@@ -3,13 +3,14 @@ import type { GitContext, ShellProfile } from '../bridge/messages'
 import { shortcutText } from '../keyboard/shortcutLabels'
 import { Command, runCommand } from '../keyboard/shortcuts'
 import { DEFAULT_FONT_SIZE, MAX_FONT_SIZE, MIN_FONT_SIZE } from '../model/appearance'
-import { activeTab, activeWorkspace, distinctWorkspaceName, FAVORITES_MAX, folderName, isLeaf, panesOf, type Pane, type Session, type Tab, type Workspace } from '../model/session'
+import { activeTab, activeWorkspace, distinctTabName, distinctWorkspaceName, FAVORITES_MAX, folderName, isLeaf, panesOf, type Pane, type Session } from '../model/session'
 import { canSearchCommits } from '../git/commitSearch'
 import { canEditMergeRequest, createMergeRequestLabel, editMergeRequestLabel, openMergeRequestEditForm, openMergeRequestForm } from '../forge/mergeRequestFormActions'
 import { branchKey, useForgeStore } from '../store/forgeStore'
 import { useAgentStore } from '../store/agentStore'
 import { useHostStore } from '../store/hostStore'
 import { useSessionStore } from '../store/sessionStore'
+import { MergePlacement, mergeTabIntoTab, tabMergeTargets } from '../terminal/tabMerge'
 import { movePaneToTab, restoreClosedTabAt } from '../terminal/tabLifecycle'
 import { joinPane } from '../terminal/terminalActions'
 import { terminalRegistry } from '../terminal/terminalRegistry'
@@ -34,6 +35,8 @@ const FAVORITES_FULL_NOTICE = `Pas plus de ${FAVORITES_MAX} favoris : retirez un
 const ATTENTION_PREFIX = 'attention-'
 const MOVE_TAB_PREFIX = 'move-tab-'
 const JOIN_TAB_PREFIX = 'join-tab-'
+const MERGE_TAB_PREFIX = 'merge-tab-'
+const MERGE_TAB_PREFIXES = Object.values(MergePlacement).map((placement) => `${MERGE_TAB_PREFIX}${placement}-`)
 
 const fontSizeItems = (): PaletteItem[] => {
   const size = terminalRegistry.fontSize()
@@ -161,6 +164,13 @@ const commandItems = (session: Session, shells: ShellProfile[]): PaletteItem[] =
     for (const target of session.workspaces.filter((candidate) => candidate.id !== workspace?.id)) {
       items.push(command(`${MOVE_TAB_PREFIX}${target.id}`, `Déplacer l’onglet vers${SEPARATOR}${distinctWorkspaceName(session.workspaces, target)}`, () => store.moveTab(tab.id, target.id)))
     }
+    const mergeTargets = tabMergeTargets(session, tab.id)
+    if (mergeTargets.length > 0) {
+      items.push(bound('merge-tab', 'Fusionner l’onglet actif dans un autre onglet…', Command.MergeTab))
+    }
+    for (const target of mergeTargets) {
+      items.push(command(`${MERGE_TAB_PREFIX}${target.placement}-${target.tab.id}`, `Fusionner l’onglet actif dans l’onglet${SEPARATOR}${target.name}, ${target.placementLabel}`, () => mergeTabIntoTab(tab.id, target.tab.id, target.placement)))
+    }
   }
   return items
 }
@@ -194,9 +204,6 @@ const paneHint = (pane: Pane, contexts: Record<string, GitContext>): string => {
   return branch ? `${branch}${SEPARATOR}${pane.path}` : pane.path
 }
 
-const distinctTabName = (workspace: Workspace, tab: Tab): string =>
-  workspace.tabs.some((other) => other !== tab && other.name === tab.name) ? `${tab.name} (onglet ${workspace.tabs.indexOf(tab) + 1})` : tab.name
-
 const navigationItems = (session: Session): PaletteItem[] => {
   const { selectWorkspace, selectTab, selectPane } = useSessionStore.getState()
   const { contexts } = useHostStore.getState()
@@ -227,8 +234,9 @@ const isOrphanFavorite = (session: Session, commandId: string): boolean => {
   if (commandId.startsWith(ATTENTION_PREFIX)) {
     return true
   }
-  if (commandId.startsWith(JOIN_TAB_PREFIX)) {
-    const tabId = commandId.slice(JOIN_TAB_PREFIX.length)
+  const tabPrefix = [JOIN_TAB_PREFIX, ...MERGE_TAB_PREFIXES].find((prefix) => commandId.startsWith(prefix))
+  if (tabPrefix) {
+    const tabId = commandId.slice(tabPrefix.length)
     return !session.workspaces.some((workspace) => workspace.tabs.some((tab) => tab.id === tabId))
   }
   const workspaceId = commandId.startsWith(MOVE_TAB_PREFIX) ? commandId.slice(MOVE_TAB_PREFIX.length) : null

@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { SettingsSection } from '../components/settingsSections'
+import type { PaneEdge } from '../model/session'
 
 export enum RenameOrigin {
   Header = 'header',
@@ -10,6 +11,11 @@ export enum RenameOrigin {
 export interface TabDropTarget {
   workspaceId: string
   beforeTabId?: string
+}
+
+export interface PaneDropTarget {
+  paneId: string
+  edge: PaneEdge
 }
 
 export interface WorkspaceDropTarget {
@@ -35,6 +41,7 @@ interface UiState {
   tabRenameOrigin: RenameOrigin
   draggingTabId: string | null
   tabDropTarget: TabDropTarget | null
+  paneDropTarget: PaneDropTarget | null
   springWorkspaceIds: string[]
   draggingWorkspaceId: string | null
   workspaceDropTarget: WorkspaceDropTarget | null
@@ -57,6 +64,7 @@ interface UiState {
   stopRenamingWorkspace: () => void
   startDraggingTab: (tabId: string) => void
   setTabDropTarget: (target: TabDropTarget | null) => void
+  setPaneDropTarget: (target: PaneDropTarget | null) => void
   openSpringWorkspace: (workspaceId: string) => void
   stopDraggingTab: () => void
   startDraggingWorkspace: (workspaceId: string) => void
@@ -74,6 +82,7 @@ export const useUiStore = create<UiState>()((set) => ({
   tabRenameOrigin: RenameOrigin.TabBar,
   draggingTabId: null,
   tabDropTarget: null,
+  paneDropTarget: null,
   springWorkspaceIds: [],
   draggingWorkspaceId: null,
   workspaceDropTarget: null,
@@ -94,11 +103,12 @@ export const useUiStore = create<UiState>()((set) => ({
   stopRenamingTab: () => set({ renamingTabId: null }),
   startRenamingWorkspace: (renamingWorkspaceId, renameOrigin) => set({ renamingWorkspaceId, renameOrigin }),
   stopRenamingWorkspace: () => set({ renamingWorkspaceId: null }),
-  startDraggingTab: (draggingTabId) => set({ draggingTabId, tabDropTarget: null, springWorkspaceIds: [] }),
+  startDraggingTab: (draggingTabId) => set({ draggingTabId, tabDropTarget: null, paneDropTarget: null, springWorkspaceIds: [] }),
   setTabDropTarget: (tabDropTarget) => set({ tabDropTarget }),
+  setPaneDropTarget: (paneDropTarget) => set({ paneDropTarget }),
   openSpringWorkspace: (workspaceId) =>
     set((state) => (state.springWorkspaceIds.includes(workspaceId) ? state : { springWorkspaceIds: [...state.springWorkspaceIds, workspaceId] })),
-  stopDraggingTab: () => set({ draggingTabId: null, tabDropTarget: null, springWorkspaceIds: [] }),
+  stopDraggingTab: () => set({ draggingTabId: null, tabDropTarget: null, paneDropTarget: null, springWorkspaceIds: [] }),
   startDraggingWorkspace: (draggingWorkspaceId) => set({ draggingWorkspaceId, workspaceDropTarget: null }),
   setWorkspaceDropTarget: (workspaceDropTarget) => set({ workspaceDropTarget }),
   stopDraggingWorkspace: () => set({ draggingWorkspaceId: null, workspaceDropTarget: null }),

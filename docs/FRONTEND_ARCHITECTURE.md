@@ -13,8 +13,8 @@ Une section par dossier de `web/src` : rôle, invariants et choix non évidents.
 `App` est l'unique aiguillage des messages de l'hôte : un `bridge.on` par type, qui confie le message à la fonction `receive…` de son dossier. Il démarre les boucles et notifieurs (`startAppearanceProjects`, `startAttentionNotifier`, `startExternalDrops`, `startStatusLog`, `startDeferredPreviews`, `startBrowserLayer`, `startTextAutosave`), puis envoie `app.ready`.
 
 - À `app.hello`, il applique la couleur reçue, configure les modules et injecte le texte de la session précédente ; il ne charge la session qu'une fois la police de symboles Nerd Font chargée.
-- Une réponse numérotée va d'abord à son écouteur (`dispatchReply`) : `browser.reply` et `worktrees.*`, dont `worktrees.done` et `worktrees.failed` vont aussi à l'interface. `terminal.activityResult` va à `paneActivity` s'il porte un numéro attendu, sinon à `closeGuard`. `dialog.picked` est routé par champ : formulaire de worktree, dépôt d'un projet, dossier d'un clonage, sinon Paramètres (`hostStore.pickedPath`).
-- À chaque nouvelle session, il détruit les terminaux et les vues navigateur des panes disparus, puis sauvegarde (voir « Flux »).
+- Une réponse numérotée va d'abord à son écouteur (`dispatchReply`) : `browser.reply` et `worktrees.*`, dont `worktrees.done` et `worktrees.failed` vont aussi à l'interface. `terminal.activityResult` va à `paneActivity` s'il porte un numéro attendu, sinon à `closeGuard`. `dialog.picked` est routé par champ : formulaire de worktree, dépôt d'un projet, dossier choisi par « Parcourir… » d'« Ouvrir un projet », dossier d'un clonage, sinon Paramètres (`hostStore.pickedPath`).
+- À chaque nouvelle session, il détruit les terminaux et les vues navigateur des panes disparus, oublie l'historique des notes des workspaces disparus, puis sauvegarde (voir « Flux »).
 
 ### `src/model/`
 
@@ -38,8 +38,8 @@ Stores Zustand. Seule la session est persistée.
 
 - `sessionStore` : la session et toutes ses mutations, écrites sur un brouillon Immer. Seuls les objets modifiés changent d'identité et une mutation sans effet rend la même session : ni rendu ni sauvegarde. `change` applique une mutation donnée (serveur MCP) ; `browserPanes.ts` et `paneMoves.ts` portent des mutations du brouillon. Un onglet dupliqué n'appartient à aucun agent.
 - Reçu de l'hôte : `hostStore` (shells, projets, contextes Git par pane, réglages, statut, Leader, « Non enregistré »), `appearanceStore` (thème, préréglages, projet et couleur de projet par dossier, cible de la fenêtre « Couleur »), `shortcutStore`, `agentStore`, `statusLogStore`, `browserStore`, `updateStore`.
-- Interface : `uiStore` (renommages et leur origine, palette, sélecteur de projets et Paramètres mutuellement exclusifs, glisser, pane agrandi, confirmation de fermeture), `paneStore`, `pasteStore`, `commandStore`, `terminalSearchStore` (texte et options partagés par la barre d'un pane et la recherche globale).
-- Fonctions : `explorerStore`, `gitStore`, `forgeStore`, `mergeRequestFormStore`, `worktreeStore`, `cloneStore`, `previewStore`, `projectOpenStore`, `filePickerStore`, `commitPickerStore`, `mcpConsentStore`.
+- Interface : `uiStore` (renommages et leur origine, palette, sélecteur de projets et Paramètres mutuellement exclusifs, glisser et ses cibles, pane agrandi, confirmation de fermeture), `paneStore`, `pasteStore`, `commandStore`, `terminalSearchStore` (texte et options partagés par la barre d'un pane et la recherche globale).
+- Fonctions : `explorerStore`, `gitStore`, `forgeStore`, `mergeRequestFormStore`, `worktreeStore`, `cloneStore`, `previewStore`, `projectOpenStore`, `filePickerStore`, `commitPickerStore`, `tabMergePickerStore`, `mcpConsentStore`.
 
 Invariants :
 
@@ -86,6 +86,7 @@ Autres modules :
 - `paneSearch.ts` charge `@xterm/addon-search` à la première recherche d'un terminal, hors `terminalRegistry` ; `globalSearch.ts` relève les lignes des terminaux créés à l'ouverture de la recherche globale.
 - `paneZoom.ts` n'agrandit que le pane actif d'un onglet d'au moins deux panes : `SplitView` ne rend que lui, les autres terminaux restant dans `terminalRegistry`. Le zoom cesse dès que le pane actif ou l'onglet change.
 - `paneLifecycle.ts` : relance, dossier de repli, changement de shell ou abandon du signalement ; aucun repli silencieux.
+- `tabMerge.ts` : fusion d'un onglet dans un autre, à côté d'un pane (`insertBeside`, `moveTabInto` de `paneMoves.ts`) ; `tabMergeTargets` liste les cibles, deux par onglet (côte à côte, en dessous), pour le menu d'onglet, la palette et `TabMergePicker`. Les terminaux suivent leurs panes sans être recréés.
 
 ### `src/keyboard/`
 
@@ -118,12 +119,12 @@ Un composant par fichier, à plat, préfixé par domaine : `Git*`, `MergeRequest
 - Les composants mémoïsés (`PaneView`, `WorkspaceItem`, `FileTreeRow`, `GitGraphRow`…) reçoivent des objets de gestionnaires stables (`WorkspacePanelActions`, `HeaderWorkspaceActions`, `FileTreeHandlers`, `GitGraphRowHandlers`) qui lisent les stores au moment de l'appel.
 - Fenêtre modale : `role="dialog"` ou `role="alertdialog"`, `keepTabInside` (`focusTrap.ts`) en `onKeyDown`, comptage dans `confirmationOpen`, qui bloque les raccourcis du document. Le piège de Tab compte comme étape une zone qui défile sans rien de focalisable, comme Chromium, pour que le focus ne parte jamais vers un terminal masqué qui garderait Tab. Ces rôles figent aussi les panes navigateur (voir `browser/`).
 - Confirmation : le bouton de confirmation a le focus, Entrée confirme, Échap, « Annuler » ou un clic hors de la boîte annule. Une demande venue d'un agent (accord MCP, suppression de worktree) met le focus sur le refus et n'active la confirmation qu'après un court délai, pour qu'une frappe destinée ailleurs n'accorde rien.
-- `SearchDialog` est la boîte commune de la palette et des sélecteurs (projets, dépôts, worktrees, fichiers, commits) ; son `action` facultative pose un bouton icône dans le champ de recherche (« Cloner un dépôt » du sélecteur de projets). La recherche dans tous les terminaux (`TerminalSearchDialog`) est à part et partage seulement `SearchOptionToggles` avec la barre de recherche d'un pane.
+- `SearchDialog` est la boîte commune de la palette et des sélecteurs (projets, dépôts, worktrees, fichiers, commits). Son `lastItem` reste en dernier quelle que soit la recherche (« Parcourir… » d'« Ouvrir un projet ») ; son `action` facultative pose un bouton icône dans le champ de recherche (« Cloner un dépôt » d'« Ouvrir un projet »). La recherche dans tous les terminaux (`TerminalSearchDialog`) est à part et partage seulement `SearchOptionToggles` avec la barre de recherche d'un pane.
 - Un menu se ferme avant d'exécuter son entrée et rend le focus à son origine. Après une fenêtre, un renommage ou le repli d'un panneau, le focus revient au pane actif par `focusPane`.
 - Le focus qui entre dans un pane inactif le rend actif : la saisie et le pane actif ne divergent jamais. Tant qu'un message (`PaneOverlay`) recouvre un pane, le terminal sort de l'ordre de Tab ; le bouton par défaut du message prend le focus, « Ignorer » pour un dossier disparu car le shell y tourne encore. Juste après une prise de focus automatique venue du terminal, Entrée et Espace sont annulés (`ACTIVATION_GUARD_MS`), pour qu'une frappe partie vers le terminal n'active pas le bouton ; un pane inactif qui réapparaît ne vole jamais le focus.
 - Un seul `Tooltip`, monté par `AppShell`, affiche le texte de `data-tip` en position fixe, jamais tronqué ; sans `data-tip`, un texte coupé par `truncate` montre son texte complet au survol. Jamais d'attribut `title`.
 - Listes longues virtualisées par `useVirtualRows` (graphe et diff Git).
-- Onglets et workspaces se glissent par événements pointeur (`pointerDrag.ts`, `tabDrag.ts`, `workspaceDrag.ts`, cible par `elementFromPoint` sur des attributs `data-drop-*` et `data-workspace-*`) ; les instances xterm.js suivent leurs panes sans être recréées. Seule une ligne de l'arbre glissée vers un pane utilise le glisser-déposer HTML5.
+- Onglets et workspaces se glissent par événements pointeur (`pointerDrag.ts`, `tabDrag.ts`, `workspaceDrag.ts`, cible par `elementFromPoint` sur des attributs `data-drop-*` et `data-workspace-*`) ; les instances xterm.js suivent leurs panes sans être recréées. Hors de ces cibles, un onglet glissé vise le pane sous le pointeur (`data-pane-id`, hors panes de l'onglet glissé) et son bord le plus proche (`uiStore.paneDropTarget`), que `PaneDropIndicator` surligne en position fixe sans capter le pointeur ; survoler un autre onglet (`data-drop-tab`) l'affiche après 600 ms. Seule une ligne de l'arbre glissée vers un pane utilise le glisser-déposer HTML5.
 
 ### `src/panel/`
 
@@ -132,6 +133,15 @@ Un composant par fichier, à plat, préfixé par domaine : `Git*`, `MergeRequest
 - `togglePanelView(vue, focus)` ouvre le panneau sur la vue demandée, passe d'une autre vue à celle-ci, ou ferme le panneau si cette vue était déjà affichée, puis donne le focus à la vue ou le rend au terminal. `openPanelView` ouvre sans jamais fermer (Ctrl + clic sur la branche d'un pane, recherche d'un commit).
 - Ouvrir la vue Git rouvre toujours le graphe, qui recouvre les terminaux de l'onglet et prend le focus.
 - `revealInFileTree` et `showFileChanges` réessaient jusqu'au chargement de la ligne ou d'un état Git frais, annulés par un compteur de génération ; le premier ne prend le focus que s'il est libre ou déjà dans l'arbre. `showFileChanges` compare les chemins à partir de `displayRoot`, racine vue du dossier suivi, pour rester juste sous une jonction ou un lecteur `subst`.
+
+### `src/notes/`
+
+`noteHistory.ts` : historique d'annulation de la note de chaque workspace, hors React. Chromium perd celui du champ dès qu'il est démonté (onglet sans la vue Notes, panneau fermé) ou que React remplace sa valeur (changement de workspace) : Ctrl + Z, Ctrl + Y et Ctrl + Maj + Z de `WorkspaceNotes` ne lui parviennent donc jamais.
+
+- Un pas ne garde que la position, le texte retiré et le texte inséré, calculés autour du curseur ; au plus 200 pas par workspace.
+- Comme dans Chromium, une frappe continue (`inputType` de saisie, de saut de ligne ou d'effacement au clavier, sans déplacement du curseur ni perte du focus) forme un seul pas ; collage, couper ou dépôt forment chacun le leur.
+- Une valeur qui ne correspond plus à l'historique (note fusionnée par un déplacement d'onglet) le fait repartir de zéro.
+- Annuler sélectionne le texte rétabli, rétablir place le curseur après le texte réinséré ; `WorkspaceNotes` retire puis rend ensuite le focus au champ, pour que Chromium fasse défiler jusqu'à la sélection, ce que `setSelectionRange` ne fait pas.
 
 ### `src/explorer/`
 
@@ -151,7 +161,7 @@ Aperçu et édition des fichiers, dans un tiroir posé sur la zone des terminaux
 - `preview.requested` (page HTML ouverte par Claude Code dans un pane) s'affiche si l'onglet de ce pane est affiché, sans prendre le focus ; sinon elle attend (`previewStore.deferred`, une par onglet) que l'onglet soit affiché. Aucun changement d'onglet automatique.
 - `renderPreview.ts` assainit le Markdown rendu par DOMPurify et réécrit les images relatives vers l'adresse servie par l'hôte. Une page HTML tourne dans une iframe `sandbox="allow-scripts allow-popups"` : origine opaque, ses scripts n'ont aucun accès à Tily.
 - `previewEdit.ts` : le brouillon part du texte lu, fins de ligne ramenées à LF, et de la `version` de l'hôte. `guardEdits` demande confirmation avant de fermer, d'ouvrir un autre fichier (`preview.requested` compris) ou de quitter l'édition avec des modifications. Un rechargement d'une autre version remplace un brouillon non modifié, sinon le garde et affiche le conflit.
-- `LazyFilePreview` charge le tiroir, marked, highlight.js et DOMPurify dans leur propre fichier JavaScript au premier aperçu ; CodeMirror (`editorSetup.ts`) se charge avec `TextEditor` à la première édition.
+- `LazyFilePreview` charge le tiroir, marked, highlight.js et DOMPurify dans leur propre fichier JavaScript au premier aperçu ; CodeMirror (`editorSetup.ts`) se charge avec `TextEditor` à la première édition. highlight.js et ses langages ajoutés (PowerShell, batch) vivent dans `syntaxHighlighter.ts`, fichier JavaScript à part que partagent l’aperçu et le diff Git.
 
 ### `src/git/`
 
@@ -159,7 +169,7 @@ Vue Git (section 10 de la spec), sans React. Toute opération s'exécute dans l'
 
 - `gitRequests.ts` : `git.watch` part seulement quand le dossier change. Chaque lecture porte un numéro et `gitStore` ignore les réponses dépassées ; un changement de dépôt remet l'état à zéro. `revealCommit` charge des pages jusqu'à trouver le commit, avec un plafond. `retryOnFailure` / `takeRetry` changent un échec codé (`notMerged`, `conflictMarkers`) en confirmation, puis en demande confirmée.
 - `gitRefActions.ts` : merge, rebase, cherry-pick, revert (`revertCommit`), checkout, reset, branches, tags, stash, saisies en place. `gitMenus.ts`, `gitChangeMenu.ts`, `gitGraphActions.ts`, `gitRefSelection.ts` : menus et sélections multiples ; une suppression groupée passe par une seule confirmation.
-- `gitDiffActions.ts` envoie `git.stageLines`, `git.unstageLines` ou `git.discardLines` avec l'empreinte du diff : l'hôte refuse si le fichier a changé, et la sélection est vidée quand l'empreinte change. `gitDiffText.ts` copie le patch brut reçu de l'hôte (« Copier le diff »), refusé avec sa raison pour un diff tronqué ou hors UTF-8.
+- `gitDiffActions.ts` envoie `git.stageLines`, `git.unstageLines` ou `git.discardLines` avec l'empreinte du diff : l'hôte refuse si le fichier a changé, et la sélection est vidée quand l'empreinte change. `gitDiffText.ts` copie le patch brut reçu de l'hôte (« Copier le diff »), refusé avec sa raison pour un diff tronqué ou hors UTF-8. `gitDiffHighlight.ts` charge highlight.js au premier diff affiché, choisit le langage par l'extension (alias de highlight.js, plus les fichiers de projet XML et de configuration INI), colore chaque chunk d'un seul tenant par version (contexte et lignes supprimées, puis contexte et lignes ajoutées) et redécoupe le HTML en lignes en refermant et rouvrant les `span` à chaque saut de ligne ; `useDiffHighlight` le recalcule à chaque nouveau diff, rechargé à chaque changement du dépôt, d'où un plafond de 256 Ko, moitié de celui de l'aperçu.
 - `gitDrag.ts` : glisser d'une branche par événements pointeur sur `data-git-drop-*` ; une cible n'est acceptée que si l'une des deux branches est la branche courante et qu'aucune opération n'est en cours ; le dépôt ouvre le menu Merge / Rebase.
 - `gitReceivers.ts` : un état ou `git.changed` recharge le diff affiché, dont le volet suit un fichier passé d'un groupe à l'autre ; des conflits ramènent à la ligne WIP ; `git.done`, `git.failed` et `git.pushRejected` terminent l'opération en cours (`gitBusy.ts`).
 - `gitFocus.ts` : `takeFocusFromCoveredTerminals`, appelé par `AppShell` à chaque affichage du graphe, donne le focus au graphe s'il était resté sur la page ou sur un terminal recouvert.
@@ -195,14 +205,14 @@ Clonage d'un dépôt (section 9 de la spec, « Cloner un dépôt »). L'hôte va
 
 ### `src/project/`
 
-`projectOpenActions.ts` (section 9 de la spec) : un worktree s'ouvre tel quel ; un projet demande `projects.repositories` et s'ouvre aussitôt s'il n'a qu'un candidat, sinon le sélecteur passe au choix du dépôt (`projectOpenStore`).
+`projectOpenActions.ts` (section 9 de la spec) : un worktree s'ouvre tel quel ; un projet demande `projects.repositories` et s'ouvre aussitôt s'il n'a qu'un candidat, sinon le sélecteur passe au choix du dépôt (`projectOpenStore`). Un dossier choisi par « Parcourir… » suit le même chemin qu'un projet de la liste.
 
 ### `src/browser/`
 
 Panes navigateur (section 6 de la spec). Un `Pane` de type `PaneKind.Browser` garde `url` et `viewport` en plus du dossier et du shell du pane d'où il a été ouvert. Sa page vit dans une WebView2 posée par l'hôte ; le web ne rend que l'en-tête et un corps vide (`BrowserPaneView`, à la place de `PaneView`, corps `[data-browser-body]`).
 
 - `browserLayer.ts` : une boucle `requestAnimationFrame` envoie `browser.attach` à la première apparition d'un corps, `browser.bounds` quand son rectangle change, `visible: false` quand il quitte le DOM. Un pane navigateur compte comme démarré dès qu'il a été affiché ; `disposeMissingBrowsers` ferme la vue des panes sortis de la session.
-- La WebView2 de la page n'est pas transparente : rien de l'interface ne peut s'afficher par-dessus. Quand un `role` `menu`, `dialog` ou `alertdialog` est ouvert, qu'une infobulle (`role="tooltip"`) chevauche le pane ou qu'un élément recouvre l'un des 16 points échantillonnés, la page est figée : capture `browser.snapshot` affichée dans le corps, vue masquée une fois l'image chargée, puis réaffichée à la fin. Un élément flottant nouveau doit porter l'un de ces rôles ou couvrir un point échantillonné.
+- La WebView2 de la page n'est pas transparente : rien de l'interface ne peut s'afficher par-dessus. Quand un `role` `menu`, `dialog` ou `alertdialog` est ouvert, qu'un onglet est glissé (`uiStore.draggingTabId`, pour que le pane reçoive le pointeur et l'indicateur de dépôt), qu'une infobulle (`role="tooltip"`) chevauche le pane ou qu'un élément recouvre l'un des 16 points échantillonnés, la page est figée : capture `browser.snapshot` affichée dans le corps, vue masquée une fois l'image chargée, puis réaffichée à la fin. Un élément flottant nouveau doit porter l'un de ces rôles ou couvrir un point échantillonné.
 - `restoreBrowserFocus` rend le focus à la page du pane actif après un raccourci renvoyé par la page ou la fin du Leader, si rien d'autre ne l'a pris. `browser.key` passe par `handleForwardedKey` (`browserKeys.ts`).
 - `requestBrowser` (`browserRequests.ts`) numérote une commande `browser.*` et attend son `browser.reply`, avec un délai.
 

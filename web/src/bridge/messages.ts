@@ -109,6 +109,7 @@ export interface Settings {
   editor: string
   persistence: PersistenceSettings
   projectsRoot: string
+  additionalProjectsRoots: string[]
   notifications: NotificationSettings
   worktrees: WorktreeSettings
   worktreeFolders: WorktreeProjectFolder[]
@@ -206,7 +207,7 @@ export type HostToWebMessage =
   | { type: 'terminal.activityResult'; request?: number; panes: PaneActivity[] }
   | { type: 'agent.states'; panes: PaneAgent[] }
   | { type: 'agent.join'; pane: string }
-  | { type: 'projects.listed'; root: string; projects: Project[]; error?: string }
+  | { type: 'projects.listed'; root: string; projects: Project[]; error?: string; additionalRoots: string[] }
   | { type: 'projects.repositoriesFound'; request: number; sources: WorktreeSources }
   | { type: 'projects.repositoryRemembered'; project: string; repository: string }
   | { type: 'context.result'; pane: string; path: string; git: GitContext }

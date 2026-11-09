@@ -55,6 +55,7 @@ export const COMMAND_GROUPS: CommandGroup[] = [
       { command: Command.RenameTab, label: 'Renommer l’onglet', hint: 'renommer l’onglet' },
       { command: Command.AutoNameTab, label: 'Reprendre le nom du dossier pour l’onglet', hint: 'nom du dossier' },
       { command: Command.DuplicateTab, label: 'Dupliquer l’onglet', hint: 'dupliquer l’onglet' },
+      { command: Command.MergeTab, label: 'Fusionner l’onglet actif dans un autre onglet…', hint: 'fusionner l’onglet' },
       { command: Command.TabColor, label: 'Couleur de l’onglet…', hint: 'couleur de l’onglet' },
       { command: Command.CloseTab, label: 'Fermer l’onglet', hint: 'fermer l’onglet' },
       { command: Command.CloseOtherTabs, label: 'Fermer les autres onglets', hint: 'fermer les autres onglets' },

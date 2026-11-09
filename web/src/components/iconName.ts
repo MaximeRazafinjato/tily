@@ -11,7 +11,6 @@ export enum IconName {
   Discard = 'discard',
   Browser = 'browser',
   Editor = 'editor',
-  Expand = 'expand',
   Explorer = 'explorer',
   Fetch = 'fetch',
   File = 'file',

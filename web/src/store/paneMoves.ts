@@ -1,5 +1,5 @@
 import { current } from 'immer'
-import { panesOf, pruneNode, splitLeaf, SplitAxis, tabNameFor, tabOfPane, type Session, type SplitNode, type Tab } from '../model/session'
+import { insertBeside, mergedNote, panesOf, pruneNode, splitLeaf, SplitAxis, tabNameFor, tabOfPane, type PaneEdge, type Session, type SplitNode, type Tab, type Workspace } from '../model/session'
 
 const keepRemaining = (source: Tab, paneId: string, remaining: SplitNode): void => {
   source.tree = remaining
@@ -48,6 +48,35 @@ export const movePaneInto = (draft: Session, paneId: string, targetTabId: string
   }
   target.tree = splitLeaf(target.tree, target.active, SplitAxis.Horizontal, moved)
   target.active = moved.id
+  workspace.active = target.id
+  draft.active = workspace.id
+}
+
+const removeMergedTab = (draft: Session, workspace: Workspace, tabId: string, destination: Workspace): void => {
+  const index = workspace.tabs.findIndex((tab) => tab.id === tabId)
+  workspace.tabs.splice(index, 1)
+  if (workspace.tabs.length === 0) {
+    if (workspace.note) {
+      destination.note = mergedNote(destination.note, workspace.name, workspace.note)
+    }
+    draft.workspaces = draft.workspaces.filter((candidate) => candidate !== workspace)
+  } else if (workspace.active === tabId) {
+    workspace.active = workspace.tabs[Math.min(index, workspace.tabs.length - 1)].id
+  }
+}
+
+export const moveTabInto = (draft: Session, tabId: string, paneId: string, edge: PaneEdge): void => {
+  const sourceWorkspace = draft.workspaces.find((candidate) => candidate.tabs.some((tab) => tab.id === tabId))
+  const source = sourceWorkspace?.tabs.find((tab) => tab.id === tabId)
+  const workspace = draft.workspaces.find((candidate) => candidate.tabs.some((tab) => panesOf(tab.tree).some((pane) => pane.id === paneId)))
+  const target = workspace?.tabs.find((tab) => panesOf(tab.tree).some((pane) => pane.id === paneId))
+  if (!sourceWorkspace || !source || !workspace || !target || source.id === target.id) {
+    return
+  }
+  const moved = current(source)
+  removeMergedTab(draft, sourceWorkspace, tabId, workspace)
+  target.tree = insertBeside(target.tree, paneId, edge, moved.tree)
+  target.active = moved.active
   workspace.active = target.id
   draft.active = workspace.id
 }

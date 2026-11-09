@@ -31,6 +31,7 @@ export enum Command {
   TogglePaneZoom = 'togglePaneZoom',
   EqualizePanes = 'equalizePanes',
   MovePaneToNewTab = 'movePaneToNewTab',
+  MergeTab = 'mergeTab',
   JoinWaitingAgent = 'joinWaitingAgent',
   CreateWorktree = 'createWorktree',
   OpenBrowser = 'openBrowser',

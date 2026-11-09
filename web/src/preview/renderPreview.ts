@@ -1,18 +1,13 @@
 import DOMPurify from 'dompurify'
-import hljs from 'highlight.js/lib/common'
-import dos from 'highlight.js/lib/languages/dos'
-import powershell from 'highlight.js/lib/languages/powershell'
 import { Marked } from 'marked'
 import { gfmHeadingId } from 'marked-gfm-heading-id'
 import { markedHighlight } from 'marked-highlight'
+import { hljs } from './syntaxHighlighter'
 
 const HEADING_PREFIX = 'preview-'
 const MAX_HIGHLIGHTED_CHARS = 512 * 1024
 const FORBIDDEN_TAGS = ['style', 'form', 'base', 'link', 'meta', 'iframe', 'object', 'embed']
 const EXTERNAL_SOURCE = /^(?:[a-z][a-z0-9+.-]*:|\/\/)/i
-
-hljs.registerLanguage('powershell', powershell)
-hljs.registerLanguage('dos', dos)
 
 const markdown = new Marked(
   markedHighlight({

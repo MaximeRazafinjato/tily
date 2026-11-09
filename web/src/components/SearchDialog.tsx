@@ -26,18 +26,20 @@ interface SearchDialogProps<T extends SearchItem> {
   notice?: string | null
   maxResults?: number
   action?: SearchDialogAction
+  lastItem?: T
 }
 
 const RESULT_ID_PREFIX = 'search-result-'
 const LISTBOX_ID = 'search-results'
 
-export function SearchDialog<T extends SearchItem>({ label, placeholder, emptyMessage, items, onClose, onRun, onRunAlternate, onRunControl, onRunAlt, footer, onToggleFavorite, notice, maxResults, action }: SearchDialogProps<T>) {
+export function SearchDialog<T extends SearchItem>({ label, placeholder, emptyMessage, items, onClose, onRun, onRunAlternate, onRunControl, onRunAlt, footer, onToggleFavorite, notice, maxResults, action, lastItem }: SearchDialogProps<T>) {
   const [query, setQuery] = useState('')
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const listRef = useRef<HTMLDivElement>(null)
   const matching = useMemo(() => filterSearchItems(items, query), [items, query])
-  const filtered = useMemo(() => (maxResults === undefined ? matching : matching.slice(0, maxResults)), [matching, maxResults])
-  const hidden = matching.length - filtered.length
+  const shown = useMemo(() => (maxResults === undefined ? matching : matching.slice(0, maxResults)), [matching, maxResults])
+  const filtered = useMemo(() => (lastItem ? [...shown, lastItem] : shown), [shown, lastItem])
+  const hidden = matching.length - shown.length
   const selected = Math.max(0, filtered.findIndex((item) => item.id === selectedId))
   const selectedItem = filtered[selected]
 
@@ -121,7 +123,7 @@ export function SearchDialog<T extends SearchItem>({ label, placeholder, emptyMe
           )}
         </div>
         <div ref={listRef} id={LISTBOX_ID} role="listbox" aria-label="Résultats" className="mt-2 min-h-0 flex-1 overflow-y-auto">
-          {filtered.length === 0 && <p className="px-3 py-2 text-[11px] text-tily-muted">{emptyMessage}</p>}
+          {shown.length === 0 && <p className="px-3 py-2 text-[11px] text-tily-muted">{emptyMessage}</p>}
           {filtered.map((item, index) => {
             const handleHover = () => setSelectedId(item.id)
             const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => (event.ctrlKey && onRunControl && item.favorite === undefined ? onRunControl(item) : runItem(item, event.shiftKey))
