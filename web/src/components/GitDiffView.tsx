@@ -5,9 +5,11 @@ import { applyDiffSelection, clearDiffSelection, DiffLineAction, DiffPick, moveD
 import { diffRowsOf, DiffRowKind, hunkHeaderRow, isChangeRow, type DiffRow } from '../git/gitDiffRows'
 import { absolutePath } from '../git/gitLabels'
 import { useGitStore, type GitDiffSelection } from '../store/gitStore'
+import { GitDiffCode } from './GitDiffCode'
 import { GitDiffHunkActions } from './GitDiffHunkActions'
 import { GitDiffLineAction } from './GitDiffLineAction'
 import { GitDiffSelectionBar } from './GitDiffSelectionBar'
+import { useDiffHighlight } from './useDiffHighlight'
 import { useVirtualRows } from './useVirtualRows'
 
 interface GitDiffViewProps {
@@ -59,7 +61,7 @@ const renderHunk = (row: DiffRow, style: { top: number; height: number }, index:
   )
 }
 
-const renderRow = (row: DiffRow, index: number, selection: GitDiffSelection, selectable: GitDiffSource | null) => {
+const renderRow = (row: DiffRow, index: number, selection: GitDiffSelection, selectable: GitDiffSource | null, highlighted: string | undefined) => {
   const style = { top: index * LINE_HEIGHT, height: LINE_HEIGHT }
   if (row.kind === DiffRowKind.Hunk) {
     return renderHunk(row, style, index, selectable)
@@ -88,7 +90,7 @@ const renderRow = (row: DiffRow, index: number, selection: GitDiffSelection, sel
         <span className="w-[46px] shrink-0 pr-[8px] text-right text-tily-muted select-none">{next ?? ''}</span>
         <span className="w-[16px] shrink-0 select-none">{LINE_SIGNS[kind]}</span>
       </span>
-      <span className="pr-[16px] whitespace-pre">{row.text}</span>
+      <GitDiffCode text={row.text} html={highlighted} />
     </div>
   )
 }
@@ -98,6 +100,7 @@ export function GitDiffView({ diff, error, placeholder, selectable }: GitDiffVie
   const draggedRow = useRef<number | null>(null)
   const selection = useGitStore((store) => store.diffSelection)
   const rows = useMemo(() => (diff ? diffRowsOf(diff) : []), [diff])
+  const highlighted = useDiffHighlight(diff, rows)
   const { range, handleScroll } = useVirtualRows(containerRef, rows.length, LINE_HEIGHT)
 
   if (error || !diff) {
@@ -244,7 +247,7 @@ export function GitDiffView({ diff, error, placeholder, selectable }: GitDiffVie
         onMouseUp={handleMouseUp}
       >
         <div className="relative" style={{ height: rows.length * LINE_HEIGHT }}>
-          {rows.slice(range.start, range.end).map((row, offset) => renderRow(row, range.start + offset, selection, selectable))}
+          {rows.slice(range.start, range.end).map((row, offset) => renderRow(row, range.start + offset, selection, selectable, highlighted?.[range.start + offset]))}
         </div>
       </div>
       {selectable && selection.rows.size > 0 && <GitDiffSelectionBar count={selection.rows.size} source={selectable} />}
