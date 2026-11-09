@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import type { Project } from '../bridge/messages'
 import type { SearchItem } from '../palette/searchFilter'
+import { IconName } from './iconName'
 import { SearchDialog } from './SearchDialog'
 import { Command } from '../keyboard/commands'
 import { shortcutText, withShortcut } from '../keyboard/shortcutLabels'
@@ -11,6 +12,7 @@ interface ProjectPickerProps {
   error: string | null
   onClose: () => void
   onSelect: (project: Project, inActiveWorkspace: boolean) => void
+  onClone?: () => void
 }
 
 interface ProjectItem extends SearchItem {
@@ -22,7 +24,7 @@ export const PROJECTS_LOADING = 'Chargement des projets…'
 
 const hintOf = (project: Project): string => (project.worktree ? `${WORKTREE_HINT}${project.path}` : project.path)
 
-export function ProjectPicker({ projects, root, error, onClose, onSelect }: ProjectPickerProps) {
+export function ProjectPicker({ projects, root, error, onClose, onSelect, onClone }: ProjectPickerProps) {
   const items = useMemo<ProjectItem[]>(() => projects.map((project) => ({ id: project.path, label: project.name, hint: hintOf(project), project })), [projects])
   const handleRun = (item: ProjectItem) => onSelect(item.project, false)
   const handleRunInActiveWorkspace = (item: ProjectItem) => onSelect(item.project, true)
@@ -37,6 +39,7 @@ export function ProjectPicker({ projects, root, error, onClose, onSelect }: Proj
       onRun={handleRun}
       onRunAlternate={handleRunInActiveWorkspace}
       footer="Entrée : nouveau workspace · Maj+Entrée : nouvel onglet dans le workspace actif"
+      action={onClone && { icon: IconName.Clone, label: 'Cloner un dépôt', onRun: onClone }}
     />
   )
 }

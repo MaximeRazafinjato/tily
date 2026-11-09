@@ -19,6 +19,7 @@ export const COMMAND_GROUPS: CommandGroup[] = [
       { command: Command.Settings, label: 'Paramètres', hint: 'paramètres' },
       { command: Command.AppearanceSettings, label: 'Couleur de Tily et palette du terminal…', hint: 'couleur de Tily' },
       { command: Command.Projects, label: 'Ouvrir un projet', hint: 'projet' },
+      { command: Command.CloneRepository, label: 'Cloner un dépôt…', hint: 'cloner un dépôt' },
       { command: Command.OpenFile, label: 'Ouvrir un fichier du projet…', hint: 'fichier du projet' },
       { command: Command.SearchTerminals, label: 'Rechercher dans tous les terminaux…', hint: 'rechercher partout' },
       { command: Command.FontLarger, label: 'Agrandir le texte des terminaux', hint: 'texte plus grand' },

@@ -38,6 +38,7 @@ export enum Command {
   BrowserTab = 'browserTab',
   OpenWorktree = 'openWorktree',
   RemoveWorktree = 'removeWorktree',
+  CloneRepository = 'cloneRepository',
   OpenFile = 'openFile',
   SearchCommit = 'searchCommit',
   FocusSidebar = 'focusSidebar',

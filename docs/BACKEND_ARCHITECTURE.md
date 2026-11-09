@@ -139,6 +139,14 @@ Gestion native des worktrees, au comportement de `wtr` / `rmwt` (spec, §10) : `
 - Suppression : confirmation exigée, dépôt principal refusé. Le dossier est d'abord déplacé, instantanément, dans la corbeille cachée `.tily-corbeille` de son dossier parent, en quelques essais le temps que les panes fermés rendent leurs processus. S'il est verrouillé, rien n'est touché et l'erreur cite les processus trouvés par le Restart Manager. Suivent `worktree prune`, la base et `branch -D`.
 - La corbeille est purgée par `cmd.exe /d /c rd /s /q` : sur un poste protégé par un antivirus, une suppression faite par Tily lui-même plafonne à quelques dizaines de fichiers par seconde, contre des milliers pour `rd`. `rd` ne suit pas les jonctions ; `robocopy /MIR` les suit et efface leur cible, d'où son rejet. Un chemin contenant `%` et ce que `rd` laisse passent par `LockedFolder.DeleteAll`.
 
+### Clone/
+
+Clonage d'un dépôt (spec, §9, « Cloner un dépôt ») : `CloneAddress`, `ClonePlanner`, `RepositoryCloner`, `CloneProgress`.
+
+- `CloneAddress` n'admet que `https`, `http`, `ssh`, `git`, `file` et la forme `utilisateur@hôte:chemin` ; une adresse avec des blancs, qui commence par `-` ou contient `::` (assistant de transport comme `ext::`) est refusée, et `--` la sépare des options. `Suggestion` ne reprend du presse-papiers qu'une adresse de dépôt, jamais une autre page d'un hébergeur.
+- `ClonePlanner.Plan` n'écrit rien : dossier parent (celui de la demande, sinon le dossier des projets), nom (celui de la demande, sinon déduit de l'adresse), refus d'un chemin relatif, d'un nom invalide (`RequireValidName`) ou d'un dossier existant. Le clonage replanifie avant de lancer Git.
+- `git clone --progress` tourne en `LC_ALL=C` depuis l'ancêtre existant le plus proche du dossier parent, avec un délai de garde de deux heures ; `GitRunner` lit alors l'erreur standard au fil de l'eau (`GitProgressReader`), rapporte chaque ligne réécrite par `\r` et ne garde que les lignes finales pour la sortie d'un échec. `CloneProgress` traduit les étapes chiffrées et n'émet qu'un changement.
+
 ### Agents/
 
 États des agents des panes (spec, §11) : fichiers `agents\<paneId>.json` écrits par un producteur externe (`AgentStateRepository`), un adaptateur par agent (`IAgentAdapter`), réunis par `AgentMonitor`.
@@ -242,6 +250,12 @@ Mises à jour par les releases GitHub (spec, §13).
 - Création et suppression passent une à une ; la purge de la corbeille a sa propre file, après `worktrees.done`, sans retenir les opérations suivantes.
 - `worktrees.done` ou `worktrees.failed` termine toujours une opération, exception imprévue comprise. Le numéro `request` est renvoyé dans chaque message, pour que le serveur MCP suive ses opérations.
 
+### Clonage (`CloneFeed`)
+
+- Plans et suggestions dans une file, clonages un à un dans une autre ; `clone.done` ou `clone.failed` termine toujours un clonage, exception imprévue comprise, avec le numéro `request` de la demande.
+- Les dossiers parents proposés (`roots`) sont ceux des projets ; le premier est le dossier par défaut.
+- L'hôte ne crée aucun workspace : `clone.done` donne le dossier, le nom et les commandes `claude` et `pnpm install` à lancer, que le web ouvre.
+
 ### Serveur MCP (`McpFeed`)
 
 - Le pipe n'est ouvert que si le serveur est déclaré ; au démarrage, la déclaration est recalée sur cette copie si l'exécutable déclaré a disparu.
@@ -282,7 +296,7 @@ Mises à jour par les releases GitHub (spec, §13).
 
 ## Contrat du pont
 
-Les types TypeScript sont dans `web/src/bridge/` : `messages.ts` (application, session, réglages, terminaux, agents, projets, explorateur), `appearanceMessages.ts`, `gitMessages.ts`, `forgeMessages.ts`, `worktreeMessages.ts`, `previewMessages.ts`, `mcpMessages.ts`, `browserMessages.ts`, `updateMessages.ts`, `statusLogMessages.ts`. Les champs se lisent là et dans les modèles C#. Toute évolution se fait des deux côtés dans le même commit.
+Les types TypeScript sont dans `web/src/bridge/` : `messages.ts` (application, session, réglages, terminaux, agents, projets, explorateur), `appearanceMessages.ts`, `gitMessages.ts`, `forgeMessages.ts`, `worktreeMessages.ts`, `cloneMessages.ts`, `previewMessages.ts`, `mcpMessages.ts`, `browserMessages.ts`, `updateMessages.ts`, `statusLogMessages.ts`. Les champs se lisent là et dans les modèles C#. Toute évolution se fait des deux côtés dans le même commit.
 
 ### Web → hôte
 
@@ -301,6 +315,7 @@ Les types TypeScript sont dans `web/src/bridge/` : `messages.ts` (application, s
 - Git, références et stash : `git.switch`, `git.branchCreate`, `git.branchRename`, `git.branchDelete`, `git.remoteBranchDelete`, `git.refsDelete` (suppression groupée), `git.tagCreate`, `git.tagDelete`, `git.tagPush`, `git.stash`, `git.stashApply`, `git.stashDrop`.
 - MR/PR : `forge.list` (MR/PR du dépôt), `forge.branch` (pastille d'une branche), `forge.form` (formulaire de création ou de modification), `forge.compare` (couple source / cible), `forge.create` (création, push facultatif), `forge.update` (modification ou fermeture).
 - Worktrees : `worktrees.sources` (dépôts proposés), `worktrees.plan` (plan sans écriture), `worktrees.list` (worktrees du dépôt d'un dossier), `worktrees.create`, `worktrees.remove`.
+- Clonage : `clone.suggest` (texte du presse-papiers à reconnaître), `clone.plan` (plan sans écriture), `clone.start` (clonage).
 - MCP : `mcp.response` (réponse à un `mcp.request`).
 - Mises à jour : `update.check` (vérification), `update.install` (téléchargement), `update.cancel` (annule le téléchargement), `update.apply` (installation et redémarrage).
 - Journal de la barre de statut : `statusLog.append` (ajoute un message), `statusLog.clear` (vide le journal).
@@ -318,6 +333,7 @@ Les types TypeScript sont dans `web/src/bridge/` : `messages.ts` (application, s
 - Git : `git.state` (état du dépôt suivi), `git.changed` (état inchangé, diff à recharger), `git.history`, `git.diff`, `git.details` (réponses aux lectures), `git.done`, `git.failed`, `git.pushRejected` (fin d'une opération), `git.autoFetchStarted`, `git.autoFetchEnded` (fetch automatique en cours).
 - MR/PR : `forge.listed`, `forge.branchListed`, `forge.formLoaded`, `forge.compared`, `forge.created`, `forge.updated`, réponses aux messages `forge.*`.
 - Worktrees : `worktrees.sourcesFound`, `worktrees.planned`, `worktrees.listed` (réponses aux lectures), `worktrees.progress` (étape en cours), `worktrees.created` (dossier prêt, le web ouvre le workspace), `worktrees.done`, `worktrees.failed` (fin d'une opération), `worktrees.purging`, `worktrees.purged` (effacement en arrière-plan).
+- Clonage : `clone.suggested` (adresse reconnue, ou rien), `clone.planned` (plan et dossiers parents proposés), `clone.progress` (étape en cours), `clone.done` (dépôt cloné, le web l'ouvre), `clone.failed`.
 - Mises à jour : `update.state` (état des mises à jour), `update.restart` (installeur prêt, le web ferme l'application).
 - Journal de la barre de statut : `statusLog.added`, `statusLog.cleared` (journal modifié).
 - Navigateur : `browser.state` (état d'un pane navigateur), `browser.newPane` (lien à ouvrir dans un nouveau pane), `browser.focused` (la page a pris le focus), `browser.key` (raccourci de Tily tapé dans la page), `browser.failed` (vue impossible à créer), `browser.reply` (réponse à une commande numérotée).

@@ -49,6 +49,7 @@ public static class ShortcutCatalog
         new("browserTab"),
         new("openWorktree"),
         new("removeWorktree"),
+        new("cloneRepository"),
         new("openFile"),
         new("searchCommit"),
         new("focusSidebar"),
