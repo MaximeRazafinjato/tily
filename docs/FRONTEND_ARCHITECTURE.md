@@ -13,7 +13,7 @@ Une section par dossier de `web/src` : rôle, invariants et choix non évidents.
 `App` est l'unique aiguillage des messages de l'hôte : un `bridge.on` par type, qui confie le message à la fonction `receive…` de son dossier. Il démarre les boucles et notifieurs (`startAppearanceProjects`, `startAttentionNotifier`, `startExternalDrops`, `startStatusLog`, `startDeferredPreviews`, `startBrowserLayer`, `startTextAutosave`), puis envoie `app.ready`.
 
 - À `app.hello`, il applique la couleur reçue, configure les modules et injecte le texte de la session précédente ; il ne charge la session qu'une fois la police de symboles Nerd Font chargée.
-- Une réponse numérotée va d'abord à son écouteur (`dispatchReply`) : `browser.reply` et `worktrees.*`, dont `worktrees.done` et `worktrees.failed` vont aussi à l'interface. `terminal.activityResult` va à `paneActivity` s'il porte un numéro attendu, sinon à `closeGuard`. `dialog.picked` est routé par champ : formulaire de worktree, dépôt d'un projet, dossier choisi par « Parcourir… » d'« Ouvrir un projet », sinon Paramètres (`hostStore.pickedPath`).
+- Une réponse numérotée va d'abord à son écouteur (`dispatchReply`) : `browser.reply` et `worktrees.*`, dont `worktrees.done` et `worktrees.failed` vont aussi à l'interface. `terminal.activityResult` va à `paneActivity` s'il porte un numéro attendu, sinon à `closeGuard`. `dialog.picked` est routé par champ : formulaire de worktree, dépôt d'un projet, dossier choisi par « Parcourir… » d'« Ouvrir un projet », dossier d'un clonage, sinon Paramètres (`hostStore.pickedPath`).
 - À chaque nouvelle session, il détruit les terminaux et les vues navigateur des panes disparus, oublie l'historique des notes des workspaces disparus, puis sauvegarde (voir « Flux »).
 
 ### `src/model/`
@@ -28,7 +28,7 @@ Modèle pur, sans React ni DOM : session, panes navigateur, bornes de la taille 
 
 ### `src/bridge/`
 
-`bridge.ts` envoie et reçoit par `window.chrome.webview` ; `sendWithFiles` joint des fichiers déposés. `messages.ts` et les fichiers par domaine (`appearanceMessages.ts`, `browserMessages.ts`, `forgeMessages.ts`, `gitMessages.ts`, `mcpMessages.ts`, `previewMessages.ts`, `statusLogMessages.ts`, `updateMessages.ts`, `worktreeMessages.ts`) sont le miroir du contrat C# décrit dans `docs/BACKEND_ARCHITECTURE.md` : un message se change des deux côtés à la fois.
+`bridge.ts` envoie et reçoit par `window.chrome.webview` ; `sendWithFiles` joint des fichiers déposés. `messages.ts` et les fichiers par domaine (`appearanceMessages.ts`, `browserMessages.ts`, `cloneMessages.ts`, `forgeMessages.ts`, `gitMessages.ts`, `mcpMessages.ts`, `previewMessages.ts`, `statusLogMessages.ts`, `updateMessages.ts`, `worktreeMessages.ts`) sont le miroir du contrat C# décrit dans `docs/BACKEND_ARCHITECTURE.md` : un message se change des deux côtés à la fois.
 
 `requestListeners.ts` tire des numéros de requête à partir de 1 000 000 (`newAgentRequest`), pour ne jamais croiser les numéros propres à chaque store, et associe à chacun un écouteur de réponse. Il sert au serveur MCP et à l'interface : création et suppression de worktree par le formulaire, `browser.snapshot` et toute commande de `requestBrowser`. L'annulation d'une suppression de worktree est signalée à son écouteur (`CANCELLED_REPLY`).
 
@@ -39,7 +39,7 @@ Stores Zustand. Seule la session est persistée.
 - `sessionStore` : la session et toutes ses mutations, écrites sur un brouillon Immer. Seuls les objets modifiés changent d'identité et une mutation sans effet rend la même session : ni rendu ni sauvegarde. `change` applique une mutation donnée (serveur MCP) ; `browserPanes.ts` et `paneMoves.ts` portent des mutations du brouillon. Un onglet dupliqué n'appartient à aucun agent.
 - Reçu de l'hôte : `hostStore` (shells, projets, contextes Git par pane, réglages, statut, Leader, « Non enregistré »), `appearanceStore` (thème, préréglages, projet et couleur de projet par dossier, cible de la fenêtre « Couleur »), `shortcutStore`, `agentStore`, `statusLogStore`, `browserStore`, `updateStore`.
 - Interface : `uiStore` (renommages et leur origine, palette, sélecteur de projets et Paramètres mutuellement exclusifs, glisser et ses cibles, pane agrandi, confirmation de fermeture), `paneStore`, `pasteStore`, `commandStore`, `terminalSearchStore` (texte et options partagés par la barre d'un pane et la recherche globale).
-- Fonctions : `explorerStore`, `gitStore`, `forgeStore`, `mergeRequestFormStore`, `worktreeStore`, `previewStore`, `projectOpenStore`, `filePickerStore`, `commitPickerStore`, `tabMergePickerStore`, `mcpConsentStore`.
+- Fonctions : `explorerStore`, `gitStore`, `forgeStore`, `mergeRequestFormStore`, `worktreeStore`, `cloneStore`, `previewStore`, `projectOpenStore`, `filePickerStore`, `commitPickerStore`, `tabMergePickerStore`, `mcpConsentStore`.
 
 Invariants :
 
@@ -119,7 +119,7 @@ Un composant par fichier, à plat, préfixé par domaine : `Git*`, `MergeRequest
 - Les composants mémoïsés (`PaneView`, `WorkspaceItem`, `FileTreeRow`, `GitGraphRow`…) reçoivent des objets de gestionnaires stables (`WorkspacePanelActions`, `HeaderWorkspaceActions`, `FileTreeHandlers`, `GitGraphRowHandlers`) qui lisent les stores au moment de l'appel.
 - Fenêtre modale : `role="dialog"` ou `role="alertdialog"`, `keepTabInside` (`focusTrap.ts`) en `onKeyDown`, comptage dans `confirmationOpen`, qui bloque les raccourcis du document. Le piège de Tab compte comme étape une zone qui défile sans rien de focalisable, comme Chromium, pour que le focus ne parte jamais vers un terminal masqué qui garderait Tab. Ces rôles figent aussi les panes navigateur (voir `browser/`).
 - Confirmation : le bouton de confirmation a le focus, Entrée confirme, Échap, « Annuler » ou un clic hors de la boîte annule. Une demande venue d'un agent (accord MCP, suppression de worktree) met le focus sur le refus et n'active la confirmation qu'après un court délai, pour qu'une frappe destinée ailleurs n'accorde rien.
-- `SearchDialog` est la boîte commune de la palette et des sélecteurs (projets, dépôts, worktrees, fichiers, commits). Son `lastItem` reste en dernier quelle que soit la recherche (« Parcourir… » d'« Ouvrir un projet »). La recherche dans tous les terminaux (`TerminalSearchDialog`) est à part et partage seulement `SearchOptionToggles` avec la barre de recherche d'un pane.
+- `SearchDialog` est la boîte commune de la palette et des sélecteurs (projets, dépôts, worktrees, fichiers, commits). Son `lastItem` reste en dernier quelle que soit la recherche (« Parcourir… » d'« Ouvrir un projet ») ; son `action` facultative pose un bouton icône dans le champ de recherche (« Cloner un dépôt » d'« Ouvrir un projet »). La recherche dans tous les terminaux (`TerminalSearchDialog`) est à part et partage seulement `SearchOptionToggles` avec la barre de recherche d'un pane.
 - Un menu se ferme avant d'exécuter son entrée et rend le focus à son origine. Après une fenêtre, un renommage ou le repli d'un panneau, le focus revient au pane actif par `focusPane`.
 - Le focus qui entre dans un pane inactif le rend actif : la saisie et le pane actif ne divergent jamais. Tant qu'un message (`PaneOverlay`) recouvre un pane, le terminal sort de l'ordre de Tab ; le bouton par défaut du message prend le focus, « Ignorer » pour un dossier disparu car le shell y tourne encore. Juste après une prise de focus automatique venue du terminal, Entrée et Espace sont annulés (`ACTIVATION_GUARD_MS`), pour qu'une frappe partie vers le terminal n'active pas le bouton ; un pane inactif qui réapparaît ne vole jamais le focus.
 - Un seul `Tooltip`, monté par `AppShell`, affiche le texte de `data-tip` en position fixe, jamais tronqué ; sans `data-tip`, un texte coupé par `truncate` montre son texte complet au survol. Jamais d'attribut `title`.
@@ -193,6 +193,15 @@ Worktrees natifs (section 10 de la spec). Création, suppression et effacement s
 - `openCreatedWorktree`, comme `openOwnedWorktree` pour le serveur MCP, confie à `runAtStart` la commande `claude` reçue de l'hôte (avec le premier message) dans le pane du workspace créé, puis l'installation dans le même pane ou, avec Claude, dans un pane en dessous ; le pane de Claude reste actif.
 - Suppression : une seule case « Fermer ces onglets et panes » pour tous les panes concernés ; à la confirmation, `requestClose` porte sur ces panes, qui se ferment (onglet entier quand tous ses panes sont dans le worktree), puis `worktrees.remove` part. Un refus de l'hôte rouvre la confirmation avec « Réessayer ». L'annulation d'une suppression demandée par le serveur MCP, ici ou dans `closeGuard`, est signalée à `requestListeners`.
 - `worktreePaths.ts` compare les dossiers sans casse et rattache les panes à leur worktree d'après `worktreeRoot` des contextes Git.
+
+### `src/clone/`
+
+Clonage d'un dépôt (section 9 de la spec, « Cloner un dépôt »). L'hôte valide l'adresse, calcule le dossier et clone ; le web tient le formulaire et ouvre le dépôt.
+
+- À l'ouverture, le presse-papiers est lu par `navigator.clipboard` et envoyé à l'hôte (`clone.suggest`) : seule une adresse qu'il reconnaît remplit le champ, et seulement s'il est encore vide ; aucun autre texte n'est affiché.
+- `clone.start` ne part que quand le plan à jour (`clone.plan`, redemandé à chaque modification) donne un dossier sans erreur. Chaque clonage reste dans `cloneStore.tasks` jusqu'à son bilan ; fermer le formulaire détache ses clonages, qui ouvrent le dépôt à la fin sans rouvrir le formulaire.
+- La progression (`clone.progress`) va dans `cloneStore.progress`, affiché par `StatusBar`, jamais dans `hostStore.status`, pour ne pas remplir le journal.
+- `openClonedRepository` ouvre un workspace, ou un onglet du workspace actif, et confie `claude` et l'installation à `startInPane` de `worktreeActions.ts`, comme pour un worktree créé.
 
 ### `src/project/`
 

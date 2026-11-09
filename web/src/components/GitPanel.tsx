@@ -1,5 +1,6 @@
 import { useEffect, type KeyboardEvent } from 'react'
 import { useShallow } from 'zustand/react/shallow'
+import { openCloneDialog } from '../clone/cloneActions'
 import { focusActivePane } from '../explorer/fileExplorerActions'
 import { focusGitGraph } from '../git/gitFocus'
 import { plural } from '../git/gitLabels'
@@ -69,14 +70,20 @@ export function GitPanel({ folder }: GitPanelProps) {
     if (!state) {
       const loading = resolved !== folder
       const handleInitialize = () => initializeRepository(folder)
+      const handleClone = () => openCloneDialog(folder)
       return (
         <div className="flex flex-col gap-[6px] px-[12px] py-[8px] text-[12px]">
           <p className="text-tily-ink">{loading ? 'Lecture du dépôt Git…' : 'Aucun dépôt Git'}</p>
           {!loading && <p className="break-all text-tily-muted">{error ?? `Le dossier du pane actif n’appartient à aucun dépôt : ${folder}`}</p>}
           {!loading && !error && folder && (
-            <button type="button" className={`${GIT_SECONDARY} self-start`} data-tip="git init dans le dossier du pane actif" onClick={handleInitialize}>
-              Initialiser un dépôt Git ici
-            </button>
+            <div className="flex flex-wrap gap-[6px]">
+              <button type="button" className={GIT_SECONDARY} data-tip="git init dans le dossier du pane actif" onClick={handleInitialize}>
+                Initialiser un dépôt Git ici
+              </button>
+              <button type="button" className={GIT_SECONDARY} data-tip="git clone dans un sous-dossier du dossier du pane actif" onClick={handleClone}>
+                Cloner un dépôt ici…
+              </button>
+            </div>
           )}
         </div>
       )

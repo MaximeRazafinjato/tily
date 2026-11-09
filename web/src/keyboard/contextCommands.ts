@@ -1,5 +1,6 @@
 import { bridge } from '../bridge/bridge'
 import { openColorDialog } from '../appearance/appearanceActions'
+import { openCloneDialog } from '../clone/cloneActions'
 import { OpenTarget } from '../bridge/messages'
 import { BrowserPlacement, openBrowser } from '../browser/browserActions'
 import { refreshFolders } from '../explorer/fileExplorerActions'
@@ -112,6 +113,9 @@ export const runContextCommand = (command: Command): void => {
       break
     case Command.RemoveWorktree:
       withTab(removePaneWorktree)
+      break
+    case Command.CloneRepository:
+      openCloneDialog()
       break
     case Command.OpenFile:
       withTab(openFilePicker)

@@ -370,6 +370,19 @@ Les dossiers de premier niveau de `worktrees` sont listés à part, après les p
 
 Maj + Entrée, ou Maj + clic, sur un projet ou un worktree du sélecteur l’ouvre dans un nouvel onglet du workspace actif au lieu d’un nouveau workspace (sans workspace ouvert, il en ouvre un comme Entrée) ; l’icône ⓘ de son champ de recherche rappelle les deux gestes. Le sélecteur « Ouvrir un worktree » (palette) accepte le même geste ; un worktree déjà ouvert dans un terminal est rejoint dans les deux cas.
 
+### Cloner un dépôt
+
+« Cloner un dépôt » ouvre un formulaire depuis l’icône voisine de « Ouvrir un projet » dans l’en-tête du panneau des workspaces, l’icône du champ de recherche du sélecteur de projets, la palette (« Cloner un dépôt… », sans raccourci par défaut) et la vue Git d’un dossier hors dépôt (« Cloner un dépôt ici… », section 10).
+
+| Champ | Comportement |
+| --- | --- |
+| Adresse | `https://`, `http://`, `ssh://`, `git://`, `file://` ou `utilisateur@hôte:chemin` ; un chemin Windows, une adresse avec des blancs, qui commence par un tiret ou qui passe par un assistant de transport (`::`) est refusée. Le champ est prérempli par le presse-papiers quand il contient l’adresse d’un dépôt : adresse ssh, git ou file, adresse qui se termine par `.git`, ou page d’un dépôt sur GitHub, GitLab, Bitbucket, Codeberg ou Azure DevOps ; une autre page de ces hébergeurs (PR, MR) ou un autre texte n’est pas repris. |
+| Nom | Dernier segment de l’adresse sans `.git`, décodé, proposé en indication et modifiable. |
+| Dossier | Dossier parent : le dossier des projets, ou le dossier du pane depuis la vue Git. Le formulaire affiche le dossier final calculé par l’hôte ; le crayon ouvre la saisie du dossier parent, qui propose le dossier des projets et les autres dossiers des projets, et le sélecteur de dossier. Un chemin relatif, un nom invalide ou un dossier existant sont refusés. |
+| Options | « Claude Code » et « pnpm install », décochées : `claude` démarre dans le terminal du dépôt, `pnpm install` (si `package.json` existe) tourne dans ce terminal ou, avec Claude, dans un pane en dessous, comme pour un worktree. |
+
+« Cloner » (Entrée) lance `git clone` avec la configuration, les hooks et le gestionnaire d’identifiants de l’utilisateur, puis ouvre le dépôt dans un nouveau workspace nommé comme son dossier ; Maj + Entrée ou Maj + clic l’ouvre dans un nouvel onglet du workspace actif. La progression (décompte, compression et réception des objets, résolution des deltas, extraction des fichiers, en pourcentage) s’affiche à droite de la barre de statut sans entrer dans son journal, qui garde le début et le bilan. Après un échec, Git retire le dossier du dépôt et le formulaire, s’il est encore ouvert, affiche la sortie de Git. Le formulaire peut être fermé pendant le clonage, qui se poursuit et ouvre le dépôt à la fin ; un autre clonage lancé entre-temps attend le premier.
+
 ## 10. Actions contextuelles et worktrees
 
 Les actions utilisent le **dossier du pane actif**, jamais un hypothétique dossier unique du workspace.
@@ -436,7 +449,7 @@ Le diff d’un fichier Unstaged ou Staged, fichier non suivi compris, permet de 
 
 La sélection se fait dans la gouttière des numéros de ligne, pour laisser le texte du diff sélectionnable et copiable : clic, Maj + clic pour une plage, Ctrl + clic pour ajouter ou retirer une ligne, glisser pour une plage ; un clic sur l’en-tête d’un chunk le choisit en entier. Maj + ↑ / ↓ étend le choix, Ctrl + ↑ / ↓ choisit le chunk précédent ou suivant, Ctrl + A toutes les lignes modifiées, Échap efface le choix puis, au second appui, ferme le volet. Tout à gauche, un petit bouton encadré « + » vert (Stage) ou « − » rouge (Unstage), distinct des signes + et − du diff, apparaît au survol d’une ligne modifiée et sur la ligne courante : il agit sur cette ligne, ou sur toutes les lignes choisies si elle en fait partie ; le même bouton, toujours visible, est en tête de chaque chunk, suivi de son bouton Abandonner ; une barre flottante en bas du diff annonce le nombre de lignes choisies avec leurs actions. Aucune sélection sur un fichier renommé, binaire, trop volumineux ou dans le diff d’un commit. L’hôte relit le diff et refuse la sélection s’il a changé depuis son affichage, reconstruit un patch partiel puis l’applique par `git apply` (`--cached` pour Stage, `--cached --reverse` pour Unstage, `--reverse` pour l’abandon) ; une sélection que Git ne sait pas appliquer seule (par exemple autour d’une fin de fichier sans retour à la ligne) est refusée avec un message qui invite à y ajouter les lignes voisines ou le chunk entier.
 
-Quand le dossier du pane actif n’appartient à aucun dépôt, la vue Git le dit et propose « Initialiser un dépôt Git ici » (`git init` dans ce dossier) ; la vue affiche aussitôt le nouveau dépôt et la barre de statut confirme « Dépôt Git initialisé dans … (branche …) ».
+Quand le dossier du pane actif n’appartient à aucun dépôt, la vue Git le dit et propose « Initialiser un dépôt Git ici » (`git init` dans ce dossier) ; la vue affiche aussitôt le nouveau dépôt et la barre de statut confirme « Dépôt Git initialisé dans … (branche …) ». Elle propose aussi « Cloner un dépôt ici… », le formulaire de clonage (section 9) avec ce dossier comme dossier parent.
 
 « Rechercher un commit dans le graphe… » (palette, quand la vue Git est affichée et son historique chargé, ou bouton loupe de la barre du graphe) cherche dans les commits déjà chargés par le graphe (200 au départ, davantage en défilant) par message, SHA, auteur, adresse ou nom de branche ou de tag ; Entrée ouvre la vue Git sur le graphe, sélectionne le commit, le centre et affiche son détail.
 

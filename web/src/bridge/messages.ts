@@ -1,6 +1,7 @@
 import type { Session } from '../model/session'
 import type { AppearanceCatalog, AppearanceHostMessage, AppearanceWebMessage } from './appearanceMessages'
 import type { BrowserHostMessage, BrowserWebMessage } from './browserMessages'
+import type { CloneHostMessage, CloneWebMessage } from './cloneMessages'
 import type { ForgeHostMessage, ForgeWebMessage } from './forgeMessages'
 import type { GitChangeKind, GitHostMessage, GitSettings, GitWebMessage } from './gitMessages'
 import type { McpHostMessage, McpServerInfo, McpWebMessage } from './mcpMessages'
@@ -222,6 +223,7 @@ export type HostToWebMessage =
   | ForgeHostMessage
   | PreviewHostMessage
   | WorktreeHostMessage
+  | CloneHostMessage
   | UpdateHostMessage
   | StatusLogHostMessage
   | McpHostMessage
@@ -273,6 +275,7 @@ export type WebToHostMessage =
   | ForgeWebMessage
   | PreviewWebMessage
   | WorktreeWebMessage
+  | CloneWebMessage
   | UpdateWebMessage
   | StatusLogWebMessage
   | McpWebMessage

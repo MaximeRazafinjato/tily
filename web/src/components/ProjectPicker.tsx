@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import type { Project } from '../bridge/messages'
 import type { SearchItem } from '../palette/searchFilter'
+import { IconName } from './iconName'
 import { SearchDialog } from './SearchDialog'
 import { Command } from '../keyboard/commands'
 import { shortcutText, withShortcut } from '../keyboard/shortcutLabels'
@@ -13,6 +14,7 @@ interface ProjectPickerProps {
   onClose: () => void
   onSelect: (project: Project, inActiveWorkspace: boolean) => void
   onBrowse: (inActiveWorkspace: boolean) => void
+  onClone?: () => void
 }
 
 interface ProjectItem extends SearchItem {
@@ -39,7 +41,7 @@ const emptyMessageOf = (projects: Project[], root: string, additionalRoots: stri
   return additionalRoots.length === 0 ? `Aucun projet dans ${root} : le dossier des projets se change dans ${settings}.` : `Aucun projet dans les dossiers des projets : ils se changent dans ${settings}.`
 }
 
-export function ProjectPicker({ projects, root, additionalRoots, error, onClose, onSelect, onBrowse }: ProjectPickerProps) {
+export function ProjectPicker({ projects, root, additionalRoots, error, onClose, onSelect, onBrowse, onClone }: ProjectPickerProps) {
   const items = useMemo<ProjectItem[]>(() => projects.map((project) => ({ id: project.path, label: project.name, hint: hintOf(project), project })), [projects])
   const run = (item: ProjectItem, inActiveWorkspace: boolean) => (item.project ? onSelect(item.project, inActiveWorkspace) : onBrowse(inActiveWorkspace))
   const handleRun = (item: ProjectItem) => run(item, false)
@@ -57,6 +59,7 @@ export function ProjectPicker({ projects, root, additionalRoots, error, onClose,
       onRun={handleRun}
       onRunAlternate={handleRunInActiveWorkspace}
       footer="Entrée : nouveau workspace · Maj+Entrée : nouvel onglet dans le workspace actif"
+      action={onClone && { icon: IconName.Clone, label: 'Cloner un dépôt', onRun: onClone }}
     />
   )
 }

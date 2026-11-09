@@ -3,6 +3,7 @@ export enum IconName {
   Branch = 'branch',
   Check = 'check',
   Chevron = 'chevron',
+  Clone = 'clone',
   Close = 'close',
   CollapseAll = 'collapseAll',
   Columns = 'columns',

@@ -1,4 +1,5 @@
 import { useShallow } from 'zustand/react/shallow'
+import { cloneFromProjectPicker } from '../clone/cloneActions'
 import { browseProjectFolder, closeProjectPicker, selectProject } from '../project/projectOpenActions'
 import { useHostStore } from '../store/hostStore'
 import { useProjectOpenStore } from '../store/projectOpenStore'
@@ -12,5 +13,5 @@ export function ProjectPickers() {
   if (choice?.sources) {
     return <ProjectRepositoryPicker choice={choice} repositories={choice.sources.repositories} defaultRepository={choice.sources.defaultRepository} />
   }
-  return <ProjectPicker projects={projects} root={projectsRoot} additionalRoots={projectsAdditionalRoots} error={projectsError} onClose={closeProjectPicker} onSelect={selectProject} onBrowse={browseProjectFolder} />
+  return <ProjectPicker projects={projects} root={projectsRoot} additionalRoots={projectsAdditionalRoots} error={projectsError} onClose={closeProjectPicker} onSelect={selectProject} onBrowse={browseProjectFolder} onClone={cloneFromProjectPicker} />
 }

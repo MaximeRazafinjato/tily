@@ -5,6 +5,12 @@ import { Icon } from './Icon'
 import { IconName } from './iconName'
 import { InfoTip } from './InfoTip'
 
+interface SearchDialogAction {
+  icon: IconName
+  label: string
+  onRun: () => void
+}
+
 interface SearchDialogProps<T extends SearchItem> {
   label: string
   placeholder: string
@@ -19,13 +25,14 @@ interface SearchDialogProps<T extends SearchItem> {
   onToggleFavorite?: (item: T) => void
   notice?: string | null
   maxResults?: number
+  action?: SearchDialogAction
   lastItem?: T
 }
 
 const RESULT_ID_PREFIX = 'search-result-'
 const LISTBOX_ID = 'search-results'
 
-export function SearchDialog<T extends SearchItem>({ label, placeholder, emptyMessage, items, onClose, onRun, onRunAlternate, onRunControl, onRunAlt, footer, onToggleFavorite, notice, maxResults, lastItem }: SearchDialogProps<T>) {
+export function SearchDialog<T extends SearchItem>({ label, placeholder, emptyMessage, items, onClose, onRun, onRunAlternate, onRunControl, onRunAlt, footer, onToggleFavorite, notice, maxResults, action, lastItem }: SearchDialogProps<T>) {
   const [query, setQuery] = useState('')
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const listRef = useRef<HTMLDivElement>(null)
@@ -100,13 +107,18 @@ export function SearchDialog<T extends SearchItem>({ label, placeholder, emptyMe
             autoFocus
             placeholder={placeholder}
             value={query}
-            className={`rounded border border-tily-focus bg-tily-paper py-2 pl-3 text-[13px] text-tily-ink outline-none placeholder:text-tily-muted ${footer ? 'pr-9' : 'pr-3'}`}
+            className={`rounded border border-tily-focus bg-tily-paper py-2 pl-3 text-[13px] text-tily-ink outline-none placeholder:text-tily-muted ${action && footer ? 'pr-16' : action || footer ? 'pr-9' : 'pr-3'}`}
             onChange={handleQueryChange}
             onKeyDown={handleKeyDown}
           />
-          {footer && (
-            <span className="absolute top-1/2 right-3 flex -translate-y-1/2">
-              <InfoTip text={footer} />
+          {(action || footer) && (
+            <span className="absolute top-1/2 right-3 flex -translate-y-1/2 items-center gap-2">
+              {action && (
+                <button type="button" className="flex size-[22px] cursor-pointer items-center justify-center rounded text-tily-muted hover:bg-tily-green-hover hover:text-tily-ink" aria-label={action.label} data-tip={action.label} onClick={action.onRun}>
+                  <Icon name={action.icon} />
+                </button>
+              )}
+              {footer && <InfoTip text={footer} />}
             </span>
           )}
         </div>

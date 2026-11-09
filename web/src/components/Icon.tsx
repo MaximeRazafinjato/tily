@@ -37,6 +37,12 @@ const SHAPES: Record<IconName, ReactNode> = {
     </>
   ),
   [IconName.Chevron]: <path d="M4.5 2.5 8 6l-3.5 3.5" />,
+  [IconName.Clone]: (
+    <>
+      <path d="M1.5 9.2V2.8a.8.8 0 0 1 .8-.8h2.5l1 1.1h3.9a.8.8 0 0 1 .8.8v5.3a.8.8 0 0 1-.8.8H2.3a.8.8 0 0 1-.8-.8Z" />
+      <path d="M6 4.6v3.6M4.5 6.8 6 8.3l1.5-1.5" />
+    </>
+  ),
   [IconName.Close]: <path d="M3 3l6 6M9 3 3 9" />,
   [IconName.CollapseAll]: <path d="M3.5 1.8 6 4.3l2.5-2.5M3.5 10.2 6 7.7l2.5 2.5" />,
   [IconName.Copy]: (

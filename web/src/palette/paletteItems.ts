@@ -71,6 +71,7 @@ const commandItems = (session: Session, shells: ShellProfile[]): PaletteItem[] =
     bound('previous-tab', 'Onglet précédent', Command.PreviousTab),
     bound('new-workspace', 'Nouveau workspace', Command.NewWorkspace),
     bound('projects', 'Ouvrir un projet', Command.Projects),
+    bound('clone-repository', 'Cloner un dépôt…', Command.CloneRepository),
     bound('create-worktree', 'Créer un worktree…', Command.CreateWorktree),
     bound('open-worktree', 'Ouvrir un worktree…', Command.OpenWorktree),
     bound('toggle-explorer', 'Afficher / masquer les fichiers', Command.ToggleExplorer),
