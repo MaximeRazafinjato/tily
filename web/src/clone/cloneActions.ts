@@ -54,7 +54,7 @@ export const cloneFromProjectPicker = (): void => {
   openCloneDialog()
 }
 
-export const changeCloneDraft =(patch: Partial<CloneDraft>): void => {
+export const changeCloneDraft = (patch: Partial<CloneDraft>): void => {
   const { draft, setDraft } = useCloneStore.getState()
   if (!draft) {
     return
