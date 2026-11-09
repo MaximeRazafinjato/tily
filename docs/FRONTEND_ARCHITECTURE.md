@@ -14,7 +14,7 @@ Une section par dossier de `web/src` : rôle, invariants et choix non évidents.
 
 - À `app.hello`, il applique la couleur reçue, configure les modules et injecte le texte de la session précédente ; il ne charge la session qu'une fois la police de symboles Nerd Font chargée.
 - Une réponse numérotée va d'abord à son écouteur (`dispatchReply`) : `browser.reply` et `worktrees.*`, dont `worktrees.done` et `worktrees.failed` vont aussi à l'interface. `terminal.activityResult` va à `paneActivity` s'il porte un numéro attendu, sinon à `closeGuard`. `dialog.picked` est routé par champ : formulaire de worktree, dépôt d'un projet, sinon Paramètres (`hostStore.pickedPath`).
-- À chaque nouvelle session, il détruit les terminaux et les vues navigateur des panes disparus, puis sauvegarde (voir « Flux »).
+- À chaque nouvelle session, il détruit les terminaux et les vues navigateur des panes disparus, oublie l'historique des notes des workspaces disparus, puis sauvegarde (voir « Flux »).
 
 ### `src/model/`
 
@@ -132,6 +132,15 @@ Un composant par fichier, à plat, préfixé par domaine : `Git*`, `MergeRequest
 - `togglePanelView(vue, focus)` ouvre le panneau sur la vue demandée, passe d'une autre vue à celle-ci, ou ferme le panneau si cette vue était déjà affichée, puis donne le focus à la vue ou le rend au terminal. `openPanelView` ouvre sans jamais fermer (Ctrl + clic sur la branche d'un pane, recherche d'un commit).
 - Ouvrir la vue Git rouvre toujours le graphe, qui recouvre les terminaux de l'onglet et prend le focus.
 - `revealInFileTree` et `showFileChanges` réessaient jusqu'au chargement de la ligne ou d'un état Git frais, annulés par un compteur de génération ; le premier ne prend le focus que s'il est libre ou déjà dans l'arbre. `showFileChanges` compare les chemins à partir de `displayRoot`, racine vue du dossier suivi, pour rester juste sous une jonction ou un lecteur `subst`.
+
+### `src/notes/`
+
+`noteHistory.ts` : historique d'annulation de la note de chaque workspace, hors React. Chromium perd celui du champ dès qu'il est démonté (onglet sans la vue Notes, panneau fermé) ou que React remplace sa valeur (changement de workspace) : Ctrl + Z, Ctrl + Y et Ctrl + Maj + Z de `WorkspaceNotes` ne lui parviennent donc jamais.
+
+- Un pas ne garde que la position, le texte retiré et le texte inséré, calculés autour du curseur ; au plus 200 pas par workspace.
+- Comme dans Chromium, une frappe continue (`inputType` de saisie, de saut de ligne ou d'effacement au clavier, sans déplacement du curseur ni perte du focus) forme un seul pas ; collage, couper ou dépôt forment chacun le leur.
+- Une valeur qui ne correspond plus à l'historique (note fusionnée par un déplacement d'onglet) le fait repartir de zéro.
+- Annuler sélectionne le texte rétabli, rétablir place le curseur après le texte réinséré ; `WorkspaceNotes` retire puis rend ensuite le focus au champ, pour que Chromium fasse défiler jusqu'à la sélection, ce que `setSelectionRange` ne fait pas.
 
 ### `src/explorer/`
 
