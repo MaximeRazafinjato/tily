@@ -84,6 +84,35 @@ public sealed class ProjectCatalogTests : IDisposable
     }
 
     [Fact]
+    public void List_WhenAdditionalRoots_ThenAppendsTheirProjectsBeforeWorktrees()
+    {
+        var clients = Path.Combine(_root, "ailleurs", "Clients à part");
+        Directory.CreateDirectory(Path.Combine(_root, "projets", "tily"));
+        Directory.CreateDirectory(Path.Combine(_root, "projets", "worktrees", "tily-vue"));
+        Directory.CreateDirectory(Path.Combine(clients, "zeta"));
+        Directory.CreateDirectory(Path.Combine(clients, "Alpha"));
+        Directory.CreateDirectory(Path.Combine(clients, "worktrees"));
+
+        var list = ProjectCatalog.List(Path.Combine(_root, "projets"), null, null, [clients]);
+
+        Assert.Null(list.Error);
+        Assert.Equal([("tily", false), ("Alpha", false), ("zeta", false), ("tily-vue", true)], list.Projects.Select(project => (project.Name, project.Worktree)));
+        Assert.Equal(Path.Combine(clients, "Alpha"), list.Projects[1].Path);
+    }
+
+    [Fact]
+    public void List_WhenAdditionalRootMissing_ThenListsOtherRootsWithFrenchError()
+    {
+        var missing = Path.Combine(_root, "disparu");
+        Directory.CreateDirectory(Path.Combine(_root, "projets", "tily"));
+
+        var list = ProjectCatalog.List(Path.Combine(_root, "projets"), null, null, [missing]);
+
+        Assert.Equal("tily", Assert.Single(list.Projects).Name);
+        Assert.Equal($"Le dossier des projets est introuvable : {missing}", list.Error);
+    }
+
+    [Fact]
     public void List_WhenRootMissing_ThenReturnsEmptyWithFrenchError()
     {
         var list = ProjectCatalog.List(_root);

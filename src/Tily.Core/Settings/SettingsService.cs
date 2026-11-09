@@ -47,6 +47,7 @@ public sealed class SettingsService
             Editor = _editor.Load().Command,
             Persistence = _persistence.Load(),
             ProjectsRoot = projects.Root,
+            AdditionalProjectsRoots = [.. projects.AdditionalRoots ?? []],
             Notifications = _notifications.Load(),
             Worktrees = projects.Worktrees ?? WorktreeSettingsModel.Default,
             WorktreeFolders = _worktreeProjects.Folders(),
@@ -81,6 +82,12 @@ public sealed class SettingsService
             return ValidationResultModel.Fail($"Le dossier des projets doit être un chemin absolu : {settings.ProjectsRoot}");
         }
 
+        var relativeRoot = (settings.AdditionalProjectsRoots ?? []).FirstOrDefault(folder => !string.IsNullOrWhiteSpace(folder) && !Path.IsPathRooted(folder.Trim()));
+        if (relativeRoot is not null)
+        {
+            return ValidationResultModel.Fail($"Un autre dossier des projets doit être un chemin absolu : {relativeRoot}");
+        }
+
         if ((settings.Worktrees ?? WorktreeSettingsModel.Default).Error() is { } worktreeError)
         {
             return ValidationResultModel.Fail(worktreeError);
@@ -107,6 +114,7 @@ public sealed class SettingsService
         settings.Editor = settings.Editor.Trim();
         settings.Persistence = settings.Persistence.Clamped();
         settings.ProjectsRoot = settings.ProjectsRoot.Trim();
+        settings.AdditionalProjectsRoots = NormalizedRoots(settings.ProjectsRoot, settings.AdditionalProjectsRoots ?? []);
         settings.Notifications = settings.Notifications.Normalized();
         settings.Worktrees = (settings.Worktrees ?? WorktreeSettingsModel.Default).Normalized();
         settings.WorktreeFolders = NormalizedFolders(settings.WorktreeFolders ?? []);
@@ -117,7 +125,7 @@ public sealed class SettingsService
         _shells.Save(settings.Shells);
         _editor.Save(new EditorSettingsModel(settings.Editor));
         _persistence.Save(settings.Persistence);
-        _projects.Save(new ProjectsSettingsModel(settings.ProjectsRoot, settings.Worktrees));
+        _projects.Save(new ProjectsSettingsModel(settings.ProjectsRoot, settings.Worktrees, settings.AdditionalProjectsRoots));
         _worktreeProjects.SaveFolders(settings.WorktreeFolders);
         _notifications.Save(settings.Notifications);
         _git.Save(settings.Git);
@@ -185,6 +193,7 @@ public sealed class SettingsService
             Editor = document.Editor!,
             Persistence = document.Persistence!.Clamped(),
             ProjectsRoot = document.ProjectsRoot!,
+            AdditionalProjectsRoots = document.AdditionalProjectsRoots ?? [],
             Notifications = (document.Notifications ?? NotificationSettingsModel.Default).Normalized(),
             Worktrees = (document.Worktrees ?? WorktreeSettingsModel.Default).Normalized(),
             WorktreeFolders = _worktreeProjects.Folders(),
@@ -230,6 +239,8 @@ public sealed class SettingsService
             warnings.Add($"Le dossier des projets est introuvable : {settings.ProjectsRoot}");
         }
 
+        warnings.AddRange(settings.AdditionalProjectsRoots.Where(folder => !Directory.Exists(folder)).Select(folder => $"Le dossier des projets est introuvable : {folder}"));
+
         var worktreeFolder = settings.Worktrees.FolderFor(settings.ProjectsRoot);
         if (!string.IsNullOrWhiteSpace(settings.Worktrees.Folder) && !Directory.Exists(worktreeFolder))
         {
@@ -250,6 +261,14 @@ public sealed class SettingsService
         };
         return new SettingsSnapshotModel(settings, shells, files, warnings);
     }
+
+    private static List<string> NormalizedRoots(string projectsRoot, IEnumerable<string> roots) =>
+        roots
+            .Where(folder => !string.IsNullOrWhiteSpace(folder))
+            .Select(folder => folder.Trim())
+            .Where(folder => !WorktreeTarget.SamePath(folder, projectsRoot))
+            .DistinctBy(WorktreeLister.NormalizePath, StringComparer.OrdinalIgnoreCase)
+            .ToList();
 
     private static List<WorktreeProjectFolderModel> NormalizedFolders(IReadOnlyList<WorktreeProjectFolderModel> folders) =>
         folders

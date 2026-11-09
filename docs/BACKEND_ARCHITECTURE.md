@@ -56,7 +56,7 @@ Modèle de session (workspaces, onglets, splits, panes terminal ou navigateur, o
 
 - Les fichiers restent éditables à la main : l'écran Paramètres n'est qu'une autre façon de les écrire.
 - `Save` valide tout (shell inconnu, éditeur vide, chemins relatifs, base des worktrees, raccourcis) avant d'écrire quoi que ce soit. `SaveAppearance` n'écrit que `appearance.json`.
-- `Snapshot` rend les shells, les chemins des fichiers et des avertissements non bloquants : shell, éditeur (`CommandLocator` : chemin, `PATH` avec `PATHEXT`, App Paths), son `.wav`, dossier des projets ou des worktrees introuvables.
+- `Snapshot` rend les shells, les chemins des fichiers et des avertissements non bloquants : shell, éditeur (`CommandLocator` : chemin, `PATH` avec `PATHEXT`, App Paths), son `.wav`, dossiers des projets ou des worktrees introuvables.
 - Import : version 1 ; `shells`, `editor`, `persistence` et `projectsRoot` obligatoires, autres clés (`shortcuts` comprise) facultatives. `Import` valide sans rien écrire et signale chaque valeur de persistance ramenée dans sa plage. L'export ne contient jamais la session, le texte ni les dossiers par projet.
 
 ### Appearance/
@@ -64,7 +64,7 @@ Modèle de session (workspaces, onglets, splits, panes terminal ou navigateur, o
 Couleurs de l'interface (spec, §3, « Couleurs »).
 
 - `AccentTheme` calcule en OKLCH, à partir d'une seule couleur d'accent, les tokens `tily-*` teintés (luminosité fixe, saturation proportionnelle à celle de l'accent), le thème xterm.js et les couleurs de la barre de titre ; l'accent est borné en luminosité et en saturation, une couleur hors gamut sRGB perd de la saturation sans changer de teinte. Les couleurs d'état, de diff, de voies Git et de syntaxe restent dans `index.css`.
-- `AccentResolver` construit le thème de la couleur de Tily, sinon du défaut du canal (`AccentPresets`), et donne le projet et la couleur de projet de chaque dossier (`ProjectsOf`), qui ne surligne qu'un nom. Le projet d'un dossier se lit sans lancer `git` (`GitContext.MainRepositoryRoot`) : dépôt principal d'un worktree, puis dossier de premier niveau de la racine des projets, sinon racine du dépôt hors de cette racine.
+- `AccentResolver` construit le thème de la couleur de Tily, sinon du défaut du canal (`AccentPresets`), et donne le projet et la couleur de projet de chaque dossier (`ProjectsOf`), qui ne surligne qu'un nom. Le projet d'un dossier se lit sans lancer `git` (`GitContext.MainRepositoryRoot`) : dépôt principal d'un worktree, puis dossier de premier niveau de la racine des projets qui le contient (`SettingsModel.ProjectsRoots` : racine principale et autres dossiers des projets, la plus profonde l'emporte), sinon racine du dépôt hors de ces racines.
 
 ### Context/
 
@@ -78,9 +78,9 @@ Contexte Git d'un dossier (`GitContext`, qui donne aussi le dépôt principal d'
 
 ### Projects/
 
-`ProjectCatalog` liste les projets du sélecteur (spec, §9) : premier niveau de la racine des projets, hors `worktrees` et dossiers cachés, puis les worktrees, marqués comme `[wt]` dans le sélecteur WezTerm. `ProjectsSettingsRepository` lit `projects.json`.
+`ProjectCatalog` liste les projets du sélecteur (spec, §9) : premier niveau de la racine des projets puis de chaque autre dossier des projets (`additionalRoots` de `projects.json`, vide par défaut), hors `worktrees` et dossiers cachés, puis les worktrees, marqués comme `[wt]` dans le sélecteur WezTerm. `ProjectsSettingsRepository` lit `projects.json`.
 
-- Racine inaccessible : liste vide et message, jamais d'exception vers le web.
+- Racine introuvable ou inaccessible : message, les autres racines restent listées ; jamais d'exception vers le web. `SettingsService.Save` retire des autres dossiers les vides, les doublons et la racine principale.
 - Le dossier des worktrees réglé est retiré des projets s'il est dans la racine. Un dossier mémorisé pour un projet n'apporte que ses vrais worktrees (`.git` fichier).
 
 ### Files/
@@ -130,7 +130,7 @@ MR/PR GitHub et GitLab par les CLI `gh` et `glab` (spec, §10), derrière `Forge
 
 Gestion native des worktrees, au comportement de `wtr` / `rmwt` (spec, §10) : `WorktreeCreator`, `WorktreeRemover`, réplication de base (`IDatabaseReplicator`) et corbeille (`WorktreeTrash`).
 
-- Hors du sélecteur de projets, le projet d'un dépôt est le dossier de premier niveau de la racine qui contient son dépôt principal.
+- Hors du sélecteur de projets, le projet d'un dépôt est le dossier de premier niveau de la racine des projets, principale ou autre, la plus profonde qui contient son dépôt principal.
 - `ClaudeLaunchCommand` construit la commande `claude` tapée dans Windows PowerShell 5.1 : premier message ramené à une ligne et borné, échappé pour la ligne de commande native (guillemets doubles, antislashs qui les précèdent ou terminent le message) puis entre guillemets simples, apostrophes typographiques doublées ; `--` le précède s'il commence par un tiret. Elle est calculée avant la création, pour qu'un message refusé ne laisse aucun worktree.
 - `Plan` n'écrit rien. Une nouvelle branche est créée par `worktree add --no-track -b` après un fetch de la base : sans amont, le premier push la publie sous son nom.
 - `worktree-projects.json` est protégé par un verrou statique, partagé dans le processus par toutes les instances de `WorktreeProjectsRepository`, car `WorktreeFeed` y écrit le dépôt et `SettingsService` le dossier.

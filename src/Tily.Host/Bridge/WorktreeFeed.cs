@@ -67,7 +67,7 @@ public sealed class WorktreeFeed
     {
         var settings = _settings();
         var path = command.Project ?? command.Path ?? throw new InvalidOperationException("Dossier manquant.");
-        var sources = WorktreeSources.Resolve(_runner, path, command.Project is not null, settings.ProjectsRoot, settings.Worktrees.FolderFor(settings.ProjectsRoot), _projects.RepositoryOf);
+        var sources = WorktreeSources.Resolve(_runner, path, command.Project is not null, settings.ProjectsRoots(), settings.Worktrees.FolderFor(settings.ProjectsRoot), _projects.RepositoryOf);
         _post(new { type = "worktrees.sourcesFound", request = command.Request, sources });
     }
 
@@ -75,7 +75,7 @@ public sealed class WorktreeFeed
     {
         var settings = _settings();
         var project = command.Project ?? throw new InvalidOperationException("Projet manquant.");
-        var sources = WorktreeSources.Resolve(_runner, project, true, settings.ProjectsRoot, settings.Worktrees.FolderFor(settings.ProjectsRoot), _projects.RepositoryOf);
+        var sources = WorktreeSources.Resolve(_runner, project, true, settings.ProjectsRoots(), settings.Worktrees.FolderFor(settings.ProjectsRoot), _projects.RepositoryOf);
         _post(new { type = "projects.repositoriesFound", request = command.Request, sources });
     }
 

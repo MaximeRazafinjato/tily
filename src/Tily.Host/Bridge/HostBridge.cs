@@ -322,7 +322,7 @@ public sealed class HostBridge : IDisposable
                 Post(new { type = "terminal.activityResult", request = command.Request, panes = _terminals.Activity(command.Panes ?? []) });
                 break;
             case "projects.list":
-                ListProjects(_settings.ProjectsRoot, _settings.Worktrees.FolderFor(_settings.ProjectsRoot), _settings.WorktreeFolders);
+                ListProjects(_settings.ProjectsRoot, _settings.Worktrees.FolderFor(_settings.ProjectsRoot), _settings.WorktreeFolders, _settings.AdditionalProjectsRoots);
                 break;
             case "context.query":
                 QueryContext(RequirePane(command), RequirePath(command));
@@ -512,11 +512,11 @@ public sealed class HostBridge : IDisposable
         });
     }
 
-    private void ListProjects(string root, string worktreeFolder, IReadOnlyList<WorktreeProjectFolderModel> projectFolders) =>
+    private void ListProjects(string root, string worktreeFolder, IReadOnlyList<WorktreeProjectFolderModel> projectFolders, IReadOnlyList<string> additionalRoots) =>
         _queries.Enqueue(() =>
         {
-            var projects = ProjectCatalog.List(root, worktreeFolder, projectFolders);
-            Post(new { type = "projects.listed", root = projects.Root, projects = projects.Projects, error = projects.Error });
+            var projects = ProjectCatalog.List(root, worktreeFolder, projectFolders, additionalRoots);
+            Post(new { type = "projects.listed", root = projects.Root, projects = projects.Projects, error = projects.Error, additionalRoots = projects.AdditionalRoots });
         });
 
     private void RememberWorktreeFolder(string project, string folder) =>

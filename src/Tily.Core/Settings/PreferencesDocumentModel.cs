@@ -16,6 +16,7 @@ public sealed class PreferencesDocumentModel
     public string? Editor { get; set; }
     public PersistenceSettingsModel? Persistence { get; set; }
     public string? ProjectsRoot { get; set; }
+    public List<string>? AdditionalProjectsRoots { get; set; }
     public NotificationSettingsModel? Notifications { get; set; }
     public WorktreeSettingsModel? Worktrees { get; set; }
     public GitSettingsModel? Git { get; set; }
@@ -30,6 +31,7 @@ public sealed class PreferencesDocumentModel
         Editor = settings.Editor,
         Persistence = settings.Persistence,
         ProjectsRoot = settings.ProjectsRoot,
+        AdditionalProjectsRoots = settings.AdditionalProjectsRoots,
         Notifications = settings.Notifications,
         Worktrees = settings.Worktrees,
         Git = settings.Git,

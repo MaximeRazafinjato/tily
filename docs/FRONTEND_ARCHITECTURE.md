@@ -13,7 +13,7 @@ Une section par dossier de `web/src` : rôle, invariants et choix non évidents.
 `App` est l'unique aiguillage des messages de l'hôte : un `bridge.on` par type, qui confie le message à la fonction `receive…` de son dossier. Il démarre les boucles et notifieurs (`startAppearanceProjects`, `startAttentionNotifier`, `startExternalDrops`, `startStatusLog`, `startDeferredPreviews`, `startBrowserLayer`, `startTextAutosave`), puis envoie `app.ready`.
 
 - À `app.hello`, il applique la couleur reçue, configure les modules et injecte le texte de la session précédente ; il ne charge la session qu'une fois la police de symboles Nerd Font chargée.
-- Une réponse numérotée va d'abord à son écouteur (`dispatchReply`) : `browser.reply` et `worktrees.*`, dont `worktrees.done` et `worktrees.failed` vont aussi à l'interface. `terminal.activityResult` va à `paneActivity` s'il porte un numéro attendu, sinon à `closeGuard`. `dialog.picked` est routé par champ : formulaire de worktree, dépôt d'un projet, sinon Paramètres (`hostStore.pickedPath`).
+- Une réponse numérotée va d'abord à son écouteur (`dispatchReply`) : `browser.reply` et `worktrees.*`, dont `worktrees.done` et `worktrees.failed` vont aussi à l'interface. `terminal.activityResult` va à `paneActivity` s'il porte un numéro attendu, sinon à `closeGuard`. `dialog.picked` est routé par champ : formulaire de worktree, dépôt d'un projet, dossier choisi par « Parcourir… » d'« Ouvrir un projet », sinon Paramètres (`hostStore.pickedPath`).
 - À chaque nouvelle session, il détruit les terminaux et les vues navigateur des panes disparus, puis sauvegarde (voir « Flux »).
 
 ### `src/model/`
@@ -118,7 +118,7 @@ Un composant par fichier, à plat, préfixé par domaine : `Git*`, `MergeRequest
 - Les composants mémoïsés (`PaneView`, `WorkspaceItem`, `FileTreeRow`, `GitGraphRow`…) reçoivent des objets de gestionnaires stables (`WorkspacePanelActions`, `HeaderWorkspaceActions`, `FileTreeHandlers`, `GitGraphRowHandlers`) qui lisent les stores au moment de l'appel.
 - Fenêtre modale : `role="dialog"` ou `role="alertdialog"`, `keepTabInside` (`focusTrap.ts`) en `onKeyDown`, comptage dans `confirmationOpen`, qui bloque les raccourcis du document. Le piège de Tab compte comme étape une zone qui défile sans rien de focalisable, comme Chromium, pour que le focus ne parte jamais vers un terminal masqué qui garderait Tab. Ces rôles figent aussi les panes navigateur (voir `browser/`).
 - Confirmation : le bouton de confirmation a le focus, Entrée confirme, Échap, « Annuler » ou un clic hors de la boîte annule. Une demande venue d'un agent (accord MCP, suppression de worktree) met le focus sur le refus et n'active la confirmation qu'après un court délai, pour qu'une frappe destinée ailleurs n'accorde rien.
-- `SearchDialog` est la boîte commune de la palette et des sélecteurs (projets, dépôts, worktrees, fichiers, commits). La recherche dans tous les terminaux (`TerminalSearchDialog`) est à part et partage seulement `SearchOptionToggles` avec la barre de recherche d'un pane.
+- `SearchDialog` est la boîte commune de la palette et des sélecteurs (projets, dépôts, worktrees, fichiers, commits). Son `lastItem` reste en dernier quelle que soit la recherche (« Parcourir… » d'« Ouvrir un projet »). La recherche dans tous les terminaux (`TerminalSearchDialog`) est à part et partage seulement `SearchOptionToggles` avec la barre de recherche d'un pane.
 - Un menu se ferme avant d'exécuter son entrée et rend le focus à son origine. Après une fenêtre, un renommage ou le repli d'un panneau, le focus revient au pane actif par `focusPane`.
 - Le focus qui entre dans un pane inactif le rend actif : la saisie et le pane actif ne divergent jamais. Tant qu'un message (`PaneOverlay`) recouvre un pane, le terminal sort de l'ordre de Tab ; le bouton par défaut du message prend le focus, « Ignorer » pour un dossier disparu car le shell y tourne encore. Juste après une prise de focus automatique venue du terminal, Entrée et Espace sont annulés (`ACTIVATION_GUARD_MS`), pour qu'une frappe partie vers le terminal n'active pas le bouton ; un pane inactif qui réapparaît ne vole jamais le focus.
 - Un seul `Tooltip`, monté par `AppShell`, affiche le texte de `data-tip` en position fixe, jamais tronqué ; sans `data-tip`, un texte coupé par `truncate` montre son texte complet au survol. Jamais d'attribut `title`.
@@ -186,7 +186,7 @@ Worktrees natifs (section 10 de la spec). Création, suppression et effacement s
 
 ### `src/project/`
 
-`projectOpenActions.ts` (section 9 de la spec) : un worktree s'ouvre tel quel ; un projet demande `projects.repositories` et s'ouvre aussitôt s'il n'a qu'un candidat, sinon le sélecteur passe au choix du dépôt (`projectOpenStore`).
+`projectOpenActions.ts` (section 9 de la spec) : un worktree s'ouvre tel quel ; un projet demande `projects.repositories` et s'ouvre aussitôt s'il n'a qu'un candidat, sinon le sélecteur passe au choix du dépôt (`projectOpenStore`). Un dossier choisi par « Parcourir… » suit le même chemin qu'un projet de la liste.
 
 ### `src/browser/`
 

@@ -6,10 +6,10 @@ public sealed record WorktreeSourcesModel(string Project, IReadOnlyList<string> 
 
 public static class WorktreeSources
 {
-    public static WorktreeSourcesModel Resolve(GitRunner runner, string path, bool fromProject, string projectsRoot, string worktreeFolder, Func<string, string?> remembered)
+    public static WorktreeSourcesModel Resolve(GitRunner runner, string path, bool fromProject, IReadOnlyList<string> projectsRoots, string worktreeFolder, Func<string, string?> remembered)
     {
         var mainRoot = fromProject ? null : MainRootOf(runner, path);
-        var project = fromProject ? WorktreeLister.NormalizePath(path) : ProjectOf(mainRoot ?? path, projectsRoot, worktreeFolder);
+        var project = fromProject ? WorktreeLister.NormalizePath(path) : ProjectOf(mainRoot ?? path, projectsRoots, worktreeFolder);
         var stored = remembered(project) is { } repository && Directory.Exists(repository) ? WorktreeLister.NormalizePath(repository) : null;
         var found = RepositoryFinder.Find(project);
         var defaultRepository = stored ?? found.FirstOrDefault();
@@ -21,17 +21,24 @@ public static class WorktreeSources
         return new WorktreeSourcesModel(project, repositories, selected, defaultRepository);
     }
 
-    public static string ProjectOf(string folder, string projectsRoot, string worktreeFolder)
+    public static string ProjectOf(string folder, IReadOnlyList<string> projectsRoots, string worktreeFolder)
     {
         var normalized = WorktreeLister.NormalizePath(folder);
-        if (!WorktreeTarget.IsWithin(normalized, projectsRoot) || WorktreeTarget.SamePath(normalized, projectsRoot) || WorktreeTarget.IsWithin(normalized, worktreeFolder))
+        var root = ProjectsRootOf(normalized, projectsRoots);
+        if (root is null || WorktreeTarget.IsWithin(normalized, worktreeFolder))
         {
             return normalized;
         }
 
-        var first = Path.GetRelativePath(WorktreeLister.NormalizePath(projectsRoot), normalized).Split(Path.DirectorySeparatorChar)[0];
-        return Path.Combine(WorktreeLister.NormalizePath(projectsRoot), first);
+        var first = Path.GetRelativePath(root, normalized).Split(Path.DirectorySeparatorChar)[0];
+        return Path.Combine(root, first);
     }
+
+    public static string? ProjectsRootOf(string folder, IReadOnlyList<string> projectsRoots) =>
+        projectsRoots
+            .Where(root => Path.IsPathFullyQualified(root) && WorktreeTarget.IsWithin(folder, root) && !WorktreeTarget.SamePath(folder, root))
+            .Select(WorktreeLister.NormalizePath)
+            .MaxBy(root => root.Length);
 
     private static string? MainRootOf(GitRunner runner, string path)
     {
