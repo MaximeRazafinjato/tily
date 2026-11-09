@@ -10,14 +10,14 @@
 @theme {
   --color-tily-paper: #17191b;
   --color-tily-panel: #1e2123;
-  --color-tily-line: #2c3033;
+  --color-tily-line: #363b38;
   --color-tily-ink: #d8dbd7;
-  --color-tily-ink-soft: #a3a9a5;
-  --color-tily-muted: #848b87;
+  --color-tily-ink-soft: #b0b6b2;
+  --color-tily-muted: #99a09c;
   --color-tily-green: #7a9f8b;
   --color-tily-green-deep: #a9c4b4;
-  --color-tily-green-soft: #262d2a;
-  --color-tily-green-hover: #24282a;
+  --color-tily-green-soft: #303934;
+  --color-tily-green-hover: #282d2a;
   --color-tily-focus: #8fb39f;
   --color-tily-terminal: #121416;
   --color-tily-terminal-ink: #cdd1cd;
