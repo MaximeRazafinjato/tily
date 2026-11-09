@@ -1,21 +1,36 @@
-import { GitChangeKind, GitDiffSource, type GitCommitDetails, type GitDiff, type GitFailureCode, type GitHistory, type GitState } from '../bridge/gitMessages'
+import { GitChangeKind, GitDiffSource, type GitCommitDetails, type GitDiff, type GitFailureCode, type GitFileChange, type GitHistory, type GitState } from '../bridge/gitMessages'
 import { useGitStore, type GitFileTarget } from '../store/gitStore'
 import { StatusLevel, useHostStore } from '../store/hostStore'
-import { refocusGitIfLost } from './gitFocus'
+import { diffHasFocus, refocusGitIfLost, requestDiffFocus, restoreDiffFocus } from './gitFocus'
 import { clearRefSelection } from './gitRefSelection'
-import { closeDrawer, loadUntilRevealed, reloadDiff, retryFailedDetails, selectWorkingTree, takeInitialized, takeRetry } from './gitRequests'
+import { closeDrawer, loadUntilRevealed, reloadDiff, retryFailedDetails, selectWorkingTree, showChange, takeInitialized, takeRetry } from './gitRequests'
+import { GitRowGroup, rowKey } from './gitRows'
 
 const COMMIT_OPERATION = 'git.commit'
 const AUTO_FETCH_OPERATION = 'git.autoFetch'
 
-const followShownFile = (state: GitState, file: GitFileTarget): void => {
-  const inStaged = state.staged.find((change) => change.path === file.path)
-  const inUnstaged = state.unstaged.find((change) => change.path === file.path)
-  const stillThere = file.source === GitDiffSource.Staged ? inStaged : inUnstaged
+const changesOf = (state: GitState | null, source: GitDiffSource): GitFileChange[] => (!state ? [] : source === GitDiffSource.Staged ? state.staged : state.unstaged)
+
+const nextChange = (before: GitFileChange[], after: GitFileChange[], path: string): GitFileChange | undefined => {
+  const index = before.findIndex((change) => change.path === path)
+  const remaining = (change: GitFileChange) => after.find((candidate) => candidate.path === change.path)
+  return index < 0 ? undefined : (before.slice(index + 1).map(remaining).find(Boolean) ?? before.slice(0, index).map(remaining).findLast(Boolean) ?? after[0])
+}
+
+const followShownFile = (previous: GitState | null, state: GitState, file: GitFileTarget): void => {
+  const changes = changesOf(state, file.source)
+  const stillThere = changes.find((change) => change.path === file.path)
+  const next = stillThere ? undefined : nextChange(changesOf(previous, file.source), changes, file.path)
   if (stillThere) {
     reloadDiff({ ...file, untracked: stillThere.kind === GitChangeKind.Untracked })
-  } else if (inStaged || inUnstaged) {
-    reloadDiff({ ...file, source: inStaged ? GitDiffSource.Staged : GitDiffSource.Unstaged, untracked: !inStaged && inUnstaged?.kind === GitChangeKind.Untracked })
+  } else if (next) {
+    const focused = diffHasFocus()
+    const key = rowKey(file.source === GitDiffSource.Staged ? GitRowGroup.Staged : GitRowGroup.Unstaged, next.path)
+    useGitStore.getState().setChangeSelection({ keys: new Set([key]), anchor: key })
+    showChange(next, file.source)
+    if (focused) {
+      requestDiffFocus(useGitStore.getState().diffRequest)
+    }
   } else {
     closeDrawer()
   }
@@ -43,7 +58,7 @@ export const receiveGitState = (path: string, state: GitState | undefined, error
   }
   const { file, commit } = useGitStore.getState()
   if (state && file && !commit) {
-    followShownFile(state, file)
+    followShownFile(previous, state, file)
   }
   retryFailedDetails()
   refocusGitIfLost()
@@ -61,7 +76,12 @@ export const receiveGitHistory = (history: GitHistory, error: string | undefined
   loadUntilRevealed()
 }
 
-export const receiveGitDiff = (request: number, diff: GitDiff | undefined, error: string | undefined): void => useGitStore.getState().receiveDiff(request, diff ?? null, error ?? null)
+export const receiveGitDiff = (request: number, diff: GitDiff | undefined, error: string | undefined): void => {
+  useGitStore.getState().receiveDiff(request, diff ?? null, error ?? null)
+  if (useGitStore.getState().diffRequest === request) {
+    restoreDiffFocus(request)
+  }
+}
 
 export const receiveGitDetails = (request: number, details: GitCommitDetails | undefined, error: string | undefined): void =>
   useGitStore.getState().receiveDetails(request, details ?? null, error ?? null)
