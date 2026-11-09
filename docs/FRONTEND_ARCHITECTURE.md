@@ -38,8 +38,8 @@ Stores Zustand. Seule la session est persistée.
 
 - `sessionStore` : la session et toutes ses mutations, écrites sur un brouillon Immer. Seuls les objets modifiés changent d'identité et une mutation sans effet rend la même session : ni rendu ni sauvegarde. `change` applique une mutation donnée (serveur MCP) ; `browserPanes.ts` et `paneMoves.ts` portent des mutations du brouillon. Un onglet dupliqué n'appartient à aucun agent.
 - Reçu de l'hôte : `hostStore` (shells, projets, contextes Git par pane, réglages, statut, Leader, « Non enregistré »), `appearanceStore` (thème, préréglages, projet et couleur de projet par dossier, cible de la fenêtre « Couleur »), `shortcutStore`, `agentStore`, `statusLogStore`, `browserStore`, `updateStore`.
-- Interface : `uiStore` (renommages et leur origine, palette, sélecteur de projets et Paramètres mutuellement exclusifs, glisser, pane agrandi, confirmation de fermeture), `paneStore`, `pasteStore`, `commandStore`, `terminalSearchStore` (texte et options partagés par la barre d'un pane et la recherche globale).
-- Fonctions : `explorerStore`, `gitStore`, `forgeStore`, `mergeRequestFormStore`, `worktreeStore`, `previewStore`, `projectOpenStore`, `filePickerStore`, `commitPickerStore`, `mcpConsentStore`.
+- Interface : `uiStore` (renommages et leur origine, palette, sélecteur de projets et Paramètres mutuellement exclusifs, glisser et ses cibles, pane agrandi, confirmation de fermeture), `paneStore`, `pasteStore`, `commandStore`, `terminalSearchStore` (texte et options partagés par la barre d'un pane et la recherche globale).
+- Fonctions : `explorerStore`, `gitStore`, `forgeStore`, `mergeRequestFormStore`, `worktreeStore`, `previewStore`, `projectOpenStore`, `filePickerStore`, `commitPickerStore`, `tabMergePickerStore`, `mcpConsentStore`.
 
 Invariants :
 
@@ -86,6 +86,7 @@ Autres modules :
 - `paneSearch.ts` charge `@xterm/addon-search` à la première recherche d'un terminal, hors `terminalRegistry` ; `globalSearch.ts` relève les lignes des terminaux créés à l'ouverture de la recherche globale.
 - `paneZoom.ts` n'agrandit que le pane actif d'un onglet d'au moins deux panes : `SplitView` ne rend que lui, les autres terminaux restant dans `terminalRegistry`. Le zoom cesse dès que le pane actif ou l'onglet change.
 - `paneLifecycle.ts` : relance, dossier de repli, changement de shell ou abandon du signalement ; aucun repli silencieux.
+- `tabMerge.ts` : fusion d'un onglet dans un autre, à côté d'un pane (`insertBeside`, `moveTabInto` de `paneMoves.ts`) ; `tabMergeTargets` liste les cibles, deux par onglet (côte à côte, en dessous), pour le menu d'onglet, la palette et `TabMergePicker`. Les terminaux suivent leurs panes sans être recréés.
 
 ### `src/keyboard/`
 
@@ -123,7 +124,7 @@ Un composant par fichier, à plat, préfixé par domaine : `Git*`, `MergeRequest
 - Le focus qui entre dans un pane inactif le rend actif : la saisie et le pane actif ne divergent jamais. Tant qu'un message (`PaneOverlay`) recouvre un pane, le terminal sort de l'ordre de Tab ; le bouton par défaut du message prend le focus, « Ignorer » pour un dossier disparu car le shell y tourne encore. Juste après une prise de focus automatique venue du terminal, Entrée et Espace sont annulés (`ACTIVATION_GUARD_MS`), pour qu'une frappe partie vers le terminal n'active pas le bouton ; un pane inactif qui réapparaît ne vole jamais le focus.
 - Un seul `Tooltip`, monté par `AppShell`, affiche le texte de `data-tip` en position fixe, jamais tronqué ; sans `data-tip`, un texte coupé par `truncate` montre son texte complet au survol. Jamais d'attribut `title`.
 - Listes longues virtualisées par `useVirtualRows` (graphe et diff Git).
-- Onglets et workspaces se glissent par événements pointeur (`pointerDrag.ts`, `tabDrag.ts`, `workspaceDrag.ts`, cible par `elementFromPoint` sur des attributs `data-drop-*` et `data-workspace-*`) ; les instances xterm.js suivent leurs panes sans être recréées. Seule une ligne de l'arbre glissée vers un pane utilise le glisser-déposer HTML5.
+- Onglets et workspaces se glissent par événements pointeur (`pointerDrag.ts`, `tabDrag.ts`, `workspaceDrag.ts`, cible par `elementFromPoint` sur des attributs `data-drop-*` et `data-workspace-*`) ; les instances xterm.js suivent leurs panes sans être recréées. Hors de ces cibles, un onglet glissé vise le pane sous le pointeur (`data-pane-id`, hors panes de l'onglet glissé) et son bord le plus proche (`uiStore.paneDropTarget`), que `PaneDropIndicator` surligne en position fixe sans capter le pointeur ; survoler un autre onglet (`data-drop-tab`) l'affiche après 600 ms. Seule une ligne de l'arbre glissée vers un pane utilise le glisser-déposer HTML5.
 
 ### `src/panel/`
 
@@ -202,7 +203,7 @@ Worktrees natifs (section 10 de la spec). Création, suppression et effacement s
 Panes navigateur (section 6 de la spec). Un `Pane` de type `PaneKind.Browser` garde `url` et `viewport` en plus du dossier et du shell du pane d'où il a été ouvert. Sa page vit dans une WebView2 posée par l'hôte ; le web ne rend que l'en-tête et un corps vide (`BrowserPaneView`, à la place de `PaneView`, corps `[data-browser-body]`).
 
 - `browserLayer.ts` : une boucle `requestAnimationFrame` envoie `browser.attach` à la première apparition d'un corps, `browser.bounds` quand son rectangle change, `visible: false` quand il quitte le DOM. Un pane navigateur compte comme démarré dès qu'il a été affiché ; `disposeMissingBrowsers` ferme la vue des panes sortis de la session.
-- La WebView2 de la page n'est pas transparente : rien de l'interface ne peut s'afficher par-dessus. Quand un `role` `menu`, `dialog` ou `alertdialog` est ouvert, qu'une infobulle (`role="tooltip"`) chevauche le pane ou qu'un élément recouvre l'un des 16 points échantillonnés, la page est figée : capture `browser.snapshot` affichée dans le corps, vue masquée une fois l'image chargée, puis réaffichée à la fin. Un élément flottant nouveau doit porter l'un de ces rôles ou couvrir un point échantillonné.
+- La WebView2 de la page n'est pas transparente : rien de l'interface ne peut s'afficher par-dessus. Quand un `role` `menu`, `dialog` ou `alertdialog` est ouvert, qu'un onglet est glissé (`uiStore.draggingTabId`, pour que le pane reçoive le pointeur et l'indicateur de dépôt), qu'une infobulle (`role="tooltip"`) chevauche le pane ou qu'un élément recouvre l'un des 16 points échantillonnés, la page est figée : capture `browser.snapshot` affichée dans le corps, vue masquée une fois l'image chargée, puis réaffichée à la fin. Un élément flottant nouveau doit porter l'un de ces rôles ou couvrir un point échantillonné.
 - `restoreBrowserFocus` rend le focus à la page du pane actif après un raccourci renvoyé par la page ou la fin du Leader, si rien d'autre ne l'a pris. `browser.key` passe par `handleForwardedKey` (`browserKeys.ts`).
 - `requestBrowser` (`browserRequests.ts`) numérote une commande `browser.*` et attend son `browser.reply`, avec un délai.
 

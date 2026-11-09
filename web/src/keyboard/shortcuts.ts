@@ -9,6 +9,7 @@ import { focusWorkspacePanel } from '../components/workspacePanel'
 import { useSessionStore } from '../store/sessionStore'
 import { requestApplicationClose } from '../terminal/closeGuard'
 import { closePaneKeepingText, movePaneToNewTab, openClaudeTab, restoreClosedTab } from '../terminal/tabLifecycle'
+import { openTabMergePicker } from '../terminal/tabMerge'
 import { focusPane, joinNextWaitingPane, scrollPaneToCommand } from '../terminal/terminalActions'
 import { CommandDirection } from '../terminal/commandOutput'
 import { togglePaneZoom } from '../terminal/paneZoom'
@@ -266,6 +267,9 @@ export const runCommand = (command: Command): void => {
       break
     case Command.MovePaneToNewTab:
       movePaneToNewTab(currentPaneId())
+      break
+    case Command.MergeTab:
+      openTabMergePicker()
       break
     case Command.JoinWaitingAgent:
       joinNextWaitingPane()

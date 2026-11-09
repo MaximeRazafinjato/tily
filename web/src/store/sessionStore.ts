@@ -2,7 +2,7 @@ import { current, produce } from 'immer'
 import { create } from 'zustand'
 import type { BrowserViewport } from '../model/browser'
 import { insertPaneBesideIn, setBrowserPageIn, setPaneViewportIn } from './browserPanes'
-import { movePaneInto, movePaneOut } from './paneMoves'
+import { movePaneInto, movePaneOut, moveTabInto } from './paneMoves'
 import {
   activePane,
   activeTab,
@@ -38,6 +38,7 @@ import {
   type ClosedTab,
   type GitGraphLayout,
   type Pane,
+  type PaneEdge,
   type Session,
   type SplitPath,
   type Tab,
@@ -88,6 +89,7 @@ interface SessionState {
   swapActivePane: (targetPaneId: string) => void
   movePaneToNewTab: (paneId: string) => void
   movePaneToTab: (paneId: string, targetTabId: string) => void
+  moveTabIntoPane: (tabId: string, paneId: string, edge: PaneEdge) => void
   closePane: (paneId: string) => void
   setPanePath: (paneId: string, path: string) => void
   setPaneShell: (paneId: string, shell: string) => void
@@ -509,6 +511,8 @@ export const useSessionStore = create<SessionState>()((set, get) => ({
   movePaneToNewTab: (paneId) => set((state) => ({ session: mutateSession(state.session, (draft) => movePaneOut(draft, paneId)) })),
 
   movePaneToTab: (paneId, targetTabId) => set((state) => ({ session: mutateSession(state.session, (draft) => movePaneInto(draft, paneId, targetTabId)) })),
+
+  moveTabIntoPane: (tabId, paneId, edge) => set((state) => ({ session: mutateSession(state.session, (draft) => moveTabInto(draft, tabId, paneId, edge)) })),
 
   closePane: (paneId) =>
     set((state) => {
