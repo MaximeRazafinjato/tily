@@ -66,7 +66,7 @@ public sealed class CloneFeed
         }
     }
 
-    private IReadOnlyList<string> Roots() => [_settings().ProjectsRoot];
+    private IReadOnlyList<string> Roots() => _settings().ProjectsRoots();
 
     private static CloneRequestModel RequestOf(BridgeCommandModel command) => new(command.Url, command.Folder, command.Name);
 }

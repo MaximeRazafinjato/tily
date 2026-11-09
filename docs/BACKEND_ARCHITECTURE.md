@@ -253,7 +253,7 @@ Mises à jour par les releases GitHub (spec, §13).
 ### Clonage (`CloneFeed`)
 
 - Plans et suggestions dans une file, clonages un à un dans une autre ; `clone.done` ou `clone.failed` termine toujours un clonage, exception imprévue comprise, avec le numéro `request` de la demande.
-- Les dossiers parents proposés (`roots`) sont ceux des projets ; le premier est le dossier par défaut.
+- Les dossiers parents proposés (`roots`) sont le dossier des projets puis ses autres dossiers (`ProjectsRoots()`) ; le premier est le dossier par défaut.
 - L'hôte ne crée aucun workspace : `clone.done` donne le dossier, le nom et les commandes `claude` et `pnpm install` à lancer, que le web ouvre.
 
 ### Serveur MCP (`McpFeed`)
