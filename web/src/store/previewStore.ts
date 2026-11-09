@@ -14,7 +14,6 @@ interface PreviewState {
   preview: FilePreview | null
   anchor: string | null
   anchorRequest: number
-  expanded: boolean
   deferred: Record<string, string>
   edit: PreviewEdit | null
   pendingAction: (() => void) | null
@@ -22,7 +21,6 @@ interface PreviewState {
   receive: (preview: FilePreview, anchor: string | null, reload: boolean) => void
   jumpTo: (anchor: string) => void
   close: () => void
-  toggleExpanded: () => void
   defer: (tabId: string, path: string) => void
   takeDeferred: (tabId: string) => string | null
   startEdit: () => void
@@ -61,7 +59,6 @@ export const usePreviewStore = create<PreviewState>((set, get) => ({
   preview: null,
   anchor: null,
   anchorRequest: 0,
-  expanded: false,
   deferred: {},
   edit: null,
   pendingAction: null,
@@ -76,7 +73,6 @@ export const usePreviewStore = create<PreviewState>((set, get) => ({
   },
   jumpTo: (anchor) => set((state) => ({ anchor, anchorRequest: state.anchorRequest + 1 })),
   close: () => set({ path: null, preview: null, anchor: null, edit: null, pendingAction: null }),
-  toggleExpanded: () => set((state) => ({ expanded: !state.expanded })),
   defer: (tabId, path) => set((state) => ({ deferred: { ...state.deferred, [tabId]: path } })),
   takeDeferred: (tabId) => {
     const { [tabId]: path, ...rest } = get().deferred
