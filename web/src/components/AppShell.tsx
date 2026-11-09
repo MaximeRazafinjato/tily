@@ -24,6 +24,7 @@ import { mergeRequestFormOpen } from '../store/mergeRequestFormStore'
 import { worktreeModalOpen } from '../store/worktreeStore'
 import { filePickerOpen } from '../store/filePickerStore'
 import { commitPickerOpen } from '../store/commitPickerStore'
+import { tabMergePickerOpen } from '../store/tabMergePickerStore'
 import { globalSearchOpen } from '../store/terminalSearchStore'
 import { changePaneShell, dismissPaneState, restartPane, restartPaneIn } from '../terminal/paneLifecycle'
 import { closeOtherTabsKeepingText, closePaneKeepingText, closeTabKeepingText, closeWorkspaceKeepingText, duplicateTabKeepingLayout, restoreClosedTab } from '../terminal/tabLifecycle'
@@ -50,6 +51,8 @@ import { HeaderWorkspaces } from './HeaderWorkspaces'
 import { ProjectPickers } from './ProjectPickers'
 import { FilePicker } from './FilePicker'
 import { CommitPicker } from './CommitPicker'
+import { PaneDropIndicator } from './PaneDropIndicator'
+import { TabMergePicker } from './TabMergePicker'
 import { TerminalSearchDialog } from './TerminalSearchDialog'
 import { RightPanel } from './RightPanel'
 import { SettingsDialog } from './SettingsDialog'
@@ -183,7 +186,7 @@ const handleCancelGit = (): void => {
 
 const confirmationOpen = (): boolean => {
   const { settingsOpen, closeConfirmation } = useUiStore.getState()
-  return settingsOpen || closeConfirmation !== null || useExplorerStore.getState().deleteRequest !== null || useGitStore.getState().confirmation !== null || usePasteStore.getState().request !== null || useMcpConsentStore.getState().queue.length > 0 || worktreeModalOpen() || mergeRequestFormOpen() || filePickerOpen() || commitPickerOpen() || globalSearchOpen() || usePreviewStore.getState().pendingAction !== null || useAppearanceStore.getState().colorTarget !== null
+  return settingsOpen || closeConfirmation !== null || useExplorerStore.getState().deleteRequest !== null || useGitStore.getState().confirmation !== null || usePasteStore.getState().request !== null || useMcpConsentStore.getState().queue.length > 0 || worktreeModalOpen() || mergeRequestFormOpen() || filePickerOpen() || commitPickerOpen() || tabMergePickerOpen() || globalSearchOpen() || usePreviewStore.getState().pendingAction !== null || useAppearanceStore.getState().colorTarget !== null
 }
 
 const modalOpen = (): boolean => {
@@ -399,6 +402,7 @@ export function AppShell({ session }: AppShellProps) {
       <AttentionToasts waiting={waiting} onJoin={handleJoinPane} onDismiss={handleDismissAttention} />
       <FilePicker />
       <CommitPicker />
+      <TabMergePicker />
       <TerminalSearchDialog />
       {projectPickerOpen && <ProjectPickers />}
       {settingsOpen && <SettingsDialog snapshot={settingsSnapshot} pickedPath={pickedPath} imported={importedPreferences} onClose={handleCloseSettings} onSave={handleSaveSettings} onPick={handlePickPath} onExport={handleExportPreferences} onImport={handleImportPreferences} onInstallHooks={handleInstallHooks} onRemoveHooks={handleRemoveHooks} onTestNotification={handleTestNotification} />}
@@ -413,6 +417,7 @@ export function AppShell({ session }: AppShellProps) {
       <ColorDialog />
       {unsavedPreview && <UnsavedPreviewDialog />}
       <McpConsentDialog />
+      <PaneDropIndicator />
       <Tooltip />
       <StatusBar />
     </div>
