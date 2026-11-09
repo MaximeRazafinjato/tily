@@ -49,7 +49,7 @@ export function GitDiffDrawer() {
   const handleCopyDiff = () => copyDiff(diff)
 
   return (
-    <aside aria-label="Diff du fichier" data-git-drawer="" className="absolute inset-y-0 right-0 z-20 flex w-[min(920px,100%)] flex-col border-l border-tily-line bg-tily-panel shadow-2xl" onKeyDown={handleKeyDown}>
+    <aside aria-label="Diff du fichier" data-git-drawer="" className="absolute inset-y-0 right-0 z-20 flex w-full flex-col border-l border-tily-line bg-tily-panel shadow-2xl" onKeyDown={handleKeyDown}>
       <header className="flex h-[36px] shrink-0 items-center gap-[8px] border-b border-tily-line pr-[6px] pl-[12px]">
         <span className="shrink-0 rounded bg-tily-paper px-[6px] py-[1px] text-[11px] text-tily-muted">{context}</span>
         <span className="min-w-0 flex-1 truncate text-[12px] font-semibold text-tily-ink" data-tip={file.oldPath ? `${file.oldPath} → ${file.path}` : file.path}>

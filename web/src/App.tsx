@@ -10,6 +10,7 @@ import { dispatchReply } from './bridge/requestListeners'
 import { AppShell } from './components/AppShell'
 import { receiveMcpRequest } from './mcp/mcpRequests'
 import { allPanes, restoredSessionLabel } from './model/session'
+import { forgetMissingNoteHistories } from './notes/noteHistory'
 import { useAgentStore } from './store/agentStore'
 import { StatusLevel, useHostStore } from './store/hostStore'
 import { usePaneStore } from './store/paneStore'
@@ -239,6 +240,7 @@ export default function App() {
       const livePaneIds = new Set(allPanes(state.session).map((pane) => pane.id))
       const removed = terminalRegistry.disposeMissing(livePaneIds)
       disposeMissingBrowsers(livePaneIds)
+      forgetMissingNoteHistories(new Set(state.session.workspaces.map((workspace) => workspace.id)))
       clearSeenCommandNotices()
       clearTimeout(timer)
       timer = setTimeout(() => {
