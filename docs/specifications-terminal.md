@@ -67,7 +67,7 @@ Dans le panneau des workspaces, le nom du workspace actif ressort en clair et ce
 
 Toutes les couleurs de l’interface, hors états d’agents, diff, voies du graphe Git et coloration syntaxique, découlent d’une seule couleur d’accent : l’hôte en garde la teinte et la saturation, borne sa luminosité et sa saturation pour rester lisible, puis calcule à luminosité fixe les fonds, bordures, textes, barres de défilement, le fond, le texte, le curseur et la sélection des terminaux, et la barre de titre Windows, toujours très sombre. Cette couleur est celle de Tily, réglée dans la section « Apparence » des Paramètres, sinon la couleur par défaut du canal.
 
-Un workspace, un projet ou un onglet peut porter une couleur qui ne change pas le thème : elle surligne son nom d’un fond pâle de cette couleur. Le nom d’un workspace est surligné dans le panneau des workspaces et dans la bande de l’en-tête, de la couleur du workspace, sinon de celle du projet de son pane actif (dossier de premier niveau du dossier des projets ; un worktree compte pour le projet de son dépôt principal ; hors du dossier des projets, la racine du dépôt). Le nom d’un onglet est surligné, dans l’arborescence et la barre d’onglets, de sa propre couleur seulement : un onglet n’hérite jamais de son workspace.
+Un workspace, un projet ou un onglet peut porter une couleur qui ne change pas le thème : elle surligne son nom d’un fond pâle de cette couleur. Le nom d’un workspace est surligné dans le panneau des workspaces et dans la bande de l’en-tête, de la couleur du workspace, sinon de celle du projet de son pane actif (dossier de premier niveau du dossier des projets ou d’un autre dossier des projets, le plus profond s’ils s’imbriquent ; un worktree compte pour le projet de son dépôt principal ; hors de ces dossiers, la racine du dépôt). Le nom d’un onglet est surligné, dans l’arborescence et la barre d’onglets, de sa propre couleur seulement : un onglet n’hérite jamais de son workspace.
 
 « Couleur… » dans le menu contextuel d’un workspace ou d’un onglet, ou « Couleur du workspace ou du projet… » et « Couleur de l’onglet… » dans la palette, ouvrent une petite fenêtre : pour un workspace, choix de la portée (ce workspace, ou son projet dans tous ses workspaces) ; neuf couleurs prédéfinies (Sauge, Bleu, Lagon, Mousse, Ambre, Terracotta, Rose, Lavande, Ardoise), une couleur libre et « Aucune » (ou la couleur du projet dont le workspace hérite) ; le choix s’applique aussitôt. Les couleurs des workspaces et des onglets sont enregistrées avec la session, celles des projets dans `appearance.json`.
 
@@ -362,6 +362,10 @@ Ce sélecteur recherche des dossiers, pas du texte dans les fichiers. L’interf
 
 Le sélecteur liste les dossiers de premier niveau du dossier des projets, hors `worktrees` et dossiers cachés. Il ne recherche que des dossiers et ne détecte pas les workspaces déjà ouverts : chaque sélection peut créer un nouveau workspace. Le nom initial est celui du dossier sélectionné.
 
+Pour des projets rangés ailleurs, le réglage « Autres dossiers » des Paramètres (vide par défaut) ajoute d’autres dossiers des projets : leurs dossiers de premier niveau, hors `worktrees` et dossiers cachés, suivent ceux du dossier des projets, chacun avec son chemin. Un dossier des projets introuvable est signalé au pied du sélecteur sans masquer les projets des autres, et dans Paramètres.
+
+« Parcourir… », toujours en dernier quelle que soit la recherche, ouvre le sélecteur de dossier de Windows : le dossier choisi s’ouvre comme un projet de la liste, nommé d’après lui, choix du dépôt compris (section 10).
+
 Les dossiers de premier niveau de `worktrees` sont listés à part, après les projets, avec la mention « worktree » ; en choisir un ouvre un workspace comme pour un projet. Quand un autre dossier des worktrees est réglé (section 10), c’est lui qui est listé, et il est retiré de la liste des projets s’il se trouve dans le dossier des projets ; il en va de même des dossiers des worktrees mémorisés par projet (section 10).
 
 Maj + Entrée, ou Maj + clic, sur un projet ou un worktree du sélecteur l’ouvre dans un nouvel onglet du workspace actif au lieu d’un nouveau workspace (sans workspace ouvert, il en ouvre un comme Entrée) ; l’icône ⓘ de son champ de recherche rappelle les deux gestes. Le sélecteur « Ouvrir un worktree » (palette) accepte le même geste ; un worktree déjà ouvert dans un terminal est rejoint dans les deux cas.
@@ -562,7 +566,7 @@ Séparer trois ensembles :
 
 | Ensemble | Contenu |
 | --- | --- |
-| Préférences versionnables | Shells, chemins exécutables, paramètres, raccourcis, police, éditeur, dossier Projets et préférences visuelles. |
+| Préférences versionnables | Shells, chemins exécutables, paramètres, raccourcis, police, éditeur, dossiers des projets et préférences visuelles. |
 | État de session local | Workspaces, onglets, chemins courants, sélection et disposition. |
 | Historique local | Texte terminal et éventuelles données nécessaires à la réouverture d’un onglet. |
 
@@ -580,7 +584,7 @@ L’écran Paramètres signale un éditeur introuvable : chemin absolu absent, o
 
 Un clic hors de l’écran Paramètres le ferme seulement s’il n’a aucune modification en cours ; sinon l’écran reste ouvert et son pied indique « Modifications non enregistrées : Enregistrer, ou Annuler pour les abandonner. ». Échap et Annuler ferment toujours sans enregistrer. Il en va de même pour le formulaire « Créer un worktree » : une fois un nom de nouvelle branche saisi, seuls Échap et Annuler le ferment.
 
-Le dossier des worktrees et la base par défaut font partie des préférences exportées, sous une clé `worktrees` facultative : un fichier de version 1 qui ne la contient pas reste importable, avec les valeurs par défaut.
+Le dossier des worktrees et la base par défaut font partie des préférences exportées, sous une clé `worktrees` facultative : un fichier de version 1 qui ne la contient pas reste importable, avec les valeurs par défaut. Il en va de même des autres dossiers des projets, sous la clé `additionalProjectsRoots` : sans elle, aucun autre dossier.
 
 ### Mises à jour de l’application
 

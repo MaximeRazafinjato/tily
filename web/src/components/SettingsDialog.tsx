@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState, type KeyboardEvent, type MouseEvent, 
 import { AttentionKind, PickTarget, type AppearanceSettings, type ImportedPreferences, type NotificationSettings, type PersistenceSettings, type PickedPath, type Settings, type SettingsSnapshot, type ShortcutSettings } from '../bridge/messages'
 import type { WorktreeProjectFolder, WorktreeSettings } from '../bridge/worktreeMessages'
 import { revealInExplorer } from '../explorer/fileExplorerActions'
+import { sameFolder } from '../worktree/worktreePaths'
 import { useHostStore } from '../store/hostStore'
 import { useUiStore } from '../store/uiStore'
 import { AppearanceSettingsSection } from './AppearanceSettingsSection'
@@ -41,6 +42,7 @@ interface FocusRequest {
 const SHELL_FIELD_PREFIX = 'shell:'
 const EDITOR_FIELD = 'editor'
 const PROJECTS_ROOT_FIELD = 'projectsRoot'
+const ADDITIONAL_PROJECTS_ROOT_FIELD = 'additionalProjectsRoot'
 const WORKTREE_FOLDER_FIELD = 'worktreeFolder'
 const SOUND_FIELD = 'notificationSound'
 const DONE_SOUND_FIELD = 'notificationDoneSound'
@@ -153,6 +155,8 @@ export function SettingsDialog({ snapshot, pickedPath, imported, onClose, onSave
         updateDraft({ editor: pickedPath.path })
       } else if (pickedPath.field === PROJECTS_ROOT_FIELD) {
         updateDraft({ projectsRoot: pickedPath.path })
+      } else if (pickedPath.field === ADDITIONAL_PROJECTS_ROOT_FIELD) {
+        updateDraft({ additionalProjectsRoots: [...draft.additionalProjectsRoots.filter((root) => !sameFolder(root, pickedPath.path)), pickedPath.path] })
       } else if (pickedPath.field === WORKTREE_FOLDER_FIELD) {
         updateWorktrees({ folder: pickedPath.path })
       } else if (pickedPath.field === SOUND_FIELD) {
@@ -167,12 +171,14 @@ export function SettingsDialog({ snapshot, pickedPath, imported, onClose, onSave
   const handlePickShell = (id: string) => onPick(`${SHELL_FIELD_PREFIX}${id}`, PickTarget.File)
   const handlePickEditor = () => onPick(EDITOR_FIELD, PickTarget.File)
   const handlePickProjectsRoot = () => onPick(PROJECTS_ROOT_FIELD, PickTarget.Folder)
+  const handlePickAdditionalProjectsRoot = () => onPick(ADDITIONAL_PROJECTS_ROOT_FIELD, PickTarget.Folder)
   const handlePickWorktreeFolder = () => onPick(WORKTREE_FOLDER_FIELD, PickTarget.Folder)
   const handlePickSound = () => onPick(SOUND_FIELD, PickTarget.Sound)
   const handlePickDoneSound = () => onPick(DONE_SOUND_FIELD, PickTarget.Sound)
   const handleShellsChange = (shells: Record<string, string>) => updateDraft({ shells })
   const handleEditorChange = (editor: string) => updateDraft({ editor })
   const handleProjectsRootChange = (projectsRoot: string) => updateDraft({ projectsRoot })
+  const handleAdditionalProjectsRootsChange = (additionalProjectsRoots: string[]) => updateDraft({ additionalProjectsRoots })
   const handleWorktreeFoldersChange = (worktreeFolders: WorktreeProjectFolder[]) => updateDraft({ worktreeFolders })
   const handleAutoFetchChange = (autoFetch: boolean) => updateDraft({ git: { autoFetch } })
   const handleNumberChange = (field: NumberField, text: string) => {
@@ -215,14 +221,17 @@ export function SettingsDialog({ snapshot, pickedPath, imported, onClose, onSave
           <ProjectSettingsSection
             title={title}
             projectsRoot={settings.projectsRoot}
+            additionalProjectsRoots={settings.additionalProjectsRoots}
             worktrees={settings.worktrees}
             worktreeFolders={settings.worktreeFolders}
             autoFetch={settings.git.autoFetch}
             onProjectsRootChange={handleProjectsRootChange}
+            onAdditionalProjectsRootsChange={handleAdditionalProjectsRootsChange}
             onWorktreesChange={updateWorktrees}
             onWorktreeFoldersChange={handleWorktreeFoldersChange}
             onAutoFetchChange={handleAutoFetchChange}
             onPickProjectsRoot={handlePickProjectsRoot}
+            onPickAdditionalProjectsRoot={handlePickAdditionalProjectsRoot}
             onPickWorktreeFolder={handlePickWorktreeFolder}
           />
         )

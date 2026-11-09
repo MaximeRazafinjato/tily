@@ -46,9 +46,20 @@ public sealed class AccentResolverTests : IDisposable
     {
         var nested = Directory.CreateDirectory(Path.Combine(Projects, "tily", "web", "src")).FullName;
 
-        var project = AccentResolver.ProjectOf(nested, Projects, Worktrees);
+        var project = AccentResolver.ProjectOf(nested, [Projects], Worktrees);
 
         Assert.Equal(Path.Combine(Projects, "tily"), project);
+    }
+
+    [Fact]
+    public void ProjectOf_WhenSubfolderOfAdditionalRoot_ThenFirstLevelFolderOfThatRoot()
+    {
+        var clients = Path.Combine(_root, "Clients à part");
+        var nested = Directory.CreateDirectory(Path.Combine(clients, "client", "web")).FullName;
+
+        var project = AccentResolver.ProjectOf(nested, [Projects, clients], Worktrees);
+
+        Assert.Equal(Path.Combine(clients, "client"), project);
     }
 
     [Fact]
@@ -59,7 +70,7 @@ public sealed class AccentResolverTests : IDisposable
         var worktree = Directory.CreateDirectory(Path.Combine(Worktrees, "tily-feature")).FullName;
         File.WriteAllText(Path.Combine(worktree, ".git"), $"gitdir: {gitDirectory}\n");
 
-        var project = AccentResolver.ProjectOf(worktree, Projects, Worktrees);
+        var project = AccentResolver.ProjectOf(worktree, [Projects], Worktrees);
 
         Assert.Equal(Path.Combine(Projects, "tily"), project);
     }
@@ -69,7 +80,7 @@ public sealed class AccentResolverTests : IDisposable
     {
         var folder = Directory.CreateDirectory(Path.Combine(_root, "ailleurs")).FullName;
 
-        var project = AccentResolver.ProjectOf(folder, Projects, Worktrees);
+        var project = AccentResolver.ProjectOf(folder, [Projects], Worktrees);
 
         Assert.Null(project);
     }
@@ -81,7 +92,7 @@ public sealed class AccentResolverTests : IDisposable
         Directory.CreateDirectory(Path.Combine(repository, ".git"));
         var nested = Directory.CreateDirectory(Path.Combine(repository, "src")).FullName;
 
-        var project = AccentResolver.ProjectOf(nested, Projects, Worktrees);
+        var project = AccentResolver.ProjectOf(nested, [Projects], Worktrees);
 
         Assert.Equal(repository, project);
     }
