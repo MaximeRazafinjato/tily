@@ -42,7 +42,8 @@ public sealed class ShortcutRulesTests
     }
 
     [Theory]
-    [InlineData("Ctrl+C", "Ctrl+C est réservé au shell : Ctrl+lettre seule reste au terminal.")]
+    [InlineData("Ctrl+C", "Ctrl+C est réservé : il interrompt le programme du terminal ou copie la sélection.")]
+    [InlineData("Ctrl+V", "Ctrl+V est réservé : il colle dans le terminal.")]
     [InlineData("Ctrl+Shift+V", "Ctrl+Maj+V est réservé : il colle dans le terminal.")]
     [InlineData("Alt+F4", "Alt+F4 est réservé : il ferme Tily.")]
     [InlineData("Shift+D", "Maj+D n’est pas utilisable : un raccourci direct passe par Ctrl ou Alt, sauf touche de fonction (F1 à F24) ou Maj+touche non imprimable.")]
@@ -56,6 +57,7 @@ public sealed class ShortcutRulesTests
 
     [Theory]
     [InlineData("Ctrl+P")]
+    [InlineData("Ctrl+T")]
     [InlineData("Ctrl+Alt+K")]
     [InlineData("F5")]
     [InlineData("Shift+F2")]
@@ -65,6 +67,19 @@ public sealed class ShortcutRulesTests
         var problem = ShortcutRules.DirectProblem(chord);
 
         Assert.Null(problem);
+    }
+
+    [Theory]
+    [InlineData("Ctrl+C", "Ctrl+C ne peut pas servir de touche Leader : il interrompt le programme du terminal ou copie la sélection.")]
+    [InlineData("Ctrl+V", "Ctrl+V ne peut pas servir de touche Leader : il colle dans le terminal.")]
+    [InlineData("Alt+F4", "Alt+F4 ne peut pas servir de touche Leader : il ferme Tily.")]
+    public void Check_WhenLeaderReserved_ThenExplainsWhy(string leader, string expected)
+    {
+        var provided = new ShortcutSettingsModel { Leader = leader };
+
+        var result = ShortcutRules.Check(provided);
+
+        Assert.Equal(expected, result.Error);
     }
 
     [Fact]
@@ -110,7 +125,7 @@ public sealed class ShortcutRulesTests
     [Fact]
     public void Resolve_WhenOverridesInvalid_ThenFallsBackToDefaultsAndClampsTimeout()
     {
-        var provided = new ShortcutSettingsModel { Leader = "Alt+F4", LeaderTimeoutSeconds = 500, Bindings = new() { ["newTab"] = new ShortcutBindingModel("Ctrl+T", "1"), ["inconnu"] = new ShortcutBindingModel("Ctrl+Shift+K") } };
+        var provided = new ShortcutSettingsModel { Leader = "Alt+F4", LeaderTimeoutSeconds = 500, Bindings = new() { ["newTab"] = new ShortcutBindingModel("Ctrl+C", "1"), ["inconnu"] = new ShortcutBindingModel("Ctrl+Shift+K") } };
 
         var settings = ShortcutRules.Resolve(provided);
 
