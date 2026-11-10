@@ -1,16 +1,19 @@
 import type { ShortcutBinding } from '../bridge/messages'
 import type { CommandEntry } from '../keyboard/commandCatalog'
 import { chordOf, leaderKeyOf } from '../keyboard/keyChords'
+import type { ShortcutFeedback } from '../keyboard/shortcutDraft'
 import { ShortcutField } from '../store/shortcutStore'
 import { Icon } from './Icon'
 import { IconName } from './iconName'
 import { ShortcutCapture } from './ShortcutCapture'
+import { ShortcutNotice } from './ShortcutNotice'
 import { SETTINGS_LABEL } from './settingsStyles'
 
 interface ShortcutRowProps {
   entry: CommandEntry
   binding: ShortcutBinding
   isDefault: boolean
+  feedback: ShortcutFeedback | null
   onAssign: (entry: CommandEntry, field: ShortcutField, chord: string) => void
   onReset: (entry: CommandEntry) => void
 }
@@ -19,7 +22,7 @@ const RESET = 'flex size-5 shrink-0 cursor-pointer items-center justify-center s
 
 const readLeaderKey = (event: KeyboardEvent): string | null => (event.ctrlKey || event.altKey ? chordOf(event) : leaderKeyOf(event))
 
-export function ShortcutRow({ entry, binding, isDefault, onAssign, onReset }: ShortcutRowProps) {
+export function ShortcutRow({ entry, binding, isDefault, feedback, onAssign, onReset }: ShortcutRowProps) {
   const handleDirect = (chord: string) => onAssign(entry, ShortcutField.Direct, chord)
   const handleLeader = (chord: string) => onAssign(entry, ShortcutField.Leader, chord)
   const handleClearDirect = () => onAssign(entry, ShortcutField.Direct, '')
@@ -40,6 +43,7 @@ export function ShortcutRow({ entry, binding, isDefault, onAssign, onReset }: Sh
           <Icon name={IconName.Undo} />
         </button>
       )}
+      {feedback && <ShortcutNotice feedback={feedback} className="col-span-4" />}
     </li>
   )
 }

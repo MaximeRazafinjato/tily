@@ -6,11 +6,12 @@ public static class ShortcutRules
     public const int MaxLeaderTimeoutSeconds = 60;
     public const string CloseWindow = "Alt+F4";
     private const string LeaderOwner = "";
-    private const string PaletteLetter = "P";
     private const string CancelLeaderKey = "Escape";
 
     private static readonly Dictionary<string, string> ReservedDirect = new()
     {
+        ["Ctrl+C"] = "interrompt le programme du terminal ou copie la sélection",
+        ["Ctrl+V"] = "colle dans le terminal",
         ["Ctrl+Shift+C"] = "copie la sélection du terminal",
         ["Ctrl+Shift+V"] = "colle dans le terminal",
         [CloseWindow] = "ferme Tily",
@@ -18,7 +19,7 @@ public static class ShortcutRules
         ["Shift+Enter"] = "insère un retour à la ligne dans un agent"
     };
 
-    private static readonly string[] ReservedLeader = ["Ctrl+Shift+C", "Ctrl+Shift+V", CloseWindow];
+    private static readonly string[] ReservedLeader = ["Ctrl+C", "Ctrl+V", "Ctrl+Shift+C", "Ctrl+Shift+V", CloseWindow];
 
     public static ShortcutSettingsModel Resolve(ShortcutSettingsModel? provided) => Build(provided, false).Settings;
 
@@ -36,18 +37,13 @@ public static class ShortcutRules
         var ctrl = ShortcutChord.HasModifier(chord, ShortcutChord.Ctrl);
         var alt = ShortcutChord.HasModifier(chord, ShortcutChord.Alt);
         var shift = ShortcutChord.HasModifier(chord, ShortcutChord.Shift);
-        if (ctrl && !alt && !shift && ShortcutChord.IsLetter(key) && key != PaletteLetter)
-        {
-            return $"{shown} est réservé au shell : Ctrl+lettre seule reste au terminal.";
-        }
-
         return !ctrl && !alt && !ShortcutChord.IsFunctionKey(key) && (!shift || ShortcutChord.IsPrintable(key))
             ? $"{shown} n’est pas utilisable : un raccourci direct passe par Ctrl ou Alt, sauf touche de fonction (F1 à F24) ou Maj+touche non imprimable."
             : null;
     }
 
     public static string? LeaderChordProblem(string chord) =>
-        ReservedLeader.Contains(chord) ? $"{ShortcutChord.Display(chord)} est réservé et ne peut pas servir de touche Leader." : null;
+        ReservedLeader.Contains(chord) ? $"{ShortcutChord.Display(chord)} ne peut pas servir de touche Leader : il {ReservedDirect[chord]}." : null;
 
     public static string? LeaderKeyProblem(string key)
     {

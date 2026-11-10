@@ -101,6 +101,7 @@ Raccourcis (section 8 de la spec). L'enum `Command` partage ses identifiants ave
 - Les flèches (directes ou après Leader) changent de pane d'après les rectangles DOM (`paneNavigation`).
 - `leaderKeyOf` (`keyChords.ts`) fait le même calcul que le script injecté dans les pages des panes navigateur.
 - `shortcutRules.ts` reprend les règles de l'hôte pour signaler aussitôt une combinaison réservée dans Paramètres ; l'hôte reste juge.
+- `terminalKeyUsages.ts` : usages connus d'une combinaison dans les panes (PowerShell, Claude Code, bash, fzf), pour l'avertissement de Paramètres ; information d'affichage seulement, l'hôte n'en tient pas compte.
 - `typeAhead.ts` : recherche par premières lettres, sans casse ni accents, partagée par l'arbre des fichiers et le panneau des workspaces.
 
 ### `src/palette/`
