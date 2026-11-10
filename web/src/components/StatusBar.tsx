@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 import { busyLabel } from '../git/gitBusy'
+import { useCloneStore } from '../store/cloneStore'
 import { useGitStore } from '../store/gitStore'
 import { StatusLevel, useHostStore } from '../store/hostStore'
 import { useStatusLogStore } from '../store/statusLogStore'
@@ -35,6 +36,7 @@ export function StatusBar() {
   const logShortcut = useShortcutText(Command.ToggleStatusLog)
   const { busy, busyRefs } = useGitStore(useShallow((state) => ({ busy: state.busy, busyRefs: state.busyRefs })))
   const { worktreeTasks, purge } = useWorktreeStore(useShallow((state) => ({ worktreeTasks: state.tasks.length, purge: state.purge })))
+  const cloneProgress = useCloneStore((state) => state.progress)
   const worktreeBusy = worktreeTasks > 0
   const waiting = worktreeTasks - 1
   const logOpen = useStatusLogStore((state) => state.open)
@@ -79,6 +81,12 @@ export function StatusBar() {
         {waiting > 0 && (
           <span className="shrink-0 px-3 text-tily-muted" data-tip={`${waiting} opération${waiting > 1 ? 's' : ''} de worktree en attente`}>
             {`+${waiting} en attente`}
+          </span>
+        )}
+        {cloneProgress && (
+          <span className="flex min-w-0 shrink items-center gap-[6px] px-3 text-tily-muted tabular-nums">
+            <Spinner size={10} className="shrink-0 text-tily-green" />
+            <span className="truncate">{cloneProgress}</span>
           </span>
         )}
         {purge && (

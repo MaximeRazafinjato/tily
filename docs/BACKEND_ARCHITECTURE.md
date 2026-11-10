@@ -56,7 +56,7 @@ Modèle de session (workspaces, onglets, splits, panes terminal ou navigateur, o
 
 - Les fichiers restent éditables à la main : l'écran Paramètres n'est qu'une autre façon de les écrire.
 - `Save` valide tout (shell inconnu, éditeur vide, chemins relatifs, base des worktrees, raccourcis) avant d'écrire quoi que ce soit. `SaveAppearance` n'écrit que `appearance.json`.
-- `Snapshot` rend les shells, les chemins des fichiers et des avertissements non bloquants : shell, éditeur (`CommandLocator` : chemin, `PATH` avec `PATHEXT`, App Paths), son `.wav`, dossier des projets ou des worktrees introuvables.
+- `Snapshot` rend les shells, les chemins des fichiers et des avertissements non bloquants : shell, éditeur (`CommandLocator` : chemin, `PATH` avec `PATHEXT`, App Paths), son `.wav`, dossiers des projets ou des worktrees introuvables.
 - Import : version 1 ; `shells`, `editor`, `persistence` et `projectsRoot` obligatoires, autres clés (`shortcuts` comprise) facultatives. `Import` valide sans rien écrire et signale chaque valeur de persistance ramenée dans sa plage. L'export ne contient jamais la session, le texte ni les dossiers par projet.
 
 ### Appearance/
@@ -64,7 +64,7 @@ Modèle de session (workspaces, onglets, splits, panes terminal ou navigateur, o
 Couleurs de l'interface (spec, §3, « Couleurs »).
 
 - `AccentTheme` calcule en OKLCH, à partir d'une seule couleur d'accent, les tokens `tily-*` teintés (luminosité fixe, saturation proportionnelle à celle de l'accent), le thème xterm.js et les couleurs de la barre de titre ; l'accent est borné en luminosité et en saturation, une couleur hors gamut sRGB perd de la saturation sans changer de teinte. Les couleurs d'état, de diff, de voies Git et de syntaxe restent dans `index.css`.
-- `AccentResolver` construit le thème de la couleur de Tily, sinon du défaut du canal (`AccentPresets`), et donne le projet et la couleur de projet de chaque dossier (`ProjectsOf`), qui ne surligne qu'un nom. Le projet d'un dossier se lit sans lancer `git` (`GitContext.MainRepositoryRoot`) : dépôt principal d'un worktree, puis dossier de premier niveau de la racine des projets, sinon racine du dépôt hors de cette racine.
+- `AccentResolver` construit le thème de la couleur de Tily, sinon du défaut du canal (`AccentPresets`), et donne le projet et la couleur de projet de chaque dossier (`ProjectsOf`), qui ne surligne qu'un nom. Le projet d'un dossier se lit sans lancer `git` (`GitContext.MainRepositoryRoot`) : dépôt principal d'un worktree, puis dossier de premier niveau de la racine des projets qui le contient (`SettingsModel.ProjectsRoots` : racine principale et autres dossiers des projets, la plus profonde l'emporte), sinon racine du dépôt hors de ces racines.
 
 ### Context/
 
@@ -78,9 +78,9 @@ Contexte Git d'un dossier (`GitContext`, qui donne aussi le dépôt principal d'
 
 ### Projects/
 
-`ProjectCatalog` liste les projets du sélecteur (spec, §9) : premier niveau de la racine des projets, hors `worktrees` et dossiers cachés, puis les worktrees, marqués comme `[wt]` dans le sélecteur WezTerm. `ProjectsSettingsRepository` lit `projects.json`.
+`ProjectCatalog` liste les projets du sélecteur (spec, §9) : premier niveau de la racine des projets puis de chaque autre dossier des projets (`additionalRoots` de `projects.json`, vide par défaut), hors `worktrees` et dossiers cachés, puis les worktrees, marqués comme `[wt]` dans le sélecteur WezTerm. `ProjectsSettingsRepository` lit `projects.json`.
 
-- Racine inaccessible : liste vide et message, jamais d'exception vers le web.
+- Racine introuvable ou inaccessible : message, les autres racines restent listées ; jamais d'exception vers le web. `SettingsService.Save` retire des autres dossiers les vides, les doublons et la racine principale.
 - Le dossier des worktrees réglé est retiré des projets s'il est dans la racine. Un dossier mémorisé pour un projet n'apporte que ses vrais worktrees (`.git` fichier).
 
 ### Files/
@@ -130,7 +130,7 @@ MR/PR GitHub et GitLab par les CLI `gh` et `glab` (spec, §10), derrière `Forge
 
 Gestion native des worktrees, au comportement de `wtr` / `rmwt` (spec, §10) : `WorktreeCreator`, `WorktreeRemover`, réplication de base (`IDatabaseReplicator`) et corbeille (`WorktreeTrash`).
 
-- Hors du sélecteur de projets, le projet d'un dépôt est le dossier de premier niveau de la racine qui contient son dépôt principal.
+- Hors du sélecteur de projets, le projet d'un dépôt est le dossier de premier niveau de la racine des projets, principale ou autre, la plus profonde qui contient son dépôt principal.
 - `ClaudeLaunchCommand` construit la commande `claude` tapée dans Windows PowerShell 5.1 : premier message ramené à une ligne et borné, échappé pour la ligne de commande native (guillemets doubles, antislashs qui les précèdent ou terminent le message) puis entre guillemets simples, apostrophes typographiques doublées ; `--` le précède s'il commence par un tiret. Elle est calculée avant la création, pour qu'un message refusé ne laisse aucun worktree.
 - `Plan` n'écrit rien. Une nouvelle branche est créée par `worktree add --no-track -b` après un fetch de la base : sans amont, le premier push la publie sous son nom.
 - `worktree-projects.json` est protégé par un verrou statique, partagé dans le processus par toutes les instances de `WorktreeProjectsRepository`, car `WorktreeFeed` y écrit le dépôt et `SettingsService` le dossier.
@@ -138,6 +138,14 @@ Gestion native des worktrees, au comportement de `wtr` / `rmwt` (spec, §10) : `
 - Base répliquée (PostgreSQL dans Docker ou SQL Server, détectée comme `ConvertTo-DbInfo`) : mot de passe PostgreSQL passé en variable d'environnement, jamais en argument ; noms et chemins SQL Server en paramètres ; identifiants et littéraux échappés. Une base cible existante est réutilisée ; une erreur de base n'est qu'un avertissement. Garde-fou : une base identique à celle du dépôt principal, ou celle d'un dépôt principal sans base connue, n'est jamais supprimée.
 - Suppression : confirmation exigée, dépôt principal refusé. Le dossier est d'abord déplacé, instantanément, dans la corbeille cachée `.tily-corbeille` de son dossier parent, en quelques essais le temps que les panes fermés rendent leurs processus. S'il est verrouillé, rien n'est touché et l'erreur cite les processus trouvés par le Restart Manager. Suivent `worktree prune`, la base et `branch -D`.
 - La corbeille est purgée par `cmd.exe /d /c rd /s /q` : sur un poste protégé par un antivirus, une suppression faite par Tily lui-même plafonne à quelques dizaines de fichiers par seconde, contre des milliers pour `rd`. `rd` ne suit pas les jonctions ; `robocopy /MIR` les suit et efface leur cible, d'où son rejet. Un chemin contenant `%` et ce que `rd` laisse passent par `LockedFolder.DeleteAll`.
+
+### Clone/
+
+Clonage d'un dépôt (spec, §9, « Cloner un dépôt ») : `CloneAddress`, `ClonePlanner`, `RepositoryCloner`, `CloneProgress`.
+
+- `CloneAddress` n'admet que `https`, `http`, `ssh`, `git`, `file` et la forme `utilisateur@hôte:chemin` ; une adresse avec des blancs, qui commence par `-` ou contient `::` (assistant de transport comme `ext::`) est refusée, et `--` la sépare des options. `Suggestion` ne reprend du presse-papiers qu'une adresse de dépôt, jamais une autre page d'un hébergeur.
+- `ClonePlanner.Plan` n'écrit rien : dossier parent (celui de la demande, sinon le dossier des projets), nom (celui de la demande, sinon déduit de l'adresse), refus d'un chemin relatif, d'un nom invalide (`RequireValidName`) ou d'un dossier existant. Le clonage replanifie avant de lancer Git.
+- `git clone --progress` tourne en `LC_ALL=C` depuis l'ancêtre existant le plus proche du dossier parent, avec un délai de garde de deux heures ; `GitRunner` lit alors l'erreur standard au fil de l'eau (`GitProgressReader`), rapporte chaque ligne réécrite par `\r` et ne garde que les lignes finales pour la sortie d'un échec. `CloneProgress` traduit les étapes chiffrées et n'émet qu'un changement.
 
 ### Agents/
 
@@ -242,6 +250,12 @@ Mises à jour par les releases GitHub (spec, §13).
 - Création et suppression passent une à une ; la purge de la corbeille a sa propre file, après `worktrees.done`, sans retenir les opérations suivantes.
 - `worktrees.done` ou `worktrees.failed` termine toujours une opération, exception imprévue comprise. Le numéro `request` est renvoyé dans chaque message, pour que le serveur MCP suive ses opérations.
 
+### Clonage (`CloneFeed`)
+
+- Plans et suggestions dans une file, clonages un à un dans une autre ; `clone.done` ou `clone.failed` termine toujours un clonage, exception imprévue comprise, avec le numéro `request` de la demande.
+- Les dossiers parents proposés (`roots`) sont le dossier des projets puis ses autres dossiers (`ProjectsRoots()`) ; le premier est le dossier par défaut.
+- L'hôte ne crée aucun workspace : `clone.done` donne le dossier, le nom et les commandes `claude` et `pnpm install` à lancer, que le web ouvre.
+
 ### Serveur MCP (`McpFeed`)
 
 - Le pipe n'est ouvert que si le serveur est déclaré ; au démarrage, la déclaration est recalée sur cette copie si l'exécutable déclaré a disparu.
@@ -282,7 +296,7 @@ Mises à jour par les releases GitHub (spec, §13).
 
 ## Contrat du pont
 
-Les types TypeScript sont dans `web/src/bridge/` : `messages.ts` (application, session, réglages, terminaux, agents, projets, explorateur), `appearanceMessages.ts`, `gitMessages.ts`, `forgeMessages.ts`, `worktreeMessages.ts`, `previewMessages.ts`, `mcpMessages.ts`, `browserMessages.ts`, `updateMessages.ts`, `statusLogMessages.ts`. Les champs se lisent là et dans les modèles C#. Toute évolution se fait des deux côtés dans le même commit.
+Les types TypeScript sont dans `web/src/bridge/` : `messages.ts` (application, session, réglages, terminaux, agents, projets, explorateur), `appearanceMessages.ts`, `gitMessages.ts`, `forgeMessages.ts`, `worktreeMessages.ts`, `cloneMessages.ts`, `previewMessages.ts`, `mcpMessages.ts`, `browserMessages.ts`, `updateMessages.ts`, `statusLogMessages.ts`. Les champs se lisent là et dans les modèles C#. Toute évolution se fait des deux côtés dans le même commit.
 
 ### Web → hôte
 
@@ -301,6 +315,7 @@ Les types TypeScript sont dans `web/src/bridge/` : `messages.ts` (application, s
 - Git, références et stash : `git.switch`, `git.branchCreate`, `git.branchRename`, `git.branchDelete`, `git.remoteBranchDelete`, `git.refsDelete` (suppression groupée), `git.tagCreate`, `git.tagDelete`, `git.tagPush`, `git.stash`, `git.stashApply`, `git.stashDrop`.
 - MR/PR : `forge.list` (MR/PR du dépôt), `forge.branch` (pastille d'une branche), `forge.form` (formulaire de création ou de modification), `forge.compare` (couple source / cible), `forge.create` (création, push facultatif), `forge.update` (modification ou fermeture).
 - Worktrees : `worktrees.sources` (dépôts proposés), `worktrees.plan` (plan sans écriture), `worktrees.list` (worktrees du dépôt d'un dossier), `worktrees.create`, `worktrees.remove`.
+- Clonage : `clone.suggest` (texte du presse-papiers à reconnaître), `clone.plan` (plan sans écriture), `clone.start` (clonage).
 - MCP : `mcp.response` (réponse à un `mcp.request`).
 - Mises à jour : `update.check` (vérification), `update.install` (téléchargement), `update.cancel` (annule le téléchargement), `update.apply` (installation et redémarrage).
 - Journal de la barre de statut : `statusLog.append` (ajoute un message), `statusLog.clear` (vide le journal).
@@ -318,6 +333,7 @@ Les types TypeScript sont dans `web/src/bridge/` : `messages.ts` (application, s
 - Git : `git.state` (état du dépôt suivi), `git.changed` (état inchangé, diff à recharger), `git.history`, `git.diff`, `git.details` (réponses aux lectures), `git.done`, `git.failed`, `git.pushRejected` (fin d'une opération), `git.autoFetchStarted`, `git.autoFetchEnded` (fetch automatique en cours).
 - MR/PR : `forge.listed`, `forge.branchListed`, `forge.formLoaded`, `forge.compared`, `forge.created`, `forge.updated`, réponses aux messages `forge.*`.
 - Worktrees : `worktrees.sourcesFound`, `worktrees.planned`, `worktrees.listed` (réponses aux lectures), `worktrees.progress` (étape en cours), `worktrees.created` (dossier prêt, le web ouvre le workspace), `worktrees.done`, `worktrees.failed` (fin d'une opération), `worktrees.purging`, `worktrees.purged` (effacement en arrière-plan).
+- Clonage : `clone.suggested` (adresse reconnue, ou rien), `clone.planned` (plan et dossiers parents proposés), `clone.progress` (étape en cours), `clone.done` (dépôt cloné, le web l'ouvre), `clone.failed`.
 - Mises à jour : `update.state` (état des mises à jour), `update.restart` (installeur prêt, le web ferme l'application).
 - Journal de la barre de statut : `statusLog.added`, `statusLog.cleared` (journal modifié).
 - Navigateur : `browser.state` (état d'un pane navigateur), `browser.newPane` (lien à ouvrir dans un nouveau pane), `browser.focused` (la page a pris le focus), `browser.key` (raccourci de Tily tapé dans la page), `browser.failed` (vue impossible à créer), `browser.reply` (réponse à une commande numérotée).

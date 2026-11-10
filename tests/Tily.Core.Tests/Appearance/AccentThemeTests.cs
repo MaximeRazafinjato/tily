@@ -11,18 +11,18 @@ public sealed class AccentThemeTests
     {
         { AccentPresets.Sage, "paper", "#17191b" },
         { AccentPresets.Sage, "panel", "#1e2123" },
-        { AccentPresets.Sage, "line", "#2c3033" },
+        { AccentPresets.Sage, "line", "#363b38" },
         { AccentPresets.Sage, "ink", "#d8dbd7" },
-        { AccentPresets.Sage, "muted", "#848b87" },
+        { AccentPresets.Sage, "muted", "#99a09c" },
         { AccentPresets.Sage, "green-deep", "#a9c4b4" },
-        { AccentPresets.Sage, "green-soft", "#262d2a" },
+        { AccentPresets.Sage, "green-soft", "#303934" },
         { AccentPresets.Sage, "focus", "#8fb39f" },
         { AccentPresets.Sage, "terminal", "#121416" },
         { AccentPresets.Blue, "paper", "#14181e" },
         { AccentPresets.Blue, "panel", "#1b1f26" },
         { AccentPresets.Blue, "ink", "#d4d8de" },
         { AccentPresets.Blue, "green-deep", "#a6c4ec" },
-        { AccentPresets.Blue, "green-soft", "#222a37" },
+        { AccentPresets.Blue, "green-soft", "#2c3748" },
         { AccentPresets.Blue, "focus", "#88ade0" },
         { AccentPresets.Blue, "terminal", "#101318" }
     };

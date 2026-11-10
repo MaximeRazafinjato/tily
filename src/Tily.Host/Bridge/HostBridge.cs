@@ -48,6 +48,7 @@ public sealed class HostBridge : IDisposable
     private readonly GitFeed _git;
     private readonly ForgeFeed _forge;
     private readonly WorktreeFeed _worktrees;
+    private readonly CloneFeed _clones;
     private readonly UpdateFeed _updates;
     private readonly StatusLogFeed _statusLog;
     private readonly McpFeed _mcp;
@@ -89,6 +90,7 @@ public sealed class HostBridge : IDisposable
         _git = new GitFeed(Post, () => _settings.Git.AutoFetch, PostBackgroundError);
         _forge = new ForgeFeed(Post, () => _settings.Worktrees.DefaultBase, _git.RefreshSoon, PostBackgroundError);
         _worktrees = new WorktreeFeed(Post, () => _settings, RememberWorktreeFolder, _git.RefreshSoon, PostBackgroundError, dataDirectory);
+        _clones = new CloneFeed(Post, () => _settings, PostBackgroundError);
         _updates = new UpdateFeed(Post, ApplicationVersion, dataDirectory);
         _mcp = new McpFeed(dataDirectory, Post, PostBackgroundError);
         _browsers = new BrowserFeed(browserLayer, () => _core?.Environment, Post, focusInterface, () => ShortcutRules.InterceptedChords(_settings.Shortcuts));
@@ -322,7 +324,7 @@ public sealed class HostBridge : IDisposable
                 Post(new { type = "terminal.activityResult", request = command.Request, panes = _terminals.Activity(command.Panes ?? []) });
                 break;
             case "projects.list":
-                ListProjects(_settings.ProjectsRoot, _settings.Worktrees.FolderFor(_settings.ProjectsRoot), _settings.WorktreeFolders);
+                ListProjects(_settings.ProjectsRoot, _settings.Worktrees.FolderFor(_settings.ProjectsRoot), _settings.WorktreeFolders, _settings.AdditionalProjectsRoots);
                 break;
             case "context.query":
                 QueryContext(RequirePane(command), RequirePath(command));
@@ -346,6 +348,9 @@ public sealed class HostBridge : IDisposable
             case "projects.rememberRepository":
             case var type when type.StartsWith("worktrees.", StringComparison.Ordinal):
                 _worktrees.Handle(command);
+                break;
+            case var type when type.StartsWith("clone.", StringComparison.Ordinal):
+                _clones.Handle(command);
                 break;
             case var type when type.StartsWith("update.", StringComparison.Ordinal):
                 _updates.Handle(command);
@@ -512,11 +517,11 @@ public sealed class HostBridge : IDisposable
         });
     }
 
-    private void ListProjects(string root, string worktreeFolder, IReadOnlyList<WorktreeProjectFolderModel> projectFolders) =>
+    private void ListProjects(string root, string worktreeFolder, IReadOnlyList<WorktreeProjectFolderModel> projectFolders, IReadOnlyList<string> additionalRoots) =>
         _queries.Enqueue(() =>
         {
-            var projects = ProjectCatalog.List(root, worktreeFolder, projectFolders);
-            Post(new { type = "projects.listed", root = projects.Root, projects = projects.Projects, error = projects.Error });
+            var projects = ProjectCatalog.List(root, worktreeFolder, projectFolders, additionalRoots);
+            Post(new { type = "projects.listed", root = projects.Root, projects = projects.Projects, error = projects.Error, additionalRoots = projects.AdditionalRoots });
         });
 
     private void RememberWorktreeFolder(string project, string folder) =>

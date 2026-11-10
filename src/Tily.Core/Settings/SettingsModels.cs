@@ -15,6 +15,7 @@ public sealed class SettingsModel
     public string Editor { get; set; } = EditorSettingsModel.DefaultCommand;
     public PersistenceSettingsModel Persistence { get; set; } = PersistenceSettingsModel.Default;
     public string ProjectsRoot { get; set; } = ProjectCatalog.DefaultRoot;
+    public List<string> AdditionalProjectsRoots { get; set; } = [];
     public NotificationSettingsModel Notifications { get; set; } = NotificationSettingsModel.Default;
     public WorktreeSettingsModel Worktrees { get; set; } = WorktreeSettingsModel.Default;
     public List<WorktreeProjectFolderModel> WorktreeFolders { get; set; } = [];
@@ -22,6 +23,8 @@ public sealed class SettingsModel
     public UpdateSettingsModel Updates { get; set; } = UpdateSettingsModel.Default;
     public AppearanceSettingsModel Appearance { get; set; } = AppearanceSettingsModel.Default;
     public ShortcutSettingsModel Shortcuts { get; set; } = ShortcutSettingsModel.Default;
+
+    public IReadOnlyList<string> ProjectsRoots() => [ProjectsRoot, .. AdditionalProjectsRoots ?? []];
 
     public string? WorktreeFolderOf(string? project) =>
         project is null ? null : WorktreeFolders.FirstOrDefault(entry => WorktreeTarget.SamePath(entry.Project, project))?.Folder;

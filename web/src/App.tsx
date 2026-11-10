@@ -10,6 +10,7 @@ import { dispatchReply } from './bridge/requestListeners'
 import { AppShell } from './components/AppShell'
 import { receiveMcpRequest } from './mcp/mcpRequests'
 import { allPanes, restoredSessionLabel } from './model/session'
+import { forgetMissingNoteHistories } from './notes/noteHistory'
 import { useAgentStore } from './store/agentStore'
 import { StatusLevel, useHostStore } from './store/hostStore'
 import { usePaneStore } from './store/paneStore'
@@ -28,7 +29,9 @@ import { receivePreviewSaved, receivePreviewSaveFailed } from './preview/preview
 import { receiveGitAutoFetchEnded, receiveGitAutoFetchStarted, receiveGitChanged, receiveGitDetails, receiveGitDiff, receiveGitDone, receiveGitFailed, receiveGitHistory, receiveGitPushRejected, receiveGitState } from './git/gitReceivers'
 import { insertIntoPane, joinPane } from './terminal/terminalActions'
 import { WORKTREE_FOLDER_FIELD, WORKTREE_REPOSITORY_FIELD } from './worktree/worktreeActions'
-import { PROJECT_REPOSITORY_FIELD, receiveProjectRepositories, receiveProjectRepositoryPicked, receiveProjectRepositoryRemembered } from './project/projectOpenActions'
+import { CLONE_FOLDER_FIELD } from './clone/cloneActions'
+import { receiveCloneDone, receiveCloneFailed, receiveCloneFolderPicked, receiveClonePlan, receiveCloneProgress, receiveCloneSuggestion } from './clone/cloneReceivers'
+import { PROJECT_FOLDER_FIELD, PROJECT_REPOSITORY_FIELD, receiveProjectFolderPicked, receiveProjectRepositories, receiveProjectRepositoryPicked, receiveProjectRepositoryRemembered } from './project/projectOpenActions'
 import {
   receiveWorktreeCreated,
   receiveWorktreeDone,
@@ -113,6 +116,10 @@ export default function App() {
           receiveWorktreeFolderPicked(message.path)
         } else if (message.field === PROJECT_REPOSITORY_FIELD) {
           receiveProjectRepositoryPicked(message.path)
+        } else if (message.field === PROJECT_FOLDER_FIELD) {
+          receiveProjectFolderPicked(message.path)
+        } else if (message.field === CLONE_FOLDER_FIELD) {
+          receiveCloneFolderPicked(message.path)
         } else {
           setPickedPath({ field: message.field, path: message.path })
         }
@@ -144,7 +151,7 @@ export default function App() {
         queryContext(message.pane)
       }),
       bridge.on('terminal.pathMissing', (message) => markPathMissing(message.pane, message.path, message.fallback)),
-      bridge.on('projects.listed', (message) => setProjects(message.root, message.projects, message.error ?? null)),
+      bridge.on('projects.listed', (message) => setProjects(message.root, message.projects, message.error ?? null, message.additionalRoots)),
       bridge.on('projects.repositoriesFound', (message) => receiveProjectRepositories(message.request, message.sources)),
       bridge.on('projects.repositoryRemembered', (message) => receiveProjectRepositoryRemembered(message.project, message.repository)),
       bridge.on('context.result', (message) => receiveContext(message.pane, message.path, message.git)),
@@ -189,6 +196,11 @@ export default function App() {
       }),
       bridge.on('worktrees.purging', (message) => receiveWorktreePurging(message.name, message.files, message.elapsedMs)),
       bridge.on('worktrees.purged', (message) => receiveWorktreePurged(message.names, message.files, message.elapsedMs, message.remaining)),
+      bridge.on('clone.suggested', (message) => receiveCloneSuggestion(message.request, message.address)),
+      bridge.on('clone.planned', (message) => receiveClonePlan(message.request, message.plan, message.roots)),
+      bridge.on('clone.progress', (message) => receiveCloneProgress(message.message)),
+      bridge.on('clone.done', (message) => receiveCloneDone(message.request, message.path, message.name, message.install, message.claude, message.message)),
+      bridge.on('clone.failed', (message) => receiveCloneFailed(message.request, message.message, message.output)),
       bridge.on('update.state', (message) => receiveUpdateState(message)),
       bridge.on('update.restart', receiveUpdateRestart),
       bridge.on('statusLog.added', (message) => receiveStatusLogEntry(message.entry)),
@@ -237,6 +249,7 @@ export default function App() {
       const livePaneIds = new Set(allPanes(state.session).map((pane) => pane.id))
       const removed = terminalRegistry.disposeMissing(livePaneIds)
       disposeMissingBrowsers(livePaneIds)
+      forgetMissingNoteHistories(new Set(state.session.workspaces.map((workspace) => workspace.id)))
       clearSeenCommandNotices()
       clearTimeout(timer)
       timer = setTimeout(() => {

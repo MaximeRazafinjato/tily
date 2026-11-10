@@ -70,7 +70,7 @@ public sealed class WorktreeSourcesTests : IDisposable
     [Fact]
     public void ProjectOf_WhenFolderDeepInProjectsRoot_ThenReturnsFirstLevelFolder()
     {
-        var project = WorktreeSources.ProjectOf(Path.Combine(_project, "app-starter-kit", "src"), _projectsRoot, _worktrees);
+        var project = WorktreeSources.ProjectOf(Path.Combine(_project, "app-starter-kit", "src"), [_projectsRoot], _worktrees);
 
         Assert.Equal(WorktreeLister.NormalizePath(_project), project);
     }
@@ -80,15 +80,35 @@ public sealed class WorktreeSourcesTests : IDisposable
     {
         var outside = Path.Combine(_sandbox.Root, "ailleurs");
 
-        var project = WorktreeSources.ProjectOf(outside, _projectsRoot, _worktrees);
+        var project = WorktreeSources.ProjectOf(outside, [_projectsRoot], _worktrees);
 
         Assert.Equal(WorktreeLister.NormalizePath(outside), project);
+    }
+
+    [Fact]
+    public void ProjectOf_WhenFolderDeepInAdditionalRoot_ThenReturnsItsFirstLevelFolder()
+    {
+        var clients = Path.Combine(_sandbox.Root, "clients");
+
+        var project = WorktreeSources.ProjectOf(Path.Combine(clients, "Client A", "api", "src"), [_projectsRoot, clients], _worktrees);
+
+        Assert.Equal(WorktreeLister.NormalizePath(Path.Combine(clients, "Client A")), project);
+    }
+
+    [Fact]
+    public void ProjectOf_WhenAdditionalRootInsideProjectsRoot_ThenDeepestRootWins()
+    {
+        var nested = Path.Combine(_projectsRoot, "Clients");
+
+        var project = WorktreeSources.ProjectOf(Path.Combine(nested, "Client A", "src"), [_projectsRoot, nested], _worktrees);
+
+        Assert.Equal(WorktreeLister.NormalizePath(Path.Combine(nested, "Client A")), project);
     }
 
     public void Dispose() => _sandbox.Dispose();
 
     private WorktreeSourcesModel Resolve(string path, bool fromProject, string? remembered = null) =>
-        WorktreeSources.Resolve(_sandbox.Runner, path, fromProject, _projectsRoot, _worktrees, _ => remembered);
+        WorktreeSources.Resolve(_sandbox.Runner, path, fromProject, [_projectsRoot], _worktrees, _ => remembered);
 
     private string Repository(string folder)
     {

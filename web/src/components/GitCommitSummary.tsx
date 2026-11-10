@@ -43,8 +43,12 @@ export function GitCommitSummary({ details, error, selected, stash, heading, act
     event.preventDefault()
     event.stopPropagation()
     const target = buttons[Math.min(Math.max(moves[event.key], 0), buttons.length - 1)]
-    setFocusPath(target?.dataset.gitRow ?? null)
+    const change = details.files.find((candidate) => candidate.path === target?.dataset.gitRow)
+    setFocusPath(change?.path ?? null)
     target?.focus()
+    if (change && target !== event.target) {
+      showCommitFile(details.sha, change)
+    }
   }
   const renderFile = (change: GitFileChange) => {
     const isSelected = selected?.path === change.path

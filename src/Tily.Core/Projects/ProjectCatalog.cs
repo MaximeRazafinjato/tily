@@ -4,7 +4,7 @@ namespace Tily.Core.Projects;
 
 public sealed record ProjectModel(string Name, string Path, bool Worktree = false);
 
-public sealed record ProjectListModel(string Root, IReadOnlyList<ProjectModel> Projects, string? Error);
+public sealed record ProjectListModel(string Root, IReadOnlyList<ProjectModel> Projects, string? Error, IReadOnlyList<string> AdditionalRoots);
 
 public static class ProjectCatalog
 {
@@ -13,33 +13,44 @@ public static class ProjectCatalog
 
     private const string GitEntry = ".git";
 
-    public static ProjectListModel List(string root, string? worktreeFolder = null, IReadOnlyList<WorktreeProjectFolderModel>? projectFolders = null)
+    public static ProjectListModel List(string root, string? worktreeFolder = null, IReadOnlyList<WorktreeProjectFolderModel>? projectFolders = null, IReadOnlyList<string>? additionalRoots = null)
     {
         var worktrees = worktreeFolder ?? Path.Combine(root, ExcludedFolder);
         var dedicated = (projectFolders ?? []).Where(entry => !SamePath(entry.Folder, entry.Project)).Select(entry => entry.Folder).ToList();
+        var others = additionalRoots ?? [];
+        var errors = new List<string>();
+        var projects = new[] { root }.Concat(others).SelectMany(folder => ProjectsOf(folder, worktrees, dedicated, errors)).ToList();
+        var projectWorktrees = (projectFolders ?? [])
+            .Select(entry => entry.Folder)
+            .Where(folder => !SamePath(folder, worktrees))
+            .SelectMany(folder => WorktreesOf(folder, IsLinkedWorktree));
+        var listed = projects
+            .Concat(WorktreesOf(worktrees, _ => true))
+            .Concat(projectWorktrees)
+            .DistinctBy(project => Path.TrimEndingDirectorySeparator(project.Path), StringComparer.OrdinalIgnoreCase)
+            .ToList();
+        return new ProjectListModel(root, listed, errors.Count == 0 ? null : string.Join(" ", errors), others);
+    }
+
+    private static IReadOnlyList<ProjectModel> ProjectsOf(string root, string worktrees, IReadOnlyList<string> dedicated, List<string> errors)
+    {
         if (!Directory.Exists(root))
         {
-            return new ProjectListModel(root, [], $"Le dossier des projets est introuvable : {root}");
+            errors.Add($"Le dossier des projets est introuvable : {root}");
+            return [];
         }
 
         try
         {
-            var projects = FoldersOf(root)
+            return FoldersOf(root)
                 .Where(directory => !string.Equals(directory.Name, ExcludedFolder, StringComparison.OrdinalIgnoreCase) && !SamePath(directory.FullName, worktrees) && !dedicated.Any(folder => SamePath(directory.FullName, folder)))
                 .Select(directory => new ProjectModel(directory.Name, directory.FullName))
                 .ToList();
-            var projectWorktrees = (projectFolders ?? [])
-                .Select(entry => entry.Folder)
-                .Where(folder => !SamePath(folder, worktrees))
-                .SelectMany(folder => WorktreesOf(folder, IsLinkedWorktree));
-            var listed = WorktreesOf(worktrees, _ => true)
-                .Concat(projectWorktrees)
-                .DistinctBy(project => Path.TrimEndingDirectorySeparator(project.Path), StringComparer.OrdinalIgnoreCase);
-            return new ProjectListModel(root, [.. projects, .. listed], null);
         }
         catch (Exception exception) when (exception is UnauthorizedAccessException or IOException)
         {
-            return new ProjectListModel(root, [], $"Le dossier des projets est inaccessible : {exception.Message}");
+            errors.Add($"Le dossier des projets est inaccessible : {exception.Message}");
+            return [];
         }
     }
 

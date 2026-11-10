@@ -28,27 +28,26 @@ public static class AccentResolver
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .Select(path =>
             {
-                var project = ProjectOf(path, settings.ProjectsRoot, worktreeFolder);
+                var project = ProjectOf(path, settings.ProjectsRoots(), worktreeFolder);
                 return new FolderProjectModel(path, project, ProjectColor(settings.Appearance, project));
             })
             .ToList();
     }
 
-    public static string? ProjectOf(string? path, string projectsRoot, string worktreeFolder)
+    public static string? ProjectOf(string? path, IReadOnlyList<string> projectsRoots, string worktreeFolder)
     {
-        if (string.IsNullOrWhiteSpace(path) || !Path.IsPathFullyQualified(path) || !Path.IsPathFullyQualified(projectsRoot))
+        if (string.IsNullOrWhiteSpace(path) || !Path.IsPathFullyQualified(path))
         {
             return null;
         }
 
         var repository = GitContext.MainRepositoryRoot(path);
         var folder = WorktreeLister.NormalizePath(repository ?? path);
-        var inProjects = WorktreeTarget.IsWithin(folder, projectsRoot)
-            && !WorktreeTarget.SamePath(folder, projectsRoot)
+        var inProjects = WorktreeSources.ProjectsRootOf(folder, projectsRoots) is not null
             && !WorktreeTarget.IsWithin(folder, worktreeFolder);
         if (inProjects)
         {
-            return WorktreeSources.ProjectOf(folder, projectsRoot, worktreeFolder);
+            return WorktreeSources.ProjectOf(folder, projectsRoots, worktreeFolder);
         }
 
         return repository is null ? null : folder;

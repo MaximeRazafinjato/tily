@@ -5,7 +5,7 @@ import { changeMenu, changeMenuLabel, discardSelection, toggleSelection } from '
 import { focusGitPanel, focusGitRow } from '../git/gitFocus'
 import { plural } from '../git/gitLabels'
 import { discardChanges, openGitMenu, openInEditor, resolveConflict, stageChanges, unstageChanges } from '../git/gitRequests'
-import { changeRows, drawerShowsWorkingFile, GitRowGroup, GitSelectMode, nextSelection, openChangeRow, rowKey, type GitChangeRow, type GitRowHandlers } from '../git/gitRows'
+import { changeRows, GitRowGroup, GitSelectMode, nextSelection, openChangeRow, rowKey, type GitChangeRow, type GitRowHandlers } from '../git/gitRows'
 import { useGitStore } from '../store/gitStore'
 import { GitCommitBox } from './GitCommitBox'
 import { GitFileRow } from './GitFileRow'
@@ -92,7 +92,7 @@ export function GitChangesView({ state, busy, footer }: GitChangesViewProps) {
     setFocusKey(row.key)
     focusGitRow(row.key)
     applySelection(rows, row, extend ? GitSelectMode.Range : GitSelectMode.Replace)
-    if (!extend && drawerShowsWorkingFile() && !row.conflict) {
+    if (!extend && !row.conflict) {
       openChangeRow(row)
     }
   }

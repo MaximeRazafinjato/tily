@@ -90,12 +90,14 @@ public static class GitDiffReader
         var show = repository.Run("show", "-s", "--no-show-signature", "--format=%H%x1f%P%x1f%an%x1f%ae%x1f%at%x1f%B", revision);
         if (!show.Succeeded)
         {
+            Task.WaitAny(filesRead);
             throw new GitCommandException($"Commit introuvable : {commit}.", string.Empty);
         }
 
         var fields = show.Output.Split(Separator, 6);
         if (fields.Length < 6)
         {
+            Task.WaitAny(filesRead);
             throw new GitCommandException($"Commit illisible : {commit}.", string.Empty);
         }
 

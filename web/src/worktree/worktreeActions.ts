@@ -152,10 +152,12 @@ export const openCreatedWorktree = (path: string, name: string, install: string 
   const { newWorkspace } = useSessionStore.getState()
   const workspaceId = newWorkspace(name, path, DEFAULT_SHELL)
   const workspace = useSessionStore.getState().session?.workspaces.find((candidate) => candidate.id === workspaceId)
-  if (!workspace) {
-    return
+  if (workspace) {
+    startInPane(activeTab(workspace).active, path, install, claude)
   }
-  const paneId = activeTab(workspace).active
+}
+
+export const startInPane = (paneId: string, path: string, install: string | undefined, claude: string | undefined): void => {
   if (claude) {
     terminalRegistry.runAtStart(paneId, claude)
   }
