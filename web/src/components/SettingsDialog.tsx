@@ -1,10 +1,13 @@
 import { useCallback, useEffect, useState, type KeyboardEvent, type MouseEvent, type PointerEvent } from 'react'
 import { AttentionKind, PickTarget, type AppearanceSettings, type ImportedPreferences, type NotificationSettings, type PersistenceSettings, type PickedPath, type Settings, type SettingsSnapshot, type ShortcutSettings } from '../bridge/messages'
+import { AmbianceSource, type AmbianceSettings } from '../bridge/appearanceMessages'
+import { AMBIANCE_MEDIA_FIELD, AMBIANCE_MEDIA_PICK_FIELD } from '../ambiance/ambianceActions'
 import type { WorktreeProjectFolder, WorktreeSettings } from '../bridge/worktreeMessages'
 import { revealInExplorer } from '../explorer/fileExplorerActions'
 import { sameFolder } from '../worktree/worktreePaths'
 import { useHostStore } from '../store/hostStore'
 import { useUiStore } from '../store/uiStore'
+import { AmbianceSettingsSection } from './AmbianceSettingsSection'
 import { AppearanceSettingsSection } from './AppearanceSettingsSection'
 import { AgentSettingsSection } from './AgentSettingsSection'
 import { Icon } from './Icon'
@@ -163,6 +166,9 @@ export function SettingsDialog({ snapshot, pickedPath, imported, onClose, onSave
         updateDraft({ notifications: { ...draft.notifications, sound: pickedPath.path } })
       } else if (pickedPath.field === DONE_SOUND_FIELD) {
         updateDraft({ notifications: { ...draft.notifications, doneSound: pickedPath.path } })
+      } else if (pickedPath.field === AMBIANCE_MEDIA_FIELD) {
+        const { ambiance } = draft.appearance
+        updateDraft({ appearance: { ...draft.appearance, ambiance: { ...ambiance, background: { ...ambiance.background, source: AmbianceSource.Media, mediaPath: pickedPath.path } } } })
       } else if (pickedPath.field.startsWith(SHELL_FIELD_PREFIX)) {
         updateDraft({ shells: { ...draft.shells, [pickedPath.field.slice(SHELL_FIELD_PREFIX.length)]: pickedPath.path } })
       }
@@ -175,6 +181,7 @@ export function SettingsDialog({ snapshot, pickedPath, imported, onClose, onSave
   const handlePickWorktreeFolder = () => onPick(WORKTREE_FOLDER_FIELD, PickTarget.Folder)
   const handlePickSound = () => onPick(SOUND_FIELD, PickTarget.Sound)
   const handlePickDoneSound = () => onPick(DONE_SOUND_FIELD, PickTarget.Sound)
+  const handlePickAmbianceMedia = () => onPick(AMBIANCE_MEDIA_PICK_FIELD, PickTarget.Media)
   const handleShellsChange = (shells: Record<string, string>) => updateDraft({ shells })
   const handleEditorChange = (editor: string) => updateDraft({ editor })
   const handleProjectsRootChange = (projectsRoot: string) => updateDraft({ projectsRoot })
@@ -198,6 +205,7 @@ export function SettingsDialog({ snapshot, pickedPath, imported, onClose, onSave
   const handleAutoCheckChange = (autoCheck: boolean) => updateDraft({ updates: { autoCheck } })
   const updateAppearance = useCallback((patch: Partial<AppearanceSettings>) => setDraft((current) => (current ? { ...current, appearance: { ...current.appearance, ...patch } } : current)), [])
   const handleFontSizeChange = (fontSize: number) => updateAppearance({ fontSize })
+  const handleAmbianceChange = (patch: Partial<AmbianceSettings>) => setDraft((current) => (current ? { ...current, appearance: { ...current.appearance, ambiance: { ...current.appearance.ambiance, ...patch } } } : current))
   const handleShortcutsChange = (shortcuts: ShortcutSettings) => updateDraft({ shortcuts })
   const handleRevealFiles = () => {
     if (snapshot) {
@@ -214,6 +222,8 @@ export function SettingsDialog({ snapshot, pickedPath, imported, onClose, onSave
         return <TerminalSettingsSection title={title} fontSize={settings.appearance.fontSize} numberText={numberText} onFontSizeChange={handleFontSizeChange} onNumberChange={handleNumberChange} />
       case SettingsSection.Appearance:
         return <AppearanceSettingsSection title={title} appearance={settings.appearance} onChange={updateAppearance} />
+      case SettingsSection.Ambiance:
+        return <AmbianceSettingsSection title={title} ambiance={settings.appearance.ambiance} onChange={handleAmbianceChange} onPickMedia={handlePickAmbianceMedia} />
       case SettingsSection.Shortcuts:
         return <ShortcutSettingsSection title={title} shortcuts={settings.shortcuts} defaults={current.shortcutDefaults} onChange={handleShortcutsChange} />
       case SettingsSection.Projects:
