@@ -58,6 +58,8 @@ public static class ShortcutCatalog
         new("workspaceColor"),
         new("tabColor"),
         new("appearanceSettings"),
+        new("ambianceSettings"),
+        new("toggleAmbiance", "Ctrl+Alt+R"),
         new("moveWorkspaceUp"),
         new("moveWorkspaceDown"),
         new("closeWorkspace"),

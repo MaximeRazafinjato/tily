@@ -94,7 +94,7 @@ public sealed class HostBridge : IDisposable
         _updates = new UpdateFeed(Post, ApplicationVersion, dataDirectory);
         _mcp = new McpFeed(dataDirectory, Post, PostBackgroundError);
         _browsers = new BrowserFeed(browserLayer, () => _core?.Environment, Post, focusInterface, () => ShortcutRules.InterceptedChords(_settings.Shortcuts));
-        _appearance = new AppearanceFeed(() => _settings, _settingsService, Post, colors => _dispatcher.TryEnqueue(() => applyWindowColors(colors)), PostBackgroundError);
+        _appearance = new AppearanceFeed(() => _settings, _settingsService, Post, colors => _dispatcher.TryEnqueue(() => applyWindowColors(colors)), PostBackgroundError, dataDirectory);
         applyWindowColors(_appearance.Start());
         ApplySettings(_settings);
         _terminals.OutputReceived += HandleOutput;
@@ -257,6 +257,9 @@ public sealed class HostBridge : IDisposable
                 break;
             case "appearance.fontSize":
                 SaveFontSize(command);
+                break;
+            case "appearance.ambianceEnabled":
+                SaveAmbianceEnabled(command);
                 break;
             case var type when type.StartsWith("appearance.", StringComparison.Ordinal):
                 _appearance.Handle(command);
@@ -445,6 +448,12 @@ public sealed class HostBridge : IDisposable
     {
         _settings.Appearance = _settingsService.SaveAppearance(_settings.Appearance with { FontSize = command.FontSize });
         Post(new { type = "appearance.changed", fontSize = _settings.Appearance.FontSize });
+    }
+
+    private void SaveAmbianceEnabled(BridgeCommandModel command)
+    {
+        _settings.Appearance = _settingsService.SaveAppearance(_settings.Appearance with { Ambiance = _settings.Appearance.Ambiance with { Enabled = command.Enabled } });
+        Post(new { type = "appearance.ambiance", ambiance = _settings.Appearance.Ambiance });
     }
 
     private void SaveSettings(BridgeCommandModel command)

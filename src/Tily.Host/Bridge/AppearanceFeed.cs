@@ -13,12 +13,14 @@ public sealed class AppearanceFeed
     private readonly Action<object> _post;
     private readonly Action<WindowColorsModel> _applyWindow;
     private readonly BackgroundQueue _queue;
+    private readonly AmbianceMedia _media;
     private IReadOnlyList<string> _paths = [];
     private AppearanceStateModel? _state;
     private string? _postedProjects;
 
-    public AppearanceFeed(Func<SettingsModel> settings, SettingsService settingsService, Action<object> post, Action<WindowColorsModel> applyWindow, Action<Exception> onError)
+    public AppearanceFeed(Func<SettingsModel> settings, SettingsService settingsService, Action<object> post, Action<WindowColorsModel> applyWindow, Action<Exception> onError, string dataDirectory)
     {
+        _media = new AmbianceMedia(dataDirectory);
         _settings = settings;
         _settingsService = settingsService;
         _post = post;
@@ -35,7 +37,7 @@ public sealed class AppearanceFeed
     public object Hello()
     {
         _queue.Enqueue(() => _postedProjects = null);
-        return new { state = _state, accentPresets = AccentPresets.All };
+        return new { state = _state, accentPresets = AccentPresets.All, ambiancePresets = AmbiancePresets.All };
     }
 
     public void Handle(BridgeCommandModel command)
@@ -45,6 +47,9 @@ public sealed class AppearanceFeed
             case "appearance.projects":
                 _paths = command.Paths ?? [];
                 RefreshProjects();
+                break;
+            case "appearance.importMedia":
+                ImportMedia(command.Path ?? throw new InvalidOperationException("Fichier manquant."));
                 break;
             case "appearance.projectColor":
                 SaveProjectColor(command.Project ?? throw new InvalidOperationException("Projet manquant."), command.Color);
@@ -65,7 +70,12 @@ public sealed class AppearanceFeed
         }
 
         RefreshProjects();
+        var kept = _settings().Appearance.Ambiance.Background.MediaPath;
+        _queue.Enqueue(() => _media.Purge(kept));
     }
+
+    private void ImportMedia(string source) =>
+        _queue.Enqueue(() => _post(new { type = "appearance.mediaImported", name = _media.Import(source) }));
 
     private void RefreshProjects()
     {

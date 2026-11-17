@@ -65,6 +65,7 @@ public sealed class BridgeCommandModel
     public int Chars { get; init; }
     public int Count { get; init; }
     public int FontSize { get; init; }
+    public bool Enabled { get; init; }
     public int Index { get; init; }
     public int Request { get; init; }
     public int Number { get; init; }

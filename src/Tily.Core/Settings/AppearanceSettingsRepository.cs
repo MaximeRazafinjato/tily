@@ -14,11 +14,13 @@ public sealed record AppearanceSettingsModel(int FontSize = AppearanceSettingsMo
 
     public string? Accent { get; init; }
     public Dictionary<string, string> ProjectColors { get; init; } = new(StringComparer.OrdinalIgnoreCase);
+    public AmbianceSettingsModel Ambiance { get; init; } = AmbianceSettingsModel.Default;
 
     public AppearanceSettingsModel Normalized() => this with
     {
         FontSize = Math.Clamp(FontSize, MinFontSize, MaxFontSize),
         Accent = HexColor.Normalize(Accent),
+        Ambiance = (Ambiance ?? AmbianceSettingsModel.Default).Normalized(),
         ProjectColors = (ProjectColors ?? [])
             .Where(pair => !string.IsNullOrWhiteSpace(pair.Key) && HexColor.Normalize(pair.Value) is not null)
             .GroupBy(pair => pair.Key.Trim(), StringComparer.OrdinalIgnoreCase)
@@ -44,6 +46,7 @@ public sealed record AppearanceSettingsModel(int FontSize = AppearanceSettingsMo
         other is not null
         && FontSize == other.FontSize
         && Accent == other.Accent
+        && Ambiance == other.Ambiance
         && ProjectColors.Count == other.ProjectColors.Count
         && ProjectColors.All(pair => other.ProjectColors.TryGetValue(pair.Key, out var color) && color == pair.Value);
 

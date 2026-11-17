@@ -16,6 +16,19 @@ public static class PathPicker
             return sound?.Path;
         }
 
+        if (target == "media")
+        {
+            var mediaPicker = new FileOpenPicker { SuggestedStartLocation = PickerLocationId.PicturesLibrary };
+            foreach (var extension in new[] { ".png", ".jpg", ".jpeg", ".gif", ".webp", ".avif", ".bmp", ".mp4", ".webm" })
+            {
+                mediaPicker.FileTypeFilter.Add(extension);
+            }
+
+            InitializeWithWindow.Initialize(mediaPicker, windowHandle);
+            var media = await mediaPicker.PickSingleFileAsync();
+            return media?.Path;
+        }
+
         if (target == "folder")
         {
             var folderPicker = new FolderPicker { SuggestedStartLocation = PickerLocationId.ComputerFolder };
