@@ -1,3 +1,4 @@
+import { toggleAmbiance } from '../ambiance/ambianceActions'
 import { bridge } from '../bridge/bridge'
 import { SettingsSection } from '../components/settingsSections'
 import { BrowserPlacement, openBrowser } from '../browser/browserActions'
@@ -205,6 +206,12 @@ export const runCommand = (command: Command): void => {
       break
     case Command.AppearanceSettings:
       openSettings(SettingsSection.Appearance)
+      break
+    case Command.AmbianceSettings:
+      openSettings(SettingsSection.Ambiance)
+      break
+    case Command.ToggleAmbiance:
+      toggleAmbiance()
       break
     case Command.SettingsExport:
       openSettings()

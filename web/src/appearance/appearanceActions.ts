@@ -4,7 +4,6 @@ import { focusActivePane } from '../explorer/fileExplorerActions'
 import { activePane, activeTab, type Session, type Workspace } from '../model/session'
 import { useAppearanceStore, type ColorTarget } from '../store/appearanceStore'
 import { useSessionStore } from '../store/sessionStore'
-import { terminalRegistry } from '../terminal/terminalRegistry'
 
 const TOKEN_PREFIX = '--color-tily-'
 const PROJECT_COLOR_DELAY_MS = 300
@@ -18,12 +17,12 @@ const followedPaths = (session: Session | null): string[] => [...new Set((sessio
 export const receiveAppearance = (state: AppearanceState): void => {
   const root = document.documentElement.style
   Object.entries(state.theme.tokens).forEach(([token, color]) => root.setProperty(`${TOKEN_PREFIX}${token}`, color))
-  terminalRegistry.setTheme(state.theme.terminal)
   useAppearanceStore.getState().setState(state)
 }
 
 export const receiveAppearanceCatalog = (catalog: AppearanceCatalog): void => {
   useAppearanceStore.getState().setAccentPresets(catalog.accentPresets)
+  useAppearanceStore.getState().setAmbiancePresets(catalog.ambiancePresets)
   receiveAppearance(catalog.state)
 }
 

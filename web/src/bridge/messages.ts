@@ -1,5 +1,5 @@
 import type { Session } from '../model/session'
-import type { AppearanceCatalog, AppearanceHostMessage, AppearanceWebMessage } from './appearanceMessages'
+import type { AmbianceSettings, AppearanceCatalog, AppearanceHostMessage, AppearanceWebMessage } from './appearanceMessages'
 import type { BrowserHostMessage, BrowserWebMessage } from './browserMessages'
 import type { CloneHostMessage, CloneWebMessage } from './cloneMessages'
 import type { ForgeHostMessage, ForgeWebMessage } from './forgeMessages'
@@ -22,6 +22,7 @@ export enum PickTarget {
   File = 'file',
   Folder = 'folder',
   Sound = 'sound',
+  Media = 'media',
 }
 
 export interface PickedPath {
@@ -63,6 +64,7 @@ export interface AppearanceSettings {
   fontSize: number
   accent?: string
   projectColors: Record<string, string>
+  ambiance: AmbianceSettings
 }
 
 export interface ShortcutBinding {

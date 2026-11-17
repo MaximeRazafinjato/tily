@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { clearSeenCommandNotices } from './terminal/commandNotices'
 import { startAttentionNotifier } from './agents/attentionNotifier'
+import { AMBIANCE_MEDIA_FIELD, AMBIANCE_MEDIA_PICK_FIELD, importAmbianceMedia, receiveAmbiance, startAmbiance } from './ambiance/ambianceActions'
 import { receiveAppearance, receiveAppearanceCatalog, receiveProjects, startAppearanceProjects } from './appearance/appearanceActions'
 import { bridge } from './bridge/bridge'
 import { receiveBrowserFailure, receiveBrowserFocused, receiveBrowserState, receiveNewBrowserPane } from './browser/browserActions'
@@ -68,6 +69,7 @@ export default function App() {
     const stopDeferredPreviews = startDeferredPreviews()
     const stopBrowserLayer = startBrowserLayer()
     const stopAppearanceProjects = startAppearanceProjects()
+    const stopAmbiance = startAmbiance()
     const { markFailed, markExited, markPathMissing, markAlive } = usePaneStore.getState()
     const subscriptions = [
       bridge.on('app.hello', (message) => {
@@ -77,6 +79,7 @@ export default function App() {
         useStatusLogStore.getState().load(message.statusLog)
         terminalRegistry.configure(message.persistence.linesPerPane)
         terminalRegistry.setFontSize(message.appearance.fontSize)
+        receiveAmbiance(message.appearance.ambiance)
         primeSessionText(message.session, message.text)
         void document.fonts.load('14px "Symbols Nerd Font Mono"').then(() => {
           load(message.session)
@@ -93,6 +96,11 @@ export default function App() {
         terminalRegistry.setFontSize(message.fontSize)
         setStatus(`Taille du texte des terminaux : ${message.fontSize} px`)
       }),
+      bridge.on('appearance.ambiance', (message) => {
+        receiveAmbiance(message.ambiance)
+        setStatus(message.ambiance.enabled ? 'Ambiance activée.' : 'Ambiance coupée.')
+      }),
+      bridge.on('appearance.mediaImported', (message) => setPickedPath({ field: AMBIANCE_MEDIA_FIELD, path: message.name })),
       bridge.on('appearance.theme', (message) => receiveAppearance(message.state)),
       bridge.on('appearance.projectsResolved', (message) => receiveProjects(message.projects)),
       bridge.on('settings.result', (message) => {
@@ -103,6 +111,7 @@ export default function App() {
         }
         terminalRegistry.configure(message.persistence.linesPerPane)
         terminalRegistry.setFontSize(message.settings.appearance.fontSize)
+        receiveAmbiance(message.settings.appearance.ambiance)
         stopAutosave?.()
         stopAutosave = startTextAutosave(message.persistence.textIntervalSeconds)
         useUiStore.getState().closeSettings()
@@ -120,6 +129,8 @@ export default function App() {
           receiveProjectFolderPicked(message.path)
         } else if (message.field === CLONE_FOLDER_FIELD) {
           receiveCloneFolderPicked(message.path)
+        } else if (message.field === AMBIANCE_MEDIA_PICK_FIELD) {
+          importAmbianceMedia(message.path)
         } else {
           setPickedPath({ field: message.field, path: message.path })
         }
@@ -235,6 +246,7 @@ export default function App() {
       stopDeferredPreviews()
       stopBrowserLayer()
       stopAppearanceProjects()
+      stopAmbiance()
       stopAutosave?.()
       subscriptions.forEach((unsubscribe) => unsubscribe())
     }
