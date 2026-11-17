@@ -221,6 +221,7 @@ export function TabBar({ workspace, shells, renamingTabId, panelView, onTogglePa
               <div
                 data-drop-workspace={workspace.id}
                 data-drop-tab={tab.id}
+                data-surface={active ? 'tab' : undefined}
                 className={`group flex min-w-[100px] items-center rounded-t-md border border-b-0 ${active ? 'border-tily-line bg-tily-panel text-tily-green-deep' : 'border-transparent text-tily-muted hover:bg-tily-green-hover'} ${draggingTabId === tab.id ? 'opacity-50' : ''}`}
                 onAuxClick={handleAuxClick}
                 onContextMenu={handleTabContextMenu}
