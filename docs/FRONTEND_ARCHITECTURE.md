@@ -10,7 +10,7 @@ Une section par dossier de `web/src` : rôle, invariants et choix non évidents.
 
 `main.tsx` importe `index.css` et monte `App` en `StrictMode`, qui monte deux fois en développement : chaque boucle ou abonnement démarré par `App` rend sa fonction d'arrêt.
 
-`App` est l'unique aiguillage des messages de l'hôte : un `bridge.on` par type, qui confie le message à la fonction `receive…` de son dossier. Il démarre les boucles et notifieurs (`startAppearanceProjects`, `startAttentionNotifier`, `startExternalDrops`, `startStatusLog`, `startDeferredPreviews`, `startBrowserLayer`, `startTextAutosave`), puis envoie `app.ready`.
+`App` est l'unique aiguillage des messages de l'hôte : un `bridge.on` par type, qui confie le message à la fonction `receive…` de son dossier. Il démarre les boucles et notifieurs (`startAppearanceProjects`, `startAttentionNotifier`, `startExternalDrops`, `startStatusLog`, `startDeferredPreviews`, `startBrowserLayer`, `startCompanions`, `startTextAutosave`), puis envoie `app.ready`.
 
 - À `app.hello`, il applique la couleur reçue, configure les modules et injecte le texte de la session précédente ; il ne charge la session qu'une fois la police de symboles Nerd Font chargée.
 - Une réponse numérotée va d'abord à son écouteur (`dispatchReply`) : `browser.reply` et `worktrees.*`, dont `worktrees.done` et `worktrees.failed` vont aussi à l'interface. `terminal.activityResult` va à `paneActivity` s'il porte un numéro attendu, sinon à `closeGuard`. `dialog.picked` est routé par champ : formulaire de worktree, dépôt d'un projet, dossier choisi par « Parcourir… » d'« Ouvrir un projet », dossier d'un clonage, sinon Paramètres (`hostStore.pickedPath`).
@@ -231,6 +231,16 @@ Ambiance (section 3 de la spec, « Ambiance ») : l'hôte valide les réglages, 
 - Effets d'alerte (`alerts/`) : `attentionNotifier` appelle `playAgentAlert` aux mêmes transitions que `attention.raise`. Les effets vivent dans un calque créé à la volée dans `body`, en `pointer-events: none` et sans rôle, et se retirent à la fin de leur animation ; secousse et glitch animent `#root`.
 - Image ou vidéo : le fichier choisi (`dialog.pick`, cible `media`) part à l'hôte (`appearance.importMedia`), qui le copie et renvoie son nom (`appearance.mediaImported`, routé vers Paramètres comme un chemin choisi) ; il est servi par `https://tily.ambiance/`.
 - Un preset est reconnu par l'égalité de son dégradé ; les presets intégrés viennent de l'hôte avec le catalogue d'apparence.
+
+### `src/companions/`
+
+Compagnons d'agents (section 3 de la spec, « Ambiance »), sans React. `startCompanions`, démarré par `App`, monte le calque tant que l'ambiance et `companions.enabled` sont actifs : un seul canvas 2D `fixed` dans `body`, sans rôle et en `pointer-events: none`, sous le calque des alertes. `elementFromPoint` l'ignore : il ne fige jamais les panes navigateur.
+
+- `blobModel.ts` : monde (compagnons, particules, surfaces, pointeur, bulle de rangement), états (`BlobMood`) et formes (`BlobShape`, tirée de l'identifiant du pane). `blobPhysics.ts` : sauts, ressort d'écrasement, chute et atterrissage sur la première surface croisée. `blobRenderer.ts` : contour ondulé d'un polygone arrondi, yeux, bulle d'outil, étincelles.
+- Surfaces : tout élément `data-perch` (barre de statut, barre d'onglets, arbre des workspaces, panneau de droite), relu toutes les 200 ms, plus le bas de la fenêtre ; la bulle de rangement se place en bas de l'élément `data-basket`.
+- `companionSync.ts` : un compagnon par pane présent dans `agentStore`, un enfant par sous-agent (`subagents`) ; seul un changement d'état de l'agent déclenche une réaction, et un compagnon créé ne fête pas une fin déjà passée. Teinte de la couleur du projet du pane, sinon tirée de son identifiant.
+- `companionPointer.ts` écoute `pointerdown` en capture sur le document et n'intercepte que le pointeur posé sur un compagnon ou sur la bulle : tout le reste atteint l'interface. Un clic sans déplacement rejoint le pane (`joinPane`).
+- La boucle suit `shouldRender` de l'ambiance (images par seconde, pause hors focus) et n'affiche rien tant qu'un menu ou un dialogue est ouvert.
 
 ### `src/agents/`
 
