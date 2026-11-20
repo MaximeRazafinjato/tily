@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useState, type MouseEvent } from 'react'
+import { memo, useCallback, useEffect, useState, type MouseEvent, type PointerEvent } from 'react'
 import { OpenTarget, type ShellProfile } from '../bridge/messages'
 import { DEFAULT_SHELL, RightPanelView, SplitAxis, type Pane } from '../model/session'
 import { openPanelView } from '../panel/rightPanel'
@@ -11,6 +11,7 @@ import { clearPaneScrollback, copyLastCommandOutput, copyPaneSelection, focusPan
 import { movePaneToNewTab } from '../terminal/tabLifecycle'
 import { TerminalPane } from '../terminal/TerminalPane'
 import { AgentBadge } from './AgentBadge'
+import { beginPaneDrag } from './paneDrag'
 import { BranchEditMergeRequestButton } from './BranchEditMergeRequestButton'
 import { CreateMergeRequestButton } from './CreateMergeRequestButton'
 import { MergeRequestPill } from './MergeRequestPill'
@@ -119,6 +120,7 @@ export const PaneView = memo(function PaneView({ pane, active, zoomed, onToggleZ
   }, [pane.id, covered])
 
   const handleHeaderMouseDown = () => onFocus(pane.id)
+  const handleHeaderPointerDown = (event: PointerEvent<HTMLElement>) => beginPaneDrag(event, pane.id)
   const handleBranchClick = (event: MouseEvent) => {
     if (event.ctrlKey || !context?.branch) {
       openPanelView(RightPanelView.Git)
@@ -184,6 +186,7 @@ export const PaneView = memo(function PaneView({ pane, active, zoomed, onToggleZ
       <header
         className="group @container flex items-center gap-1 bg-tily-panel px-2 text-[11px] text-tily-muted select-none"
         onMouseDown={handleHeaderMouseDown}
+        onPointerDown={handleHeaderPointerDown}
         onDoubleClick={handleHeaderDoubleClick}
       >
         <span className="flex min-w-0 flex-1 items-baseline gap-1">

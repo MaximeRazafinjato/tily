@@ -10,6 +10,8 @@ import { branchKey, useForgeStore } from '../store/forgeStore'
 import { useAgentStore } from '../store/agentStore'
 import { useHostStore } from '../store/hostStore'
 import { useSessionStore } from '../store/sessionStore'
+import { isDetachedWindow, useWindowStore } from '../store/windowStore'
+import { attachTab, attachWorkspace, detachTab, detachWorkspace } from '../window/windowTransfer'
 import { MergePlacement, mergeTabIntoTab, tabMergeTargets } from '../terminal/tabMerge'
 import { movePaneToTab, restoreClosedTabAt } from '../terminal/tabLifecycle'
 import { joinPane } from '../terminal/terminalActions'
@@ -37,6 +39,8 @@ const MOVE_TAB_PREFIX = 'move-tab-'
 const JOIN_TAB_PREFIX = 'join-tab-'
 const MERGE_TAB_PREFIX = 'merge-tab-'
 const MERGE_TAB_PREFIXES = Object.values(MergePlacement).map((placement) => `${MERGE_TAB_PREFIX}${placement}-`)
+const ATTACH_TAB_PREFIX = 'attach-tab-to-'
+const MAIN_WINDOW_ITEMS = new Set(['settings', 'appearance-settings', 'ambiance-settings', 'toggle-ambiance', 'release-notes', 'settings-export', 'settings-import', 'font-larger', 'font-smaller', 'font-default', 'restore-tab'])
 
 const fontSizeItems = (): PaletteItem[] => {
   const size = terminalRegistry.fontSize()
@@ -50,6 +54,27 @@ const fontSizeItems = (): PaletteItem[] => {
 const command = (id: string, label: string, run: () => void, hint?: string): PaletteItem => ({ id, kind: PaletteKind.Command, label, hint, favorite: false, run })
 
 const bound = (id: string, label: string, target: Command, fallbackHint?: string): PaletteItem => command(id, label, () => runCommand(target), shortcutText(target) ?? fallbackHint)
+
+const windowItems = (session: Session): PaletteItem[] => {
+  const workspace = activeWorkspace(session)
+  const tab = workspace ? activeTab(workspace) : undefined
+  if (!workspace || !tab) {
+    return []
+  }
+  const { detached, mainWorkspaces } = useWindowStore.getState()
+  const items = [
+    command('detach-tab', 'Détacher l’onglet dans une nouvelle fenêtre', () => detachTab(tab.id), tab.name),
+    command('detach-workspace', `Détacher le workspace dans une nouvelle fenêtre${SEPARATOR}${workspace.name}`, () => detachWorkspace(workspace.id)),
+  ]
+  if (detached) {
+    items.push(
+      command('attach-tab', 'Rattacher l’onglet à la fenêtre principale', () => attachTab(tab.id), tab.name),
+      ...mainWorkspaces.map((target) => command(`${ATTACH_TAB_PREFIX}${target.id}`, `Rattacher l’onglet à${SEPARATOR}${target.name}`, () => attachTab(tab.id, target.id), tab.name)),
+      command('attach-workspace', `Rattacher le workspace à la fenêtre principale${SEPARATOR}${workspace.name}`, () => attachWorkspace(workspace.id)),
+    )
+  }
+  return items
+}
 
 const commandItems = (session: Session, shells: ShellProfile[]): PaletteItem[] => {
   const store = useSessionStore.getState()
@@ -175,7 +200,8 @@ const commandItems = (session: Session, shells: ShellProfile[]): PaletteItem[] =
       items.push(command(`${MERGE_TAB_PREFIX}${target.placement}-${target.tab.id}`, `Fusionner l’onglet actif dans l’onglet${SEPARATOR}${target.name}, ${target.placementLabel}`, () => mergeTabIntoTab(tab.id, target.tab.id, target.placement)))
     }
   }
-  return items
+  items.push(...windowItems(session))
+  return isDetachedWindow() ? items.filter((item) => !MAIN_WINDOW_ITEMS.has(item.id)) : items
 }
 
 const attentionItems = (session: Session): PaletteItem[] => {

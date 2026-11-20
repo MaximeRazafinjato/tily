@@ -22,6 +22,7 @@ import { startWorktreeCreation } from '../worktree/worktreeActions'
 import { openProjectPicker } from '../project/projectOpenActions'
 import { toggleStatusLog } from '../statusLog/statusLogActions'
 import { useShortcutStore } from '../store/shortcutStore'
+import { isDetachedWindow } from '../store/windowStore'
 import { Command } from './commands'
 import { runContextCommand } from './contextCommands'
 import { chordOf, isModifierKey, leaderKeyOf } from './keyChords'
@@ -37,6 +38,22 @@ const KEYPAD_NUMBER_CODE = /^Numpad([1-9])$/
 const LEADER_EXPIRED_STATUS = 'Leader expiré : la saisie revient au terminal.'
 
 let leaderTimer: ReturnType<typeof setTimeout> | undefined
+
+const MAIN_WINDOW_STATUS = 'Les paramètres se modifient dans la fenêtre principale de Tily.'
+const MAIN_WINDOW_COMMANDS = new Set<Command>([
+  Command.Settings,
+  Command.AppearanceSettings,
+  Command.AmbianceSettings,
+  Command.ToggleAmbiance,
+  Command.ReleaseNotes,
+  Command.SettingsExport,
+  Command.SettingsImport,
+  Command.FontLarger,
+  Command.FontSmaller,
+  Command.FontDefault,
+])
+
+export const isMainWindowCommand = (command: Command): boolean => MAIN_WINDOW_COMMANDS.has(command)
 
 const letterOf = (event: KeyboardEvent): string => {
   if (/^[a-zA-Z]$/.test(event.key)) {
@@ -170,6 +187,10 @@ const SWAP_DIRECTIONS: Partial<Record<Command, Direction>> = {
 }
 
 export const runCommand = (command: Command): void => {
+  if (isDetachedWindow() && isMainWindowCommand(command)) {
+    useHostStore.getState().setStatus(MAIN_WINDOW_STATUS)
+    return
+  }
   const focusDirection = FOCUS_DIRECTIONS[command]
   const swapDirection = SWAP_DIRECTIONS[command]
   if (focusDirection) {

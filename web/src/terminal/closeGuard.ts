@@ -3,6 +3,7 @@ import type { PaneActivity } from '../bridge/messages'
 import { allPanes, paneLocation, panesOf, type Session } from '../model/session'
 import { useSessionStore } from '../store/sessionStore'
 import { useUiStore, type PaneActivityView } from '../store/uiStore'
+import { isDetachedWindow, useWindowStore } from '../store/windowStore'
 import { closeApplication } from './textPersistence'
 
 interface PendingClose {
@@ -11,9 +12,15 @@ interface PendingClose {
   proceed: () => void
   confirmLabel?: string
   cancelled?: () => void
+  detachedTabs: string[]
 }
 
 const APPLICATION_TITLE = 'Quitter Tily ?'
+const DETACHED_WINDOW_TITLE = 'Fermer cette fenêtre ?'
+
+const applicationTitle = (): string => (isDetachedWindow() ? DETACHED_WINDOW_TITLE : APPLICATION_TITLE)
+
+export const detachedTabsToClose = (): string[] => (isDetachedWindow() ? [] : useWindowStore.getState().detachedTabs)
 
 let pending: PendingClose | null = null
 let confirmed: (() => void) | null = null
@@ -33,18 +40,18 @@ const describePane = (session: Session | null, paneId: string): string => {
 
 const toView = (activity: PaneActivity): PaneActivityView => ({ ...activity, label: describePane(useSessionStore.getState().session, activity.paneId) })
 
-const showCloseConfirmation = (title: string, activity: PaneActivity[], proceed: () => void, confirmLabel?: string, cancelled?: () => void): void => {
+const showCloseConfirmation = (title: string, activity: PaneActivity[], proceed: () => void, confirmLabel?: string, cancelled?: () => void, detachedTabs: string[] = []): void => {
   confirmed = proceed
   onCancel = cancelled ?? null
-  useUiStore.getState().showCloseConfirmation({ title, panes: activity.map(toView), confirmLabel })
+  useUiStore.getState().showCloseConfirmation({ title, panes: activity.map(toView), detachedTabs, confirmLabel })
 }
 
-export const requestClose = (title: string, paneIds: string[], proceed: () => void, confirmLabel?: string, cancelled?: () => void): void => {
-  if (paneIds.length === 0 || !bridge.available) {
+export const requestClose = (title: string, paneIds: string[], proceed: () => void, confirmLabel?: string, cancelled?: () => void, detachedTabs: string[] = []): void => {
+  if ((paneIds.length === 0 && detachedTabs.length === 0) || !bridge.available) {
     proceed()
     return
   }
-  pending = { title, paneIds: new Set(paneIds), proceed, confirmLabel, cancelled }
+  pending = { title, paneIds: new Set(paneIds), proceed, confirmLabel, cancelled, detachedTabs }
   bridge.send({ type: 'terminal.activity', panes: paneIds })
 }
 
@@ -55,25 +62,25 @@ export const receiveActivity = (panes: PaneActivity[]): void => {
   }
   pending = null
   const relevant = panes.filter((activity) => current.paneIds.has(activity.paneId))
-  if (relevant.length === 0) {
+  if (relevant.length === 0 && current.detachedTabs.length === 0) {
     current.proceed()
     return
   }
-  showCloseConfirmation(current.title, relevant, current.proceed, current.confirmLabel, current.cancelled)
+  showCloseConfirmation(current.title, relevant, current.proceed, current.confirmLabel, current.cancelled, current.detachedTabs)
 }
 
 export const requestApplicationClose = (): void => {
   const { session } = useSessionStore.getState()
-  requestClose(APPLICATION_TITLE, session ? allPanes(session).map((pane) => pane.id) : [], closeApplication)
+  requestClose(applicationTitle(), session ? allPanes(session).map((pane) => pane.id) : [], closeApplication, undefined, undefined, detachedTabsToClose())
 }
 
-export const receiveApplicationClosing = (activity: PaneActivity[]): void => {
-  if (activity.length === 0) {
+export const receiveApplicationClosing = (activity: PaneActivity[], detachedTabs: string[]): void => {
+  if (activity.length === 0 && detachedTabs.length === 0) {
     closeApplication()
     return
   }
   bridge.send({ type: 'window.closeCancel' })
-  showCloseConfirmation(APPLICATION_TITLE, activity, closeApplication)
+  showCloseConfirmation(applicationTitle(), activity, closeApplication, undefined, undefined, detachedTabs)
 }
 
 export const confirmClose = (): void => {

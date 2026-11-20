@@ -5,7 +5,7 @@ import { StatusLevel, useHostStore } from '../store/hostStore'
 import { useSessionStore } from '../store/sessionStore'
 import { useUiStore } from '../store/uiStore'
 import { useUpdateStore } from '../store/updateStore'
-import { requestClose } from '../terminal/closeGuard'
+import { detachedTabsToClose, requestClose } from '../terminal/closeGuard'
 import { focusPane } from '../terminal/terminalActions'
 import { closeApplication } from '../terminal/textPersistence'
 
@@ -35,7 +35,7 @@ const restartToInstall = (version: string): void => {
   installRequested = false
   const { session } = useSessionStore.getState()
   const paneIds = session ? allPanes(session).map((pane) => pane.id) : []
-  requestClose(`Installer Tily ${version} et redémarrer ?`, paneIds, () => bridge.send({ type: 'update.apply' }), 'Arrêter et installer')
+  requestClose(`Installer Tily ${version} et redémarrer ?`, paneIds, () => bridge.send({ type: 'update.apply' }), 'Arrêter et installer', undefined, detachedTabsToClose())
 }
 
 export const installUpdate = (): void => {

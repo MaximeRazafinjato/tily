@@ -1,5 +1,7 @@
 using Tily.Core.Appearance;
+using Tily.Core.Native;
 using Tily.Host.Bridge;
+using Microsoft.UI;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.Web.WebView2.Core;
@@ -8,30 +10,99 @@ using Windows.UI;
 
 namespace Tily.Host;
 
-public sealed partial class MainWindow : Window
+public sealed partial class TilyWindow : Window
 {
     private const string VirtualHost = "tily.example";
     private const string AmbianceMediaHost = "tily.ambiance";
     private const string DevServerVariable = "TILY_WEB_DEV_URL";
-    private readonly HostBridge _bridge;
+    private const int CursorGripHeight = 16;
+    private readonly HostServices _services;
+    private readonly WindowRole _role;
     private readonly string _startUrl = ResolveStartUrl();
     private bool _closeConfirmed;
 
-    public MainWindow()
+    public TilyWindow(HostServices services, WindowRole role, DetachedPlacementModel? placement)
     {
         InitializeComponent();
-        AppWindow.Resize(new SizeInt32(1480, 900));
-        if (AppWindow.Presenter is OverlappedPresenter presenter)
+        _services = services;
+        _role = role;
+        if (placement is null)
         {
-            presenter.Maximize();
+            Maximize(new SizeInt32(1480, 900));
+        }
+        else
+        {
+            Place(placement);
         }
 
         AppWindow.SetIcon(Path.Combine(AppContext.BaseDirectory, "Assets", "Tily.ico"));
-        _bridge = new HostBridge(DispatcherQueue, App.DataDirectory, WinRT.Interop.WindowNative.GetWindowHandle(this), ForceClose, SetTitle, BrowserLayer, FocusInterface, ApplyWindowColors);
+        var handle = WinRT.Interop.WindowNative.GetWindowHandle(this);
+        Bridge = new HostBridge(services, role, DispatcherQueue, handle, ForceClose, ActivateWindow, SetTitle, BrowserLayer, FocusInterface, ApplyWindowColors);
         View.AllowDrop = true;
         Closed += HandleClosed;
         Activated += HandleActivated;
         _ = InitializeWebViewAsync();
+    }
+
+    public HostBridge Bridge { get; }
+
+    private void Maximize(SizeInt32 restoredSize)
+    {
+        AppWindow.Resize(restoredSize);
+        if (AppWindow.Presenter is OverlappedPresenter presenter)
+        {
+            presenter.Maximize();
+        }
+    }
+
+    private void Place(DetachedPlacementModel placement)
+    {
+        if (placement.Cursor is { } cursor)
+        {
+            PlaceAtCursor(cursor);
+        }
+        else
+        {
+            PlaceBeside(placement.SourceWindow);
+        }
+    }
+
+    private void PlaceAtCursor(WindowApi.ScreenPoint cursor)
+    {
+        var area = DisplayArea.GetFromPoint(new PointInt32(cursor.X, cursor.Y), DisplayAreaFallback.Nearest).WorkArea;
+        var width = area.Width * 3 / 5;
+        var height = area.Height * 7 / 10;
+        var x = Math.Clamp(cursor.X - width / 2, area.X, area.X + area.Width - width);
+        var y = Math.Clamp(cursor.Y - CursorGripHeight, area.Y, area.Y + area.Height - height);
+        AppWindow.MoveAndResize(new RectInt32(x, y, width, height));
+    }
+
+    private void PlaceBeside(nint sourceWindow)
+    {
+        var source = DisplayArea.GetFromWindowId(Win32Interop.GetWindowIdFromWindow(sourceWindow), DisplayAreaFallback.Nearest);
+        var other = OtherDisplay(source);
+        var work = (other ?? source).WorkArea;
+        var width = work.Width * 7 / 10;
+        var height = work.Height * 7 / 10;
+        AppWindow.MoveAndResize(new RectInt32(work.X + (work.Width - width) / 2, work.Y + (work.Height - height) / 2, width, height));
+        if (other is not null && AppWindow.Presenter is OverlappedPresenter presenter)
+        {
+            presenter.Maximize();
+        }
+    }
+
+    private static DisplayArea? OtherDisplay(DisplayArea source)
+    {
+        var displays = DisplayArea.FindAll();
+        for (var index = 0; index < displays.Count; index++)
+        {
+            if (displays[index].DisplayId.Value != source.DisplayId.Value)
+            {
+                return displays[index];
+            }
+        }
+
+        return null;
     }
 
     private async Task InitializeWebViewAsync()
@@ -48,10 +119,10 @@ public sealed partial class MainWindow : Window
         core.NavigationStarting += HandleNavigationStarting;
         core.NewWindowRequested += HandleNewWindowRequested;
         core.SetVirtualHostNameToFolderMapping(VirtualHost, Path.Combine(AppContext.BaseDirectory, "wwwroot"), CoreWebView2HostResourceAccessKind.Allow);
-        var media = new AmbianceMedia(App.DataDirectory);
+        var media = new AmbianceMedia(_services.DataDirectory);
         Directory.CreateDirectory(media.Folder);
         core.SetVirtualHostNameToFolderMapping(AmbianceMediaHost, media.Folder, CoreWebView2HostResourceAccessKind.Allow);
-        _bridge.Attach(core);
+        Bridge.Attach(core);
         core.Navigate(_startUrl);
         View.Focus(FocusState.Programmatic);
     }
@@ -59,6 +130,18 @@ public sealed partial class MainWindow : Window
     private void SetTitle(string title) => Title = title;
 
     private void FocusInterface() => View.Focus(FocusState.Programmatic);
+
+    private void ActivateWindow()
+    {
+        var handle = WinRT.Interop.WindowNative.GetWindowHandle(this);
+        if (WindowApi.IsIconic(handle))
+        {
+            WindowApi.ShowWindow(handle, WindowApi.ShowRestore);
+        }
+
+        Activate();
+        WindowApi.SetForegroundWindow(handle);
+    }
 
     private void ApplyWindowColors(WindowColorsModel colors)
     {
@@ -79,7 +162,7 @@ public sealed partial class MainWindow : Window
         titleBar.ButtonHoverForegroundColor = ink;
     }
 
-    private static Color ColorOf(string hex)
+    internal static Color ColorOf(string hex)
     {
         var (red, green, blue) = HexColor.Channels(hex);
         return Color.FromArgb(255, (byte)red, (byte)green, (byte)blue);
@@ -111,7 +194,7 @@ public sealed partial class MainWindow : Window
     private void HandleActivated(object sender, WindowActivatedEventArgs args)
     {
         var active = args.WindowActivationState != WindowActivationState.Deactivated;
-        _bridge.SetWindowActive(active);
+        Bridge.SetWindowActive(active);
         if (active)
         {
             View.Focus(FocusState.Programmatic);
@@ -131,12 +214,21 @@ public sealed partial class MainWindow : Window
 
     private void HandleClosed(object sender, WindowEventArgs args)
     {
-        if (!_closeConfirmed && _bridge.RequestClose())
+        if (!_closeConfirmed && Bridge.RequestClose())
         {
             args.Handled = true;
             return;
         }
 
-        _bridge.Dispose();
+        if (_role == WindowRole.Main)
+        {
+            _services.CloseDetachedWindows();
+        }
+
+        Bridge.Dispose();
+        if (_role == WindowRole.Main)
+        {
+            _services.Dispose();
+        }
     }
 }

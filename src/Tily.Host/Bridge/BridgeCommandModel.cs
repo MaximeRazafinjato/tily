@@ -44,6 +44,8 @@ public sealed class BridgeCommandModel
     public string? Content { get; init; }
     public string? Color { get; init; }
     public string? Version { get; init; }
+    public string? Window { get; init; }
+    public string? Workspace { get; init; }
     public string[]? Panes { get; init; }
     public string[]? Keep { get; init; }
     public string[]? Paths { get; init; }
@@ -52,6 +54,7 @@ public sealed class BridgeCommandModel
     public string[]? RemoteBranches { get; init; }
     public string[]? Tags { get; init; }
     public string[]? Stashes { get; init; }
+    public string[]? Tabs { get; init; }
     public GitHunkSelectionModel[]? Selection { get; init; }
     public MergeRequestInputModel? MergeRequest { get; init; }
     public MergeRequestInputModel? Original { get; init; }
@@ -84,9 +87,14 @@ public sealed class BridgeCommandModel
     public bool Remember { get; init; }
     public bool KeepBranch { get; init; }
     public bool DropDatabase { get; init; }
+    public bool AtCursor { get; init; }
+    public bool Single { get; init; }
     public JsonElement? Session { get; init; }
     public JsonElement? Text { get; init; }
     public JsonElement? Settings { get; init; }
     public JsonElement? Notifications { get; init; }
     public JsonElement? Result { get; init; }
+    public JsonElement? Payload { get; init; }
+    public JsonElement? Drop { get; init; }
+    public JsonElement? Workspaces { get; init; }
 }
