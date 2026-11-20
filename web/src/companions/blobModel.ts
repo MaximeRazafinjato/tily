@@ -38,6 +38,7 @@ export interface Perch {
 export interface Blob {
   key: string
   paneId: string
+  name: string
   hue: number
   radius: number
   x: number
@@ -109,6 +110,7 @@ export interface World {
   pointer: Pointer
   basket: Basket
   dragged: Blob | null
+  hovered: Blob | null
   size: number
   speed: number
   width: number
@@ -122,6 +124,7 @@ export const createWorld = (size: number, speed: number): World => ({
   pointer: { x: -1, y: -1, history: [] },
   basket: { x: 0, y: 0, radius: 9, scale: 1, hover: false, pressed: false, color: '#ffffff' },
   dragged: null,
+  hovered: null,
   size,
   speed,
   width: innerWidth,
@@ -143,6 +146,7 @@ export const createBlob = (world: World, key: string, paneId: string, hue: numbe
   return {
     key,
     paneId,
+    name: '',
     hue,
     radius: world.size * (parent ? CHILD_SCALE : 1),
     x,
@@ -224,6 +228,9 @@ export const removeBlob = (world: World, blob: Blob): void => {
   }
   if (world.dragged === blob) {
     world.dragged = null
+  }
+  if (world.hovered === blob) {
+    world.hovered = null
   }
 }
 

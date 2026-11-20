@@ -13,7 +13,7 @@ if ($agentId -notmatch '^[A-Za-z0-9_-]+$') { $agentId = '' }
 
 if ($eventName -eq 'SessionEnd') {
     Remove-Item -LiteralPath $file -Force -ErrorAction SilentlyContinue
-    Get-ChildItem -LiteralPath $directory -Filter "$paneId.sub.*.json" -ErrorAction SilentlyContinue | Remove-Item -Force -ErrorAction SilentlyContinue
+    Get-ChildItem -LiteralPath $directory -Filter "$paneId.sub.*" -ErrorAction SilentlyContinue | Remove-Item -Force -ErrorAction SilentlyContinue
     exit 0
 }
 
@@ -22,12 +22,27 @@ function Write-StateFile([string]$path, $content) {
     [System.IO.File]::WriteAllText($path, ($content | ConvertTo-Json -Compress), [System.Text.UTF8Encoding]::new($false))
 }
 
+function Stop-Subagent([string]$id) {
+    New-Item -ItemType Directory -Path $directory -Force | Out-Null
+    [System.IO.File]::WriteAllText((Join-Path $directory "$paneId.sub.$id.stopped"), '')
+    Remove-Item -LiteralPath (Join-Path $directory "$paneId.sub.$id.json") -Force -ErrorAction SilentlyContinue
+}
+
+if (-not $agentId -and $eventName -eq 'Stop' -and $hook.PSObject.Properties['background_tasks']) {
+    $running = @($hook.background_tasks | Where-Object { $_.type -eq 'subagent' -and $_.status -eq 'running' } | ForEach-Object { [string]$_.id })
+    Get-ChildItem -LiteralPath $directory -Filter "$paneId.sub.*.json" -ErrorAction SilentlyContinue | ForEach-Object {
+        $id = $_.Name.Substring("$paneId.sub.".Length, $_.Name.Length - "$paneId.sub.".Length - '.json'.Length)
+        if ($id -notin $running) { Stop-Subagent $id }
+    }
+}
+
 if ($agentId -and $eventName -in 'SubagentStart', 'SubagentStop', 'PostToolUse') {
     $subagentFile = Join-Path $directory "$paneId.sub.$agentId.json"
     if ($eventName -eq 'SubagentStop') {
-        Remove-Item -LiteralPath $subagentFile -Force -ErrorAction SilentlyContinue
+        Stop-Subagent $agentId
         exit 0
     }
+    if (Test-Path -LiteralPath (Join-Path $directory "$paneId.sub.$agentId.stopped")) { exit 0 }
     $type = [string]$hook.agent_type
     if ([string]::IsNullOrWhiteSpace($type)) { $type = 'agent' }
     $tool = if ($eventName -eq 'PostToolUse') { [string]$hook.tool_name } else { $null }

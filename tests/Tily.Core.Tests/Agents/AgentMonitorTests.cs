@@ -136,6 +136,18 @@ public sealed class AgentMonitorTests : IDisposable
     }
 
     [Fact]
+    public void Resolve_WhenSubagentMarkedStopped_ThenIgnored()
+    {
+        File.WriteAllText(_states.FilePathFor("pane-a"), "{ \"agent\": \"claude\", \"state\": \"working\" }");
+        File.WriteAllText(_states.SubagentFilePathFor("pane-a", "a1"), "{ \"type\": \"Explore\" }");
+        File.WriteAllText(Path.ChangeExtension(_states.SubagentFilePathFor("pane-a", "a1"), ".stopped"), "");
+
+        var agent = _monitor.Resolve([new PaneProbeModel("pane-a", DateTime.UtcNow.AddMinutes(-1), ["node"])]).Single();
+
+        Assert.Null(agent.Subagents);
+    }
+
+    [Fact]
     public void Resolve_WhenNoProcessLeft_ThenDeletesSubagentFiles()
     {
         File.WriteAllText(_states.FilePathFor("pane-idle"), "{ \"agent\": \"claude\", \"state\": \"done\" }");

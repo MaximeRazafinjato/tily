@@ -7,6 +7,7 @@ public sealed class AgentStateRepository
 {
     public const int MaxDetailLength = 240;
     private const string SubagentInfix = ".sub.";
+    private const string StoppedExtension = ".stopped";
 
     private static readonly Dictionary<string, AgentState> States = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -63,9 +64,9 @@ public sealed class AgentStateRepository
     private IReadOnlyList<SubagentModel>? ReadSubagents(string paneId, DateTime notBeforeUtc)
     {
         var prefix = paneId + SubagentInfix;
-        var subagents = SubagentFiles(paneId)
+        var subagents = SubagentFiles(paneId, "*.json")
             .Select(path => new FileInfo(path))
-            .Where(file => file.LastWriteTimeUtc >= notBeforeUtc)
+            .Where(file => file.LastWriteTimeUtc >= notBeforeUtc && !File.Exists(Path.ChangeExtension(file.FullName, StoppedExtension)))
             .OrderBy(file => file.CreationTimeUtc)
             .ThenBy(file => file.Name, StringComparer.Ordinal)
             .Select(file => ReadSubagent(file, file.Name[prefix.Length..^".json".Length]))
@@ -87,8 +88,8 @@ public sealed class AgentStateRepository
         }
     }
 
-    private IEnumerable<string> SubagentFiles(string paneId) =>
-        System.IO.Directory.Exists(Directory) ? System.IO.Directory.EnumerateFiles(Directory, $"{paneId}{SubagentInfix}*.json") : [];
+    private IEnumerable<string> SubagentFiles(string paneId, string pattern = "*") =>
+        System.IO.Directory.Exists(Directory) ? System.IO.Directory.EnumerateFiles(Directory, $"{paneId}{SubagentInfix}{pattern}") : [];
 
     private static string? SingleLine(string? detail)
     {
@@ -122,7 +123,7 @@ public sealed class AgentStateRepository
             return;
         }
 
-        foreach (var path in System.IO.Directory.EnumerateFiles(Directory, "*.json"))
+        foreach (var path in System.IO.Directory.EnumerateFiles(Directory, "*.json").Concat(System.IO.Directory.EnumerateFiles(Directory, "*" + StoppedExtension)).ToList())
         {
             try
             {
