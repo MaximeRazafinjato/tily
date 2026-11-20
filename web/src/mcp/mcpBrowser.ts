@@ -8,6 +8,7 @@ import { useSessionStore } from '../store/sessionStore'
 import { flagArgument, numberArgument, textArgument, type McpArguments } from './mcpArguments'
 import { requireCaller } from './mcpOrganize'
 import { locationOf, placeOf, placesOf, requirePlace, requireSession, type PanePlace } from './mcpPanes'
+import { localIsoTime } from './mcpTime'
 
 enum Placement {
   Right = 'right',
@@ -22,6 +23,8 @@ const START_POLL_MS = 100
 const DEFAULT_LIMIT = 50
 
 const lastBrowserOf = new Map<string, string>()
+
+const withLocalTimes = <T extends { at: string }>(found: BrowserEntries<T>): BrowserEntries<T> => ({ ...found, entries: found.entries.map((entry) => ({ ...entry, at: localIsoTime(entry.at) })) })
 
 const viewportOf = (value: string | undefined): BrowserViewport | undefined => (value === BrowserViewport.Mobile || value === BrowserViewport.Desktop ? value : undefined)
 
@@ -141,7 +144,7 @@ export const browserConsole = async (values: McpArguments, caller: string | unde
     sinceLoad: flagArgument(values, 'sinceLoad'),
     limit: numberArgument(values, 'limit') ?? DEFAULT_LIMIT,
   })
-  return { ...describe(place), url: useBrowserStore.getState().states[place.pane.id]?.url, ...entries }
+  return { ...describe(place), url: useBrowserStore.getState().states[place.pane.id]?.url, ...withLocalTimes(entries) }
 }
 
 export const browserNetwork = async (values: McpArguments, caller: string | undefined) => {
@@ -153,7 +156,7 @@ export const browserNetwork = async (values: McpArguments, caller: string | unde
     sinceLoad: flagArgument(values, 'sinceLoad'),
     limit: numberArgument(values, 'limit') ?? DEFAULT_LIMIT,
   })
-  return { ...describe(place), url: useBrowserStore.getState().states[place.pane.id]?.url, ...entries }
+  return { ...describe(place), url: useBrowserStore.getState().states[place.pane.id]?.url, ...withLocalTimes(entries) }
 }
 
 export const browserScreenshot = async (values: McpArguments, caller: string | undefined) => {
