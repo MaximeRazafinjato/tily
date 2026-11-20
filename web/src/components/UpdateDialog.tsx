@@ -3,7 +3,7 @@ import { UpdateStatus, type UpdateInfo, type UpdateRelease } from '../bridge/upd
 import { cancelUpdateDownload, closeUpdateDialog, downloadPercent, formatDate, formatMebibytes, installUpdate, openReleasePage } from '../update/updateActions'
 import { keepTabInside } from './focusTrap'
 import { InfoTip } from './InfoTip'
-import { ReleaseNote } from './ReleaseNote'
+import { ReleaseNoteList } from './ReleaseNoteList'
 import { SETTINGS_BUTTON, SETTINGS_HINT, SETTINGS_SECONDARY } from './settingsStyles'
 
 interface UpdateDialogProps {
@@ -70,23 +70,7 @@ export function UpdateDialog({ info, release }: UpdateDialogProps) {
         </div>
         <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-4 py-4">
           {release.notes.length > 0 ? (
-            <ul className="flex flex-col gap-3 text-[13px]">
-              {release.notes.map(({ title, text }) => (
-                <li key={`${title ?? ''}${text}`} className="flex gap-2.5">
-                  <span className="mt-[7px] size-1.5 shrink-0 rounded-full bg-tily-green" />
-                  <span className="flex min-w-0 flex-col gap-0.5">
-                    {title && (
-                      <strong className="font-semibold text-tily-ink">
-                        <ReleaseNote text={title} />
-                      </strong>
-                    )}
-                    <span className={title ? 'text-tily-ink-soft' : 'text-tily-ink'}>
-                      <ReleaseNote text={text} />
-                    </span>
-                  </span>
-                </li>
-              ))}
-            </ul>
+            <ReleaseNoteList notes={release.notes} />
           ) : (
             <p className={SETTINGS_HINT}>Aucune note de version : consultez la release sur GitHub.</p>
           )}

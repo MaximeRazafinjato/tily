@@ -64,6 +64,38 @@ public sealed class ReleaseNotesTests
     }
 
     [Fact]
+    public void Sections_WhenBodyHasIntroAndHeadings_ThenKeepsEachSectionInOrder()
+    {
+        var body = "Intro.\n\n## Nouveautés\n- Ambiance — Fond animé.\n\n## Corrections\n- Notes rétablies.";
+
+        var sections = ReleaseNotes.Sections(body);
+
+        Assert.Equal(
+            ["|Intro.", "Nouveautés|Ambiance : Fond animé.", "Corrections|Notes rétablies."],
+            sections.Select(section => $"{section.Title}|{string.Join(" / ", section.Notes.Select(note => note.Title is null ? note.Text : $"{note.Title} : {note.Text}"))}"));
+    }
+
+    [Fact]
+    public void Sections_WhenInstallationSection_ThenLeavesItOut()
+    {
+        var body = "## Installation\n1. Lancer l’installeur.\n\n## Nouveautés\n- Point.";
+
+        var sections = ReleaseNotes.Sections(body);
+
+        Assert.Equal(["Nouveautés"], sections.Select(section => section.Title));
+    }
+
+    [Fact]
+    public void Sections_WhenHeadingWithoutLines_ThenLeavesItOut()
+    {
+        var body = "## Limites connues\n\n## Corrections\n- Point.";
+
+        var sections = ReleaseNotes.Sections(body);
+
+        Assert.Equal(["Corrections"], sections.Select(section => section.Title));
+    }
+
+    [Fact]
     public void Highlights_WhenNothingAfterSeparator_ThenKeepsWholeLineAsText()
     {
         var notes = ReleaseNotes.Highlights("## Nouveautés\n- Titre seul —");

@@ -195,6 +195,7 @@ Mises à jour par les releases GitHub (spec, §13).
 - Une release n'est acceptée que si son installeur porte le nom du canal, vient de `https://github.com/MaximeRazafinjato/tily/releases/download/` et a une empreinte `sha256:` publiée par GitHub. Le téléchargement va dans un `.part` haché au fil de l'eau, supprimé si l'empreinte diffère, renommé sinon.
 - Versions comparées à la SemVer (`2.3.0-beta.2` < `2.3.0-beta.10` < `2.3.0`).
 - `ReleaseNotes` rend chaque note en `ReleaseNoteModel` : une ligne « Titre — détail » (titre de 60 caractères au plus, détail non vide) est découpée au premier « — », toute autre ligne n'a pas de titre. Ce format reste lisible dans les versions antérieures, qui affichent la ligne entière.
+- Historique des notes de version : `UpdateClient.HistoryAsync` lit jusqu'à 100 releases ; `ReleaseParser.ParseHistory` écarte les brouillons, les tags illisibles et, sur le canal stable, les pré-releases, sans exiger d'installeur ; `ReleaseNotes.Sections` découpe chaque corps par titre, introduction comprise, sans la section « Installation ». `UpdateFeed` garde la liste pour la session après la première lecture réussie.
 - Copie installée reconnue à `unins000.exe` ; installation pour tous les utilisateurs si elle est sous `Program Files`.
 
 ### StatusLog/
@@ -320,7 +321,7 @@ Les types TypeScript sont dans `web/src/bridge/` : `messages.ts` (application, s
 - Worktrees : `worktrees.sources` (dépôts proposés), `worktrees.plan` (plan sans écriture), `worktrees.list` (worktrees du dépôt d'un dossier), `worktrees.create`, `worktrees.remove`.
 - Clonage : `clone.suggest` (texte du presse-papiers à reconnaître), `clone.plan` (plan sans écriture), `clone.start` (clonage).
 - MCP : `mcp.response` (réponse à un `mcp.request`).
-- Mises à jour : `update.check` (vérification), `update.install` (téléchargement), `update.cancel` (annule le téléchargement), `update.apply` (installation et redémarrage).
+- Mises à jour : `update.check` (vérification), `update.install` (téléchargement), `update.cancel` (annule le téléchargement), `update.apply` (installation et redémarrage), `update.history` (historique des notes de version).
 - Journal de la barre de statut : `statusLog.append` (ajoute un message), `statusLog.clear` (vide le journal).
 - Navigateur : `browser.attach` (crée la vue du pane), `browser.bounds` (rectangle et visibilité), `browser.snapshot` (image affichée à la place de la vue masquée), `browser.navigate`, `browser.back`, `browser.reload` (navigation), `browser.viewport` (bureau ou mobile), `browser.devtools` (outils de développement), `browser.focus` (focus dans la page), `browser.close` (libère la vue), `browser.console`, `browser.network` (journaux filtrés), `browser.screenshot` (capture PNG), `browser.elements` (plan de la page avec références), `browser.click`, `browser.type`, `browser.press`, `browser.scroll`, `browser.evaluate` (actions de Claude Code dans la page).
 
@@ -337,7 +338,7 @@ Les types TypeScript sont dans `web/src/bridge/` : `messages.ts` (application, s
 - MR/PR : `forge.listed`, `forge.branchListed`, `forge.formLoaded`, `forge.compared`, `forge.created`, `forge.updated`, réponses aux messages `forge.*`.
 - Worktrees : `worktrees.sourcesFound`, `worktrees.planned`, `worktrees.listed` (réponses aux lectures), `worktrees.progress` (étape en cours), `worktrees.created` (dossier prêt, le web ouvre le workspace), `worktrees.done`, `worktrees.failed` (fin d'une opération), `worktrees.purging`, `worktrees.purged` (effacement en arrière-plan).
 - Clonage : `clone.suggested` (adresse reconnue, ou rien), `clone.planned` (plan et dossiers parents proposés), `clone.progress` (étape en cours), `clone.done` (dépôt cloné, le web l'ouvre), `clone.failed`.
-- Mises à jour : `update.state` (état des mises à jour), `update.restart` (installeur prêt, le web ferme l'application).
+- Mises à jour : `update.state` (état des mises à jour), `update.restart` (installeur prêt, le web ferme l'application), `update.history` (versions et leurs notes, ou erreur en français).
 - Journal de la barre de statut : `statusLog.added`, `statusLog.cleared` (journal modifié).
 - Navigateur : `browser.state` (état d'un pane navigateur), `browser.newPane` (lien à ouvrir dans un nouveau pane), `browser.focused` (la page a pris le focus), `browser.key` (raccourci de Tily tapé dans la page), `browser.failed` (vue impossible à créer), `browser.reply` (réponse à une commande numérotée).
 

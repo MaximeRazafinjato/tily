@@ -16,6 +16,7 @@ import { keepTabInside } from './focusTrap'
 import { NotificationSettingsSection } from './NotificationSettingsSection'
 import { NUMBER_FIELDS, numberFieldId, numberTextOf, valueWithin, type NumberField, type NumberTexts } from './persistenceFields'
 import { ProjectSettingsSection } from './ProjectSettingsSection'
+import { ReleaseNotesSettingsSection } from './ReleaseNotesSettingsSection'
 import { SettingsNav } from './SettingsNav'
 import { SETTINGS_SECTION_LABELS, SettingsSection, settingsTabId } from './settingsSections'
 import { SETTINGS_HINT, SETTINGS_ICON_BUTTON, SETTINGS_PRIMARY, SETTINGS_SECONDARY } from './settingsStyles'
@@ -262,6 +263,8 @@ export function SettingsDialog({ snapshot, pickedPath, imported, onClose, onSave
         return <AgentSettingsSection title={title} agents={current.agents} mcp={current.mcp} onInstallHooks={onInstallHooks} onRemoveHooks={onRemoveHooks} />
       case SettingsSection.Updates:
         return <UpdateSettingsSection title={title} autoCheck={settings.updates.autoCheck} onAutoCheckChange={handleAutoCheckChange} />
+      case SettingsSection.ReleaseNotes:
+        return <ReleaseNotesSettingsSection title={title} />
     }
   }
 

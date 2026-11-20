@@ -36,6 +36,7 @@ public sealed class UpdateFeed : IDisposable
     private long _total;
     private long _lastProgress;
     private CancellationTokenSource? _download;
+    private IReadOnlyList<ReleaseHistoryModel>? _history;
 
     public UpdateFeed(Action<object> post, string currentVersion, string dataDirectory)
     {
@@ -80,6 +81,9 @@ public sealed class UpdateFeed : IDisposable
                 break;
             case "update.apply":
                 Apply();
+                break;
+            case "update.history":
+                _ = PostHistoryAsync();
                 break;
             default:
                 throw new InvalidOperationException($"Commande inconnue : {command.Type}");
@@ -154,6 +158,34 @@ public sealed class UpdateFeed : IDisposable
         }
 
         PostState();
+    }
+
+    private async Task PostHistoryAsync()
+    {
+        IReadOnlyList<ReleaseHistoryModel>? history;
+        lock (_gate)
+        {
+            history = _history;
+        }
+
+        if (history is null)
+        {
+            try
+            {
+                history = await _client.HistoryAsync(CancellationToken.None);
+                lock (_gate)
+                {
+                    _history = history;
+                }
+            }
+            catch (Exception exception) when (exception is UpdateException or HttpRequestException or IOException)
+            {
+                _post(new { type = "update.history", error = exception is UpdateException ? exception.Message : $"Impossible de joindre GitHub : {exception.Message}" });
+                return;
+            }
+        }
+
+        _post(new { type = "update.history", releases = history });
     }
 
     private async Task DownloadAsync()

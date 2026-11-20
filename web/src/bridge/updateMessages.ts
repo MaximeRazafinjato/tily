@@ -34,10 +34,28 @@ export interface UpdateInfo {
   releasesPage: string
 }
 
+export interface ReleaseNoteSection {
+  title?: string | null
+  notes: UpdateReleaseNote[]
+}
+
+export interface ReleaseHistoryEntry {
+  version: string
+  prerelease: boolean
+  publishedAt?: string | null
+  pageUrl: string
+  sections: ReleaseNoteSection[]
+}
+
+export interface ReleaseHistoryAnswer {
+  releases?: ReleaseHistoryEntry[]
+  error?: string
+}
+
 export interface UpdateSettings {
   autoCheck: boolean
 }
 
-export type UpdateHostMessage = ({ type: 'update.state' } & UpdateInfo) | { type: 'update.restart' }
+export type UpdateHostMessage = ({ type: 'update.state' } & UpdateInfo) | { type: 'update.restart' } | ({ type: 'update.history' } & ReleaseHistoryAnswer)
 
-export type UpdateWebMessage = { type: 'update.check' } | { type: 'update.install' } | { type: 'update.cancel' } | { type: 'update.apply' }
+export type UpdateWebMessage = { type: 'update.check' } | { type: 'update.install' } | { type: 'update.cancel' } | { type: 'update.apply' } | { type: 'update.history' }

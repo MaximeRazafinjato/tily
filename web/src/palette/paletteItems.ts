@@ -82,6 +82,7 @@ const commandItems = (session: Session, shells: ShellProfile[]): PaletteItem[] =
     bound('appearance-settings', 'Couleur de Tily et palette du terminal…', Command.AppearanceSettings),
     bound('ambiance-settings', 'Ambiance…', Command.AmbianceSettings),
     bound('toggle-ambiance', 'Activer ou couper l’ambiance', Command.ToggleAmbiance),
+    bound('release-notes', 'Notes de version…', Command.ReleaseNotes),
     bound('settings-export', 'Exporter les préférences…', Command.SettingsExport),
     bound('settings-import', 'Importer les préférences…', Command.SettingsImport),
     bound('search-terminals', 'Rechercher dans tous les terminaux…', Command.SearchTerminals, 'Alt+Entrée dans la recherche'),

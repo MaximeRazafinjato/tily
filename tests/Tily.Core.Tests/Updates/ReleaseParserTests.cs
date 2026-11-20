@@ -128,6 +128,37 @@ public sealed class ReleaseParserTests
         Assert.Equal("Réponse de GitHub inattendue.", exception.Message);
     }
 
+    [Fact]
+    public void ParseHistory_WhenStableChannel_ThenSkipsBetasDraftsAndUnreadableTags()
+    {
+        var draft = ReleaseJson("v1.6.0").Replace("\"prerelease\": false", "\"draft\": true, \"prerelease\": false");
+        var json = $"[{draft}, {ReleaseJson("v1.5.0-beta.1", prerelease: true)}, {ReleaseJson("nightly")}, {ReleaseJson()}]";
+
+        var history = ReleaseParser.ParseHistory(json, ReleaseChannel.Stable);
+
+        Assert.Equal(["1.4.0"], history.Select(release => release.Version));
+    }
+
+    [Fact]
+    public void ParseHistory_WhenBetaChannel_ThenKeepsBetasMarkedAsPrereleases()
+    {
+        var json = $"[{ReleaseJson("v1.5.0-beta.1", prerelease: true)}, {ReleaseJson()}]";
+
+        var history = ReleaseParser.ParseHistory(json, ReleaseChannel.Beta);
+
+        Assert.Equal([("1.5.0-beta.1", true), ("1.4.0", false)], history.Select(release => (release.Version, release.Prerelease)));
+    }
+
+    [Fact]
+    public void ParseHistory_WhenReleaseHasNoInstaller_ThenKeepsItsNotesWithoutInstallation()
+    {
+        var json = $"[{ReleaseJson(assetName: "Dock-1.4.0-setup.exe", digest: null)}]";
+
+        var release = Assert.Single(ReleaseParser.ParseHistory(json, ReleaseChannel.Stable));
+
+        Assert.Equal([null, "Nouveautés"], release.Sections.Select(section => section.Title));
+    }
+
     [Theory]
     [InlineData("1.5.0-beta.2", "1.5.0-beta.1", true)]
     [InlineData("1.4.0", "1.3.0", true)]

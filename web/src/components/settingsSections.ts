@@ -8,6 +8,7 @@ export enum SettingsSection {
   Notifications = 'notifications',
   Agents = 'agents',
   Updates = 'updates',
+  ReleaseNotes = 'releaseNotes',
 }
 
 export const SETTINGS_SECTION_LABELS: Record<SettingsSection, string> = {
@@ -20,6 +21,7 @@ export const SETTINGS_SECTION_LABELS: Record<SettingsSection, string> = {
   [SettingsSection.Notifications]: 'Notifications',
   [SettingsSection.Agents]: 'Agents et MCP',
   [SettingsSection.Updates]: 'Mises à jour',
+  [SettingsSection.ReleaseNotes]: 'Notes de version',
 }
 
 export const settingsTabId = (section: SettingsSection): string => `settings-tab-${section}`
