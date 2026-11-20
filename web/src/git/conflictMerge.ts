@@ -7,6 +7,7 @@ import { GitMergeChunkKind, type GitConflictFile } from '../bridge/gitMessages'
 import { editorHighlightStyle, editorTheme, FRENCH_PHRASES, languageExtensions } from '../preview/editorSetup'
 import { alignmentDecorations, conflictTheme, HEADER_HEIGHT, LINE_HEIGHT, lineCounts, type ConflictHeader, type GapHandlers } from './conflictGaps'
 import { conflictLayout, ConflictSide, sideLines, sideTitle, type ConflictChunk } from './conflictLayout'
+import { conflictHighlight } from './conflictHighlight'
 import { blockCheck, isLinePicked, PickCheck, setBlock, sideCheck, toggleBlock, toggleLines } from './conflictPicks'
 import { pickGutter, type SideLine } from './conflictPickGutter'
 import { pickBlocks, resultBlocksField, resultHistory, unresolvedCount, type BlockResolution, type PickRequest, type ResultBlocks } from './conflictResult'
@@ -81,6 +82,8 @@ export const createConflictMerge = (parents: ConflictMergeParents, file: GitConf
   const conflictIndexes = chunks.flatMap((chunk, index) => (chunk.conflict === null ? [] : [index]))
   const field = resultBlocksField(chunks, layout.resultBounds)
   const views: EditorView[] = []
+  const editorLanguage = languageExtensions(file.language)
+  const syntax = editorLanguage.length > 0 ? editorLanguage : [conflictHighlight(file.path)]
   const gapHandlers: GapHandlers = { toggleBlock: (conflict, side) => toggleBlockAt(chunks.findIndex((chunk) => chunk.conflict === conflict), side) }
 
   const header = (index: number, sync: BlockResolution, side: ConflictSide | null): ConflictHeader | null => {
@@ -204,7 +207,7 @@ export const createConflictMerge = (parents: ConflictMergeParents, file: GitConf
       ]),
     ),
     keymap.of([...defaultKeymap, ...searchKeymap]),
-    ...languageExtensions(file.language),
+    ...syntax,
   ]
 
   const resultState = EditorState.create({
