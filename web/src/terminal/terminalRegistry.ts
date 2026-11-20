@@ -7,6 +7,7 @@ import { SerializeAddon } from '@xterm/addon-serialize'
 import { WebLinksAddon } from '@xterm/addon-web-links'
 import { bridge } from '../bridge/bridge'
 import { DEFAULT_FONT_SIZE } from '../model/appearance'
+import type { TransferredTerminal } from '../bridge/windowMessages'
 import { allPanes, type Pane } from '../model/session'
 import { useSessionStore } from '../store/sessionStore'
 import { COMMAND_DONE_OSC, receiveCommandDone } from './commandNotices'
@@ -182,8 +183,9 @@ const openLinkOnCtrlClick = (event: MouseEvent, url: string): void => {
   }
 }
 
-const createHandle = (pane: Pane): TerminalHandle => {
+const createHandle = (pane: Pane, size?: { cols: number; rows: number }): TerminalHandle => {
   const terminal = new Terminal({
+    ...size,
     allowProposedApi: true,
     allowTransparency: true,
     cursorBlink: true,
@@ -376,6 +378,36 @@ export const terminalRegistry = {
 
   markExited(paneId: string, code: number): void {
     handles.get(paneId)?.terminal.write(`\r\n\x1b[31m[processus terminé, code ${code}]\x1b[0m\r\n`)
+  },
+
+  async exportTerminal(paneId: string): Promise<TransferredTerminal | undefined> {
+    const handle = handles.get(paneId)
+    if (!handle) {
+      const primed = primedText.get(paneId)
+      return primed ? { pane: paneId, text: primed.text, cols: 0, rows: 0, started: false } : undefined
+    }
+    await new Promise<void>((resolve) => handle.terminal.write('', resolve))
+    return { pane: paneId, text: handle.serializer.serialize({ scrollback: scrollbackLines }), cols: handle.terminal.cols, rows: handle.terminal.rows, started: handle.started }
+  },
+
+  adopt(pane: Pane, transferred: TransferredTerminal): void {
+    if (!transferred.started) {
+      primedText.set(pane.id, { text: transferred.text, kind: RestoreKind.Session })
+      return
+    }
+    const handle = createHandle(pane, { cols: transferred.cols, rows: transferred.rows })
+    handle.started = true
+    handles.set(pane.id, handle)
+    handle.terminal.write(transferred.text)
+  },
+
+  release(paneIds: string[]): void {
+    for (const paneId of paneIds) {
+      handles.get(paneId)?.terminal.dispose()
+      handles.delete(paneId)
+      primedText.delete(paneId)
+      initialCommands.delete(paneId)
+    }
   },
 
   dispose(paneId: string): void {

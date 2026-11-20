@@ -1,17 +1,15 @@
-using System.Collections.Concurrent;
-using System.Reflection;
 using System.Text;
 using System.Text.Json;
 using Tily.Core.Agents;
 using Tily.Core.Appearance;
 using Tily.Core.Context;
+using Tily.Core.Native;
 using Tily.Core.Projects;
 using Tily.Core.Session;
 using Tily.Core.Settings;
 using Tily.Core.Shell;
 using Tily.Core.Shortcuts;
 using Tily.Core.StatusLog;
-using Tily.Core.Terminal;
 using Tily.Core.Updates;
 using Tily.Core.Worktrees;
 using Microsoft.UI.Dispatching;
@@ -28,87 +26,96 @@ public sealed class HostBridge : IDisposable
     private const string TerminalCommandPrefix = "terminal.";
     private const string InvalidDroppedPath = "Chemin déposé invalide.";
     private const string AttentionDone = "done";
-    private static readonly string ApplicationVersion = typeof(HostBridge).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion.Split('+')[0] ?? string.Empty;
+    private const string MainWindowId = "main";
+    private const string MainWindowOnly = "Les paramètres et les mises à jour se gèrent dans la fenêtre principale de Tily.";
+    private static readonly HashSet<string> MainWindowCommands = ["settings.save", "settings.export", "settings.import", "appearance.fontSize", "appearance.ambianceEnabled", "appearance.projectColor", "appearance.importMedia", "agents.installHooks", "agents.removeHooks", "mcp.install", "mcp.remove"];
     private static readonly TimeSpan WriteDrainTimeout = TimeSpan.FromSeconds(10);
     private static readonly JsonSerializerOptions JsonOptions = SessionRepository.JsonOptions;
 
+    private readonly HostServices _services;
     private readonly DispatcherQueue _dispatcher;
     private readonly Action _closeWindow;
+    private readonly Action _activateWindow;
     private readonly Action<string> _setTitle;
-    private readonly nint _windowHandle;
-    private readonly string _dataDirectory;
     private readonly SessionRepository _sessions;
-    private readonly SettingsService _settingsService;
-    private readonly TerminalManager _terminals;
-    private readonly AgentStateFeed _agents;
     private readonly AttentionNotifier _notifier;
     private readonly FileExplorerFeed _files;
     private readonly FilePreviewFeed _preview;
-    private readonly PreviewRequestFeed _previewRequests;
     private readonly GitFeed _git;
     private readonly ForgeFeed _forge;
     private readonly WorktreeFeed _worktrees;
     private readonly CloneFeed _clones;
-    private readonly UpdateFeed _updates;
     private readonly StatusLogFeed _statusLog;
-    private readonly McpFeed _mcp;
     private readonly BrowserFeed _browsers;
     private readonly AppearanceFeed _appearance;
-    private SettingsModel _settings;
-    private ShellPathsModel _shellPaths = ShellPathsModel.Empty;
-    private PersistenceSettingsModel _persistence = PersistenceSettingsModel.Default;
+    private readonly HeldPanes _held = new();
+    private readonly List<object> _pendingReceives = [];
     private PaneTextRepository _texts;
-    private readonly ConcurrentDictionary<string, PaneOutputBuffer> _buffers = new();
     private readonly BackgroundQueue _writes;
     private readonly BackgroundQueue _queries;
     private CoreWebView2? _core;
     private int _flushScheduled;
+    private bool _ready;
     private bool _closing;
     private DispatcherQueueTimer? _closeTimer;
 
-    public HostBridge(DispatcherQueue dispatcher, string dataDirectory, nint windowHandle, Action closeWindow, Action<string> setTitle, Canvas browserLayer, Action focusInterface, Action<WindowColorsModel> applyWindowColors)
+    public HostBridge(HostServices services, WindowRole role, DispatcherQueue dispatcher, nint windowHandle, Action closeWindow, Action activateWindow, Action<string> setTitle, Canvas browserLayer, Action focusInterface, Action<WindowColorsModel> applyWindowColors)
     {
+        _services = services;
+        Role = role;
+        WindowId = role == WindowRole.Main ? MainWindowId : Guid.NewGuid().ToString("N");
+        WindowHandle = windowHandle;
         _dispatcher = dispatcher;
-        _windowHandle = windowHandle;
         _closeWindow = closeWindow;
+        _activateWindow = activateWindow;
         _setTitle = setTitle;
-        _dataDirectory = dataDirectory;
+        var dataDirectory = services.DataDirectory;
         _sessions = new SessionRepository(dataDirectory);
-        _settingsService = new SettingsService(dataDirectory);
-        _settings = _settingsService.Load();
-        _texts = new PaneTextRepository(dataDirectory, _persistence.MaxTextBytes);
-        _terminals = new TerminalManager();
-        _writes = new BackgroundQueue(PostBackgroundError);
-        _queries = new BackgroundQueue(PostBackgroundError);
-        _statusLog = new StatusLogFeed(dataDirectory, _writes, Post);
-        _agents = new AgentStateFeed(dataDirectory, _terminals, Post);
-        _notifier = new AttentionNotifier(dispatcher, windowHandle, paneId => PostNow(new { type = "agent.join", pane = paneId }));
+        _texts = new PaneTextRepository(dataDirectory, services.Settings.Persistence.MaxTextBytes);
+        _writes = new BackgroundQueue(PostError);
+        _queries = new BackgroundQueue(PostError);
+        _statusLog = new StatusLogFeed(dataDirectory, _writes, Post, role == WindowRole.Main);
+        _notifier = new AttentionNotifier(dispatcher, windowHandle, paneId => PostNow(new { type = "agent.join", pane = paneId }), role == WindowRole.Main);
         _notifier.Register();
-        _files = new FileExplorerFeed(windowHandle, () => _settings.Editor, Post, PostBackgroundError);
-        _preview = new FilePreviewFeed(() => _settings.Editor, Post, PostBackgroundError);
-        _previewRequests = new PreviewRequestFeed(dataDirectory, Post);
-        _git = new GitFeed(Post, () => _settings.Git.AutoFetch, PostBackgroundError);
-        _forge = new ForgeFeed(Post, () => _settings.Worktrees.DefaultBase, _git.RefreshSoon, PostBackgroundError);
-        _worktrees = new WorktreeFeed(Post, () => _settings, RememberWorktreeFolder, _git.RefreshSoon, PostBackgroundError, dataDirectory);
-        _clones = new CloneFeed(Post, () => _settings, PostBackgroundError);
-        _updates = new UpdateFeed(Post, ApplicationVersion, dataDirectory);
-        _mcp = new McpFeed(dataDirectory, Post, PostBackgroundError);
-        _browsers = new BrowserFeed(browserLayer, () => _core?.Environment, Post, focusInterface, () => ShortcutRules.InterceptedChords(_settings.Shortcuts));
-        _appearance = new AppearanceFeed(() => _settings, _settingsService, Post, colors => _dispatcher.TryEnqueue(() => applyWindowColors(colors)), PostBackgroundError, dataDirectory);
-        applyWindowColors(_appearance.Start());
-        ApplySettings(_settings);
-        _terminals.OutputReceived += HandleOutput;
-        _terminals.CurrentDirectoryChanged += HandleCurrentDirectoryChanged;
-        _terminals.Exited += (paneId, code) => Post(new { type = "terminal.exit", pane = paneId, code });
+        _files = new FileExplorerFeed(windowHandle, () => Settings.Editor, Post, PostError);
+        _preview = new FilePreviewFeed(() => Settings.Editor, Post, PostError);
+        _git = new GitFeed(Post, () => Settings.Git.AutoFetch, PostError);
+        _forge = new ForgeFeed(Post, () => Settings.Worktrees.DefaultBase, _git.RefreshSoon, PostError);
+        _worktrees = new WorktreeFeed(Post, () => Settings, RememberWorktreeFolder, _git.RefreshSoon, PostError, dataDirectory);
+        _clones = new CloneFeed(Post, () => Settings, PostError);
+        _browsers = new BrowserFeed(browserLayer, () => _core?.Environment, Post, focusInterface, () => ShortcutRules.InterceptedChords(Settings.Shortcuts));
+        _appearance = new AppearanceFeed(() => Settings, services.SettingsService, Post, colors => _dispatcher.TryEnqueue(() => ApplyWindowColors(applyWindowColors, colors)), PostError, dataDirectory);
+        ApplyWindowColors(applyWindowColors, _appearance.Start());
+        _browsers.UpdateShortcuts();
+        _appearance.Refresh();
+        services.Register(this);
     }
+
+    private void ApplyWindowColors(Action<WindowColorsModel> apply, WindowColorsModel colors)
+    {
+        _services.WindowColors = colors;
+        apply(colors);
+    }
+
+    public WindowRole Role { get; }
+
+    public string WindowId { get; }
+
+    public nint WindowHandle { get; }
+
+    public IReadOnlyList<string> Tabs { get; private set; } = [];
+
+    private SettingsModel Settings => _services.Settings;
 
     public void Attach(CoreWebView2 core)
     {
         _core = core;
         core.WebMessageReceived += HandleWebMessage;
         _preview.Attach(core);
-        _agents.Start();
-        _mcp.Start();
+        if (Role == WindowRole.Main)
+        {
+            _services.Start();
+        }
     }
 
     private void HandleWebMessage(CoreWebView2 sender, CoreWebView2WebMessageReceivedEventArgs args)
@@ -219,7 +226,7 @@ public sealed class HostBridge : IDisposable
         }
 
         _closing = true;
-        PostNow(new { type = "app.closing", activity = _terminals.Activity() });
+        PostNow(new { type = "app.closing", activity = _services.Terminals.Activity(_services.Panes.PanesOf(this)), detached = Role == WindowRole.Main ? _services.DetachedTabs() : [] });
         _closeTimer = _dispatcher.CreateTimer();
         _closeTimer.Interval = TimeSpan.FromSeconds(3);
         _closeTimer.IsRepeating = false;
@@ -227,6 +234,8 @@ public sealed class HostBridge : IDisposable
         _closeTimer.Start();
         return true;
     }
+
+    public void CloseWindow() => _closeWindow();
 
     private void CancelClose()
     {
@@ -237,11 +246,23 @@ public sealed class HostBridge : IDisposable
 
     private void Dispatch(BridgeCommandModel command)
     {
+        if (Role == WindowRole.Detached)
+        {
+            if (command.Type is "session.save" or "text.save")
+            {
+                return;
+            }
+
+            if (MainWindowCommands.Contains(command.Type) || command.Type.StartsWith("update.", StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException(MainWindowOnly);
+            }
+        }
+
         switch (command.Type)
         {
             case "app.ready":
-                SendHello();
-                _mcp.MarkReady();
+                Ready();
                 break;
             case "session.save":
                 SaveSession(command);
@@ -268,29 +289,29 @@ public sealed class HostBridge : IDisposable
                 RaiseAttention(RequirePane(command), command);
                 break;
             case "attention.flash":
-                _notifier.FlashWhenInactive(_settings.Notifications);
+                _notifier.FlashWhenInactive(Settings.Notifications);
                 break;
             case "attention.test":
                 TestAttention(RequirePane(command), command);
                 break;
             case "agents.installHooks":
-                _agents.Hooks.Install();
+                _services.Agents.Hooks.Install();
                 PostSettings(false);
                 break;
             case "agents.removeHooks":
-                _agents.Hooks.Remove();
+                _services.Agents.Hooks.Remove();
                 PostSettings(false);
                 break;
             case "mcp.install":
-                _mcp.Install();
+                _services.Mcp.Install();
                 PostSettings(false);
                 break;
             case "mcp.remove":
-                _mcp.Remove();
+                _services.Mcp.Remove();
                 PostSettings(false);
                 break;
             case "mcp.response":
-                _mcp.Receive(command);
+                _services.Mcp.Receive(command);
                 break;
             case "settings.export":
                 _ = ExportPreferencesAsync();
@@ -305,29 +326,51 @@ public sealed class HostBridge : IDisposable
                 CreateTerminal(command);
                 break;
             case "terminal.input":
-                _terminals.Require(RequirePane(command)).Write(Encoding.UTF8.GetBytes(command.Data ?? string.Empty));
+                WriteTerminal(RequirePane(command), command.Data);
                 break;
             case "terminal.resize":
-                _terminals.Require(RequirePane(command)).Resize(command.Cols, command.Rows);
+                ResizeTerminal(RequirePane(command), command.Cols, command.Rows);
                 break;
             case "terminal.ack":
-                if (_buffers.TryGetValue(RequirePane(command), out var buffer))
-                {
-                    buffer.Acknowledge(command.Chars);
-                }
-
+                _services.Panes.Acknowledge(this, RequirePane(command), command.Chars);
                 break;
             case "terminal.close":
-                CloseTerminal(RequirePane(command));
+                CloseOwnTerminal(RequirePane(command));
                 break;
             case "terminal.dropPath":
                 PostDroppedPath(command);
                 break;
             case "terminal.activity":
-                Post(new { type = "terminal.activityResult", request = command.Request, panes = _terminals.Activity(command.Panes ?? []) });
+                Post(new { type = "terminal.activityResult", request = command.Request, panes = _services.Terminals.Activity((command.Panes ?? []).Where(paneId => !_services.Panes.IsElsewhere(this, paneId))) });
+                break;
+            case "terminal.hold":
+                _held.Hold((command.Panes ?? []).Where(paneId => _services.Panes.OwnerOf(paneId) == this));
+                PostNow(new { type = "terminal.held", request = command.Request });
+                break;
+            case "terminal.adopted":
+                ReleaseHeld(command.Panes ?? []);
+                break;
+            case "window.transfer":
+                Transfer(command);
+                break;
+            case "window.summary":
+                Tabs = command.Tabs ?? [];
+                _services.PostDetachedTabs();
+                break;
+            case "window.dragMove":
+                _services.DragMove(this, command.Name ?? string.Empty, command.Single);
+                break;
+            case "window.dragEnd":
+                _services.DragEnd();
+                break;
+            case "window.showMainNote":
+                _services.Main?.ShowNote(command.Workspace ?? throw new InvalidOperationException("Workspace manquant."));
+                break;
+            case "window.workspaces":
+                _services.SetMainWorkspaces(command.Workspaces ?? throw new InvalidOperationException("Workspaces manquants."));
                 break;
             case "projects.list":
-                ListProjects(_settings.ProjectsRoot, _settings.Worktrees.FolderFor(_settings.ProjectsRoot), _settings.WorktreeFolders, _settings.AdditionalProjectsRoots);
+                ListProjects(Settings.ProjectsRoot, Settings.Worktrees.FolderFor(Settings.ProjectsRoot), Settings.WorktreeFolders, Settings.AdditionalProjectsRoots);
                 break;
             case "context.query":
                 QueryContext(RequirePane(command), RequirePath(command));
@@ -356,7 +399,7 @@ public sealed class HostBridge : IDisposable
                 _clones.Handle(command);
                 break;
             case var type when type.StartsWith("update.", StringComparison.Ordinal):
-                _updates.Handle(command);
+                _services.Updates.Handle(command);
                 break;
             case var type when type.StartsWith("statusLog.", StringComparison.Ordinal):
                 _statusLog.Handle(command);
@@ -379,9 +422,109 @@ public sealed class HostBridge : IDisposable
         }
     }
 
+    private void Ready()
+    {
+        SendHello();
+        _ready = true;
+        foreach (var message in _pendingReceives)
+        {
+            PostNow(message);
+        }
+
+        _pendingReceives.Clear();
+        if (Role == WindowRole.Main)
+        {
+            _services.Mcp.MarkReady();
+            _services.Updates.PostState();
+        }
+
+        _services.RepostAgents();
+    }
+
+    private void Transfer(BridgeCommandModel command)
+    {
+        var done = false;
+        try
+        {
+            done = _services.Transfer(this, command);
+        }
+        finally
+        {
+            if (!done)
+            {
+                ReleaseHeld(command.Panes ?? []);
+            }
+
+            PostNow(new { type = "window.transferred", request = command.Request, done });
+        }
+    }
+
+    public IReadOnlyList<HeldPaneEventModel> TakeHeld(IEnumerable<string> panes) => _held.Release(panes);
+
+    public void Receive(JsonElement payload, IReadOnlyList<string> panes, IReadOnlyList<HeldPaneEventModel> events, ClientPointModel? point, JsonElement? drop)
+    {
+        _held.Hold(panes);
+        foreach (var heldEvent in events)
+        {
+            _held.Queue(heldEvent.PaneId, heldEvent.Message);
+        }
+
+        var message = new { type = "window.receive", payload, x = point?.X, y = point?.Y, drop };
+        if (_ready)
+        {
+            PostNow(message);
+            _activateWindow();
+        }
+        else
+        {
+            _pendingReceives.Add(message);
+        }
+    }
+
+    private void ReleaseHeld(IEnumerable<string> panes)
+    {
+        var events = _held.Release(panes);
+        Flush();
+        foreach (var heldEvent in events)
+        {
+            PostNow(heldEvent.Message);
+        }
+    }
+
+    public void PostDragOver(WindowApi.ScreenPoint cursor, bool single)
+    {
+        var point = ClientPointOf(cursor);
+        Post(new { type = "window.dragOver", x = point.X, y = point.Y, single });
+    }
+
+    public void ShowNote(string workspaceId)
+    {
+        _activateWindow();
+        Post(new { type = "window.showNote", workspace = workspaceId });
+    }
+
+    public ClientPointModel ClientPointOf(WindowApi.ScreenPoint screen)
+    {
+        var point = screen;
+        WindowApi.ScreenToClient(WindowHandle, ref point);
+        var scale = Math.Max(1u, WindowApi.GetDpiForWindow(WindowHandle)) / 96.0;
+        return new ClientPointModel(point.X / scale, point.Y / scale);
+    }
+
+    public void PostAgentStates(IReadOnlyList<PaneAgentModel> states) => PostNow(new { type = "agent.states", panes = states });
+
+    public void PostPaneEvent(string paneId, object message) =>
+        _dispatcher.TryEnqueue(() =>
+        {
+            if (!_held.Queue(paneId, message))
+            {
+                PostNow(message);
+            }
+        });
+
     private void RaiseAttention(string paneId, BridgeCommandModel command)
     {
-        var settings = _settings.Notifications;
+        var settings = Settings.Notifications;
         var done = command.Kind == AttentionDone;
         if (done && !settings.NotifyDone)
         {
@@ -393,7 +536,7 @@ public sealed class HostBridge : IDisposable
 
     private void TestAttention(string paneId, BridgeCommandModel command)
     {
-        var settings = (command.Notifications?.Deserialize<NotificationSettingsModel>(JsonOptions) ?? _settings.Notifications).Normalized();
+        var settings = (command.Notifications?.Deserialize<NotificationSettingsModel>(JsonOptions) ?? Settings.Notifications).Normalized();
         string?[] lines = command.Kind == AttentionDone
             ? ["Tily › Test", "Terminé"]
             : ["Tily › Test", "Autorisation : Bash"];
@@ -412,21 +555,20 @@ public sealed class HostBridge : IDisposable
         }
     }
 
-    private void ApplySettings(SettingsModel settings)
+    public void ApplySettings()
     {
-        _settings = settings;
-        _shellPaths = SettingsService.ShellPaths(settings);
-        _persistence = settings.Persistence;
-        _texts = new PaneTextRepository(_dataDirectory, _persistence.MaxTextBytes);
-        _terminals.UpdatePaths(_shellPaths);
-        _updates.Configure(settings.Updates.AutoCheck);
+        _texts = new PaneTextRepository(_services.DataDirectory, Settings.Persistence.MaxTextBytes);
         _browsers.UpdateShortcuts();
         _appearance.Refresh();
+        if (Role == WindowRole.Detached)
+        {
+            PostSettings(true);
+        }
     }
 
     private void PostSettings(bool saved)
     {
-        var snapshot = _settingsService.Snapshot(_settings);
+        var snapshot = _services.SettingsService.Snapshot(Settings);
         Post(new
         {
             type = "settings.result",
@@ -434,10 +576,10 @@ public sealed class HostBridge : IDisposable
             shellSettings = snapshot.Shells,
             files = snapshot.Files,
             warnings = snapshot.Warnings,
-            shells = ShellCatalog.Profiles(_shellPaths),
-            persistence = _persistence,
-            agents = _agents.Describe(),
-            mcp = _mcp.Describe(),
+            shells = ShellCatalog.Profiles(_services.ShellPaths),
+            persistence = Settings.Persistence,
+            agents = _services.Agents.Describe(),
+            mcp = _services.Mcp.Describe(),
             notifications = _notifier.Describe(),
             shortcutDefaults = ShortcutSettingsModel.Default,
             saved
@@ -446,54 +588,59 @@ public sealed class HostBridge : IDisposable
 
     private void SaveFontSize(BridgeCommandModel command)
     {
-        _settings.Appearance = _settingsService.SaveAppearance(_settings.Appearance with { FontSize = command.FontSize });
-        Post(new { type = "appearance.changed", fontSize = _settings.Appearance.FontSize });
+        Settings.Appearance = _services.SettingsService.SaveAppearance(Settings.Appearance with { FontSize = command.FontSize });
+        _services.Broadcast(new { type = "appearance.changed", fontSize = Settings.Appearance.FontSize });
     }
 
     private void SaveAmbianceEnabled(BridgeCommandModel command)
     {
-        _settings.Appearance = _settingsService.SaveAppearance(_settings.Appearance with { Ambiance = _settings.Appearance.Ambiance with { Enabled = command.Enabled } });
-        Post(new { type = "appearance.ambiance", ambiance = _settings.Appearance.Ambiance });
+        Settings.Appearance = _services.SettingsService.SaveAppearance(Settings.Appearance with { Ambiance = Settings.Appearance.Ambiance with { Enabled = command.Enabled } });
+        _services.Broadcast(new { type = "appearance.ambiance", ambiance = Settings.Appearance.Ambiance });
     }
 
     private void SaveSettings(BridgeCommandModel command)
     {
         var settings = command.Settings?.Deserialize<SettingsModel>(JsonOptions) ?? throw new InvalidOperationException("Réglages manquants.");
-        var result = _settingsService.Save(settings);
+        var result = _services.SettingsService.Save(settings);
         if (!result.IsValid)
         {
             throw new InvalidOperationException($"Réglages refusés : {result.Error}");
         }
 
-        ApplySettings(settings);
+        _services.ApplySettings(settings);
         PostSettings(true);
     }
 
     private void SendHello()
     {
-        var loaded = _sessions.Load();
-        var session = loaded.Session ?? SessionFactory.Initial();
-        _texts.MoveClosedTabText(session);
-        var text = _texts.Load();
-        var recovery = string.Join(" ", new[] { loaded.Error, text.Error, _statusLog.LoadError }.Where(error => error is not null));
+        var main = Role == WindowRole.Main;
+        var loaded = main ? _sessions.Load() : null;
+        var session = main ? loaded?.Session ?? SessionFactory.Initial() : null;
+        if (session is not null)
+        {
+            _texts.MoveClosedTabText(session);
+        }
+
+        var text = main ? _texts.Load() : null;
+        var recovery = string.Join(" ", new[] { loaded?.Error, text?.Error, _statusLog.LoadError }.Where(error => error is not null));
         Post(new
         {
             type = "app.hello",
-            version = ApplicationVersion,
+            version = HostServices.ApplicationVersion,
             name = WindowTitle.ApplicationName,
             channel = ReleaseChannels.Identifier(ReleaseChannels.Current),
+            window = new { detached = !main, id = WindowId, mainWorkspaces = main ? null : _services.MainWorkspaces },
             session,
-            shells = ShellCatalog.Profiles(_shellPaths),
+            shells = ShellCatalog.Profiles(_services.ShellPaths),
             home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-            text = text.Text,
-            persistence = _persistence,
-            appearance = _settings.Appearance,
+            text = text?.Text ?? new Dictionary<string, string>(),
+            persistence = Settings.Persistence,
+            appearance = Settings.Appearance,
             theme = _appearance.Hello(),
-            shortcuts = _settings.Shortcuts,
+            shortcuts = Settings.Shortcuts,
             statusLog = _statusLog.Entries(),
             recovery = recovery.Length > 0 ? recovery : null
         });
-        _updates.PostState();
     }
 
     private void SaveSession(BridgeCommandModel command)
@@ -538,7 +685,7 @@ public sealed class HostBridge : IDisposable
         {
             try
             {
-                _settingsService.RememberWorktreeFolder(_settings, project, folder);
+                _services.SettingsService.RememberWorktreeFolder(Settings, project, folder);
             }
             catch (Exception exception)
             {
@@ -549,7 +696,7 @@ public sealed class HostBridge : IDisposable
     private void QueryContext(string paneId, string path) =>
         _queries.Enqueue(() => Post(new { type = "context.result", pane = paneId, path, git = GitContext.Resolve(path) }));
 
-    private void PostBackgroundError(Exception exception) => Post(new { type = "error", message = UserErrorMessage.Of(exception) });
+    public void PostError(Exception exception) => Post(new { type = "error", message = UserErrorMessage.Of(exception) });
 
     private void Persist(string filePath, Func<string?> write)
     {
@@ -576,44 +723,54 @@ public sealed class HostBridge : IDisposable
     private void CreateTerminal(BridgeCommandModel command)
     {
         var paneId = RequirePane(command);
+        if (_services.Panes.IsElsewhere(this, paneId))
+        {
+            throw new InvalidOperationException("Ce pane est déjà ouvert dans une autre fenêtre de Tily.");
+        }
+
         CloseTerminal(paneId);
-        _buffers[paneId] = new PaneOutputBuffer(paneId);
+        _services.Panes.Start(this, paneId);
         var cwd = command.Cwd ?? string.Empty;
-        _terminals.Start(paneId, command.Shell ?? ShellCatalog.DefaultShellId, cwd, command.Cols, command.Rows, command.Command);
+        _services.Terminals.Start(paneId, command.Shell ?? ShellCatalog.DefaultShellId, cwd, command.Cols, command.Rows, command.Command);
         if (cwd.Length > 0 && !Directory.Exists(cwd))
         {
             Post(new { type = "terminal.pathMissing", pane = paneId, path = cwd, fallback = PathFallback.NearestExisting(cwd) });
         }
     }
 
-    private void HandleCurrentDirectoryChanged(string paneId, string path)
+    private void WriteTerminal(string paneId, string? data)
     {
-        Post(new { type = "terminal.cwd", pane = paneId, path });
-        foreach (var missing in _terminals.MissingDirectories())
+        if (!_services.Panes.IsElsewhere(this, paneId))
         {
-            Post(new { type = "terminal.pathMissing", pane = missing.PaneId, path = missing.Path, fallback = missing.Fallback });
+            _services.Terminals.Require(paneId).Write(Encoding.UTF8.GetBytes(data ?? string.Empty));
+        }
+    }
+
+    private void ResizeTerminal(string paneId, int columns, int rows)
+    {
+        if (!_services.Panes.IsElsewhere(this, paneId))
+        {
+            _services.Terminals.Require(paneId).Resize(columns, rows);
+        }
+    }
+
+    private void CloseOwnTerminal(string paneId)
+    {
+        if (!_services.Panes.IsElsewhere(this, paneId))
+        {
+            CloseTerminal(paneId);
         }
     }
 
     private void CloseTerminal(string paneId)
     {
-        if (_buffers.TryRemove(paneId, out var buffer))
-        {
-            buffer.Release();
-        }
-
-        _terminals.Stop(paneId);
-        _agents.Forget(paneId);
+        _services.Panes.Close(paneId);
+        _services.Terminals.Stop(paneId);
+        _services.Agents.Forget(paneId);
     }
 
-    private void HandleOutput(string paneId, ReadOnlyMemory<byte> data)
+    public void ScheduleFlush()
     {
-        if (!_buffers.TryGetValue(paneId, out var buffer))
-        {
-            return;
-        }
-
-        buffer.Append(data.Span);
         if (Interlocked.CompareExchange(ref _flushScheduled, 1, 0) == 0)
         {
             _dispatcher.TryEnqueue(DispatcherQueuePriority.High, Flush);
@@ -623,8 +780,13 @@ public sealed class HostBridge : IDisposable
     private void Flush()
     {
         Interlocked.Exchange(ref _flushScheduled, 0);
-        foreach (var buffer in _buffers.Values)
+        foreach (var buffer in _services.Panes.BuffersOf(this))
         {
+            if (_held.Contains(buffer.PaneId))
+            {
+                continue;
+            }
+
             var text = buffer.Take();
             if (text is null)
             {
@@ -643,13 +805,13 @@ public sealed class HostBridge : IDisposable
     {
         try
         {
-            var path = await PathPicker.SaveJsonAsync(_windowHandle, "tily-preferences");
+            var path = await PathPicker.SaveJsonAsync(WindowHandle, "tily-preferences");
             if (path is null)
             {
                 return;
             }
 
-            _settingsService.Export(_settings, path);
+            _services.SettingsService.Export(Settings, path);
             PostNow(new { type = "settings.exported", path });
         }
         catch (Exception exception)
@@ -662,13 +824,13 @@ public sealed class HostBridge : IDisposable
     {
         try
         {
-            var path = await PathPicker.PickJsonAsync(_windowHandle);
+            var path = await PathPicker.PickJsonAsync(WindowHandle);
             if (path is null)
             {
                 return;
             }
 
-            var result = _settingsService.Import(path);
+            var result = _services.SettingsService.Import(path);
             if (result.Settings is null)
             {
                 PostNow(new { type = "error", message = result.Error });
@@ -687,7 +849,7 @@ public sealed class HostBridge : IDisposable
     {
         try
         {
-            var path = await PathPicker.PickAsync(_windowHandle, target);
+            var path = await PathPicker.PickAsync(WindowHandle, target);
             if (path is not null)
             {
                 PostNow(new { type = "dialog.picked", field, path });
@@ -704,7 +866,7 @@ public sealed class HostBridge : IDisposable
         switch (target)
         {
             case "editor":
-                LocalActions.OpenInEditor(path, _settings.Editor);
+                LocalActions.OpenInEditor(path, Settings.Editor);
                 break;
             case "explorer":
                 LocalActions.OpenInExplorer(path);
@@ -723,28 +885,27 @@ public sealed class HostBridge : IDisposable
     private static string? FailedTerminalPane(BridgeCommandModel command) =>
         command.Type is { } type && type.StartsWith(TerminalCommandPrefix, StringComparison.Ordinal) ? command.Pane : null;
 
-    private void Post(object message) => _dispatcher.TryEnqueue(() => PostNow(message));
+    public void Post(object message) => _dispatcher.TryEnqueue(() => PostNow(message));
 
     private void PostNow(object message) => _core?.PostWebMessageAsJson(JsonSerializer.Serialize(message, JsonOptions));
 
     public void Dispose()
     {
         _writes.Drain(WriteDrainTimeout);
-        _agents.Dispose();
+        if (Role == WindowRole.Detached)
+        {
+            foreach (var paneId in _services.Panes.PanesOf(this))
+            {
+                CloseTerminal(paneId);
+            }
+        }
+
         _notifier.Dispose();
         _files.Dispose();
         _preview.Dispose();
-        _previewRequests.Dispose();
-        _mcp.Dispose();
         _browsers.Dispose();
         _git.Dispose();
-        foreach (var buffer in _buffers.Values)
-        {
-            buffer.Release();
-        }
-
-        _terminals.Dispose();
-        _updates.LaunchPendingInstaller();
-        _updates.Dispose();
+        _core = null;
+        _services.Unregister(this);
     }
 }

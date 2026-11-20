@@ -55,6 +55,7 @@ import { ProjectPickers } from './ProjectPickers'
 import { FilePicker } from './FilePicker'
 import { CommitPicker } from './CommitPicker'
 import { PaneDropIndicator } from './PaneDropIndicator'
+import { TransferDragGhost } from './TransferDragGhost'
 import { TabMergePicker } from './TabMergePicker'
 import { TerminalSearchDialog } from './TerminalSearchDialog'
 import { RightPanel } from './RightPanel'
@@ -425,6 +426,7 @@ export function AppShell({ session }: AppShellProps) {
       {unsavedPreview && <UnsavedPreviewDialog />}
       <McpConsentDialog />
       <PaneDropIndicator />
+      <TransferDragGhost />
       <Tooltip />
       <StatusBar />
     </div>

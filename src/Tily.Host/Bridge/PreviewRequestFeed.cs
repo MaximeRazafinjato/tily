@@ -7,15 +7,15 @@ public sealed class PreviewRequestFeed : IDisposable
     private static readonly TimeSpan ChangeDelay = TimeSpan.FromMilliseconds(150);
 
     private readonly PreviewRequestRepository _requests;
-    private readonly Action<object> _post;
+    private readonly Action<string?, object> _postToPane;
     private readonly FileSystemWatcher _watcher;
     private readonly Timer _timer;
     private readonly object _sync = new();
     private bool _disposed;
 
-    public PreviewRequestFeed(string dataDirectory, Action<object> post)
+    public PreviewRequestFeed(string dataDirectory, Action<string?, object> postToPane)
     {
-        _post = post;
+        _postToPane = postToPane;
         _requests = new PreviewRequestRepository(dataDirectory);
         _requests.Clear();
         Directory.CreateDirectory(_requests.Directory);
@@ -42,7 +42,7 @@ public sealed class PreviewRequestFeed : IDisposable
             {
                 foreach (var request in _requests.TakeAll())
                 {
-                    _post(new { type = "preview.requested", pane = request.PaneId, path = request.Path });
+                    _postToPane(request.PaneId, new { type = "preview.requested", pane = request.PaneId, path = request.Path });
                 }
             }
             catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)

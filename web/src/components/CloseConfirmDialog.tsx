@@ -12,6 +12,7 @@ interface CloseConfirmDialogProps {
 const BUTTON = 'cursor-pointer rounded border px-3 py-1.5 text-[12px]'
 const DANGER = `${BUTTON} border-tily-error text-tily-error hover:bg-tily-green-hover`
 const SECONDARY = `${BUTTON} border-tily-line text-tily-ink hover:bg-tily-green-hover`
+const LIST = 'flex flex-col divide-y divide-tily-line rounded border border-tily-line bg-tily-paper'
 
 export function CloseConfirmDialog({ confirmation, onConfirm, onCancel }: CloseConfirmDialogProps) {
   const confirmRef = useRef<HTMLButtonElement>(null)
@@ -41,25 +42,44 @@ export function CloseConfirmDialog({ confirmation, onConfirm, onCancel }: CloseC
           <h2 className="truncate text-[15px] font-semibold text-tily-ink">{confirmation.title}</h2>
         </div>
         <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-4 py-4">
-          <span className="flex items-center gap-1.5">
-            <p className="text-[12px] text-tily-warning">Ces programmes seront arrêtés de force.</p>
-            <InfoTip text="Avec tout leur arbre de processus." />
-          </span>
-          <ul className="flex flex-col divide-y divide-tily-line rounded border border-tily-line bg-tily-paper">
-            {confirmation.panes.map((pane) => (
-              <li key={pane.paneId} className="flex items-baseline gap-3 px-3 py-1.5">
-                <span className="min-w-0 flex-1 truncate text-[12px] text-tily-ink">{pane.label}</span>
-                <span className="max-w-[50%] shrink-0 truncate text-[11px] text-tily-muted">{pane.processes.join(', ')}</span>
-              </li>
-            ))}
-          </ul>
+          {confirmation.panes.length > 0 && (
+            <>
+              <span className="flex items-center gap-1.5">
+                <p className="text-[12px] text-tily-warning">Ces programmes seront arrêtés de force.</p>
+                <InfoTip text="Avec tout leur arbre de processus." />
+              </span>
+              <ul className={LIST}>
+                {confirmation.panes.map((pane) => (
+                  <li key={pane.paneId} className="flex items-baseline gap-3 px-3 py-1.5">
+                    <span className="min-w-0 flex-1 truncate text-[12px] text-tily-ink">{pane.label}</span>
+                    <span className="max-w-[50%] shrink-0 truncate text-[11px] text-tily-muted">{pane.processes.join(', ')}</span>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+          {confirmation.detachedTabs.length > 0 && (
+            <>
+              <span className="flex items-center gap-1.5">
+                <p className="text-[12px] text-tily-warning">Les fenêtres détachées seront fermées : ces onglets seront perdus, avec leurs programmes.</p>
+                <InfoTip text="Rien d’une fenêtre détachée n’est enregistré. Rattachez un onglet à la fenêtre principale pour le garder." />
+              </span>
+              <ul className={LIST}>
+                {confirmation.detachedTabs.map((label, index) => (
+                  <li key={`${index}-${label}`} className="truncate px-3 py-1.5 text-[12px] text-tily-ink">
+                    {label}
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
         </div>
         <div className="flex items-center justify-end gap-2 border-t border-tily-line px-4 py-3">
           <button type="button" className={SECONDARY} data-tip="Échap" onClick={onCancel}>
             Annuler
           </button>
           <button ref={confirmRef} type="button" className={DANGER} data-tip="Entrée" onClick={onConfirm}>
-            {confirmation.confirmLabel ?? 'Arrêter et fermer'}
+            {confirmation.confirmLabel ?? (confirmation.panes.length > 0 ? 'Arrêter et fermer' : 'Fermer')}
           </button>
         </div>
       </div>

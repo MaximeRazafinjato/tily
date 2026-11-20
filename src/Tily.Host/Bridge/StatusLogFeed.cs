@@ -7,14 +7,16 @@ public sealed class StatusLogFeed
     private readonly StatusLogRepository _repository;
     private readonly BackgroundQueue _writes;
     private readonly Action<object> _post;
+    private readonly bool _persisted;
     private bool _saveFailing;
 
-    public StatusLogFeed(string dataDirectory, BackgroundQueue writes, Action<object> post)
+    public StatusLogFeed(string dataDirectory, BackgroundQueue writes, Action<object> post, bool persisted)
     {
         _repository = new StatusLogRepository(dataDirectory);
         _writes = writes;
         _post = post;
-        LoadError = _repository.Load();
+        _persisted = persisted;
+        LoadError = persisted ? _repository.Load() : null;
     }
 
     public string? LoadError { get; }
@@ -50,7 +52,13 @@ public sealed class StatusLogFeed
         SaveSoon();
     }
 
-    private void SaveSoon() => _writes.Enqueue(Save);
+    private void SaveSoon()
+    {
+        if (_persisted)
+        {
+            _writes.Enqueue(Save);
+        }
+    }
 
     private void Save()
     {
