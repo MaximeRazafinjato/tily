@@ -12,7 +12,8 @@ const MAX_IMPACT_DAMAGE = 0.5
 const SHOT_DAMAGE = 1 / 3
 const SHAKE_DAMAGE = 0.02
 const SHOT_RADIUS_MARGIN = 1.1
-const SHOT_PUSH = 900
+const SHOT_SIDE_SPEED: [number, number] = [450, 700]
+const SHOT_LIFT_SPEED: [number, number] = [1100, 1400]
 const MAX_DROPS = 240
 const MAX_STAINS = 24
 const STAIN_LIFE_S = 5
@@ -130,8 +131,8 @@ export const shoot = (world: World, x: number, y: number): void => {
     world.dragged = null
   }
   target.perch = null
-  target.vx = direction * SHOT_PUSH
-  target.vy = -SHOT_PUSH * 0.75
+  target.vx = direction * randomBetween(...SHOT_SIDE_SPEED)
+  target.vy = -randomBetween(...SHOT_LIFT_SPEED)
   impulse(target, 16)
   spray(world, x, y, 18, direction > 0 ? 0 : Math.PI, 0.9, 420)
   damage(world, target, SHOT_DAMAGE)
