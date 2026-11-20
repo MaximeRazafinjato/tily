@@ -1,6 +1,6 @@
 # Architecture frontend (web/)
 
-Application React 19 + TypeScript construite par Vite, stylée avec Tailwind 4, état géré par Zustand. Elle tourne dans la WebView2 principale de l'hôte et porte toute l'interface : arborescence des workspaces, onglets, splits, terminaux xterm.js, Leader et palette. Chaque pane navigateur a sa propre WebView2, que l'hôte pose sur le rectangle du pane.
+Application React 19 + TypeScript construite par Vite, stylée avec Tailwind 4, état géré par Zustand. Elle tourne dans la WebView2 de chaque fenêtre de l'hôte (principale ou détachée) et porte toute l'interface : arborescence des workspaces, onglets, splits, terminaux xterm.js, Leader et palette. Chaque pane navigateur a sa propre WebView2, que l'hôte pose sur le rectangle du pane.
 
 ## Structure
 
@@ -12,7 +12,7 @@ Une section par dossier de `web/src` : rôle, invariants et choix non évidents.
 
 `App` est l'unique aiguillage des messages de l'hôte : un `bridge.on` par type, qui confie le message à la fonction `receive…` de son dossier. Il démarre les boucles et notifieurs (`startAppearanceProjects`, `startAttentionNotifier`, `startExternalDrops`, `startStatusLog`, `startDeferredPreviews`, `startBrowserLayer`, `startTextAutosave`), puis envoie `app.ready`.
 
-- À `app.hello`, il applique la couleur reçue, configure les modules et injecte le texte de la session précédente ; il ne charge la session qu'une fois la police de symboles Nerd Font chargée.
+- À `app.hello`, il applique la couleur reçue, retient le rôle de la fenêtre (`windowStore`), configure les modules et injecte le texte de la session précédente ; il ne charge la session qu'une fois la police de symboles Nerd Font chargée, puis applique les transferts reçus entre-temps. Une fenêtre détachée part d'une session vide et ne lance ni sauvegarde ni autosave.
 - Une réponse numérotée va d'abord à son écouteur (`dispatchReply`) : `browser.reply` et `worktrees.*`, dont `worktrees.done` et `worktrees.failed` vont aussi à l'interface. `terminal.activityResult` va à `paneActivity` s'il porte un numéro attendu, sinon à `closeGuard`. `dialog.picked` est routé par champ : formulaire de worktree, dépôt d'un projet, dossier choisi par « Parcourir… » d'« Ouvrir un projet », dossier d'un clonage, sinon Paramètres (`hostStore.pickedPath`).
 - À chaque nouvelle session, il détruit les terminaux et les vues navigateur des panes disparus, oublie l'historique des notes des workspaces disparus, puis sauvegarde (voir « Flux »).
 
@@ -28,7 +28,7 @@ Modèle pur, sans React ni DOM : session, panes navigateur, bornes de la taille 
 
 ### `src/bridge/`
 
-`bridge.ts` envoie et reçoit par `window.chrome.webview` ; `sendWithFiles` joint des fichiers déposés. `messages.ts` et les fichiers par domaine (`appearanceMessages.ts`, `browserMessages.ts`, `cloneMessages.ts`, `forgeMessages.ts`, `gitMessages.ts`, `mcpMessages.ts`, `previewMessages.ts`, `statusLogMessages.ts`, `updateMessages.ts`, `worktreeMessages.ts`) sont le miroir du contrat C# décrit dans `docs/BACKEND_ARCHITECTURE.md` : un message se change des deux côtés à la fois.
+`bridge.ts` envoie et reçoit par `window.chrome.webview` ; `sendWithFiles` joint des fichiers déposés. `messages.ts` et les fichiers par domaine (`windowMessages.ts`, `appearanceMessages.ts`, `browserMessages.ts`, `cloneMessages.ts`, `forgeMessages.ts`, `gitMessages.ts`, `mcpMessages.ts`, `previewMessages.ts`, `statusLogMessages.ts`, `updateMessages.ts`, `worktreeMessages.ts`) sont le miroir du contrat C# décrit dans `docs/BACKEND_ARCHITECTURE.md` : un message se change des deux côtés à la fois.
 
 `requestListeners.ts` tire des numéros de requête à partir de 1 000 000 (`newAgentRequest`), pour ne jamais croiser les numéros propres à chaque store, et associe à chacun un écouteur de réponse. Il sert au serveur MCP et à l'interface : création et suppression de worktree par le formulaire, `browser.snapshot` et toute commande de `requestBrowser`. L'annulation d'une suppression de worktree est signalée à son écouteur (`CANCELLED_REPLY`).
 
@@ -38,6 +38,7 @@ Stores Zustand. Seule la session est persistée.
 
 - `sessionStore` : la session et toutes ses mutations, écrites sur un brouillon Immer. Seuls les objets modifiés changent d'identité et une mutation sans effet rend la même session : ni rendu ni sauvegarde. `change` applique une mutation donnée (serveur MCP) ; `browserPanes.ts` et `paneMoves.ts` portent des mutations du brouillon. Un onglet dupliqué n'appartient à aucun agent.
 - Reçu de l'hôte : `hostStore` (shells, projets, contextes Git par pane, réglages, statut, Leader, « Non enregistré »), `appearanceStore` (thème, préréglages, projet et couleur de projet par dossier, cible de la fenêtre « Couleur »), `shortcutStore`, `agentStore`, `statusLogStore`, `browserStore`, `updateStore`.
+- Fenêtre : `windowStore` (fenêtre détachée ou non, workspaces de la fenêtre principale pour « Rattacher », onglets détachés pour la confirmation de fermeture).
 - Interface : `uiStore` (renommages et leur origine, palette, sélecteur de projets et Paramètres mutuellement exclusifs, glisser et ses cibles, pane agrandi, confirmation de fermeture), `paneStore`, `pasteStore`, `commandStore`, `terminalSearchStore` (texte et options partagés par la barre d'un pane et la recherche globale).
 - Fonctions : `explorerStore`, `gitStore`, `forgeStore`, `mergeRequestFormStore`, `worktreeStore`, `cloneStore`, `previewStore`, `projectOpenStore`, `filePickerStore`, `commitPickerStore`, `tabMergePickerStore`, `mcpConsentStore`.
 
@@ -58,6 +59,7 @@ Terminaux et cycle de vie des panes (section 7 de la spec).
 - L'effet d'attachement de `TerminalPane` dépend de l'identifiant du pane, pas de l'objet, pour qu'une mutation de session ne relance ni attachement ni `fit()`.
 - `terminal.output` s'écrit directement dans l'instance, sans React ; des acquittements (`terminal.ack`) régulent le flux.
 - Rendu WebGL, repli DOM (xterm.js 6 n'a pas de rendu canvas). Au plus 14 contextes WebGL, Chromium retirant le plus ancien au-delà de 16 : le terminal caché affiché le moins récemment rend le sien et le retrouve à son prochain affichage, jamais un terminal visible. Après une perte de contexte, le terminal passe en DOM et WebGL est retenté à son prochain affichage.
+- `exportTerminal` attend la fin des écritures en cours puis sérialise tout le terminal (historique, écran alternatif, modes) avec sa taille ; `adopt` crée dans la fenêtre qui reçoit l'instance déjà démarrée, à la taille d'origine, y écrit ce texte et n'enverra jamais `terminal.create` ; `release` libère une instance sans `terminal.close`.
 - `runAtStart` retient une commande envoyée une seule fois avec le premier `terminal.create` du pane : `claude` et l'installation d'un worktree créé, commande de démarrage d'un outil MCP.
 - URL, hyperliens OSC 8 et chemins de fichiers (`fileLinks.ts`) ne s'ouvrent qu'au Ctrl + clic, le clic simple restant à la sélection. Tous les schémas passent à l'hôte, qui les valide et signale un refus.
 
@@ -76,7 +78,7 @@ Suivi des commandes (`commandOutput.ts`, `commandNotices.ts`) :
 
 Fermetures et dépôts :
 
-- Toute fermeture passe par `requestClose` (`closeGuard.ts`), qui demande `terminal.activity` à l'hôte et ne confirme que si un programme tourne ; `app.closing` et Alt + F4 aussi. Fermer garde le texte pour la réouverture (`tabLifecycle.ts`) ; les fermetures du serveur MCP le gardent aussi sans repasser par `closeGuard`.
+- Toute fermeture passe par `requestClose` (`closeGuard.ts`), qui demande `terminal.activity` à l'hôte et ne confirme que si un programme tourne ; `app.closing` et Alt + F4 aussi. Fermer la fenêtre principale ou installer une mise à jour confirme aussi dès qu'une fenêtre détachée est ouverte, en listant ses onglets (`detachedTabsToClose`) ; dans une fenêtre détachée, la confirmation s'intitule « Fermer cette fenêtre ? » et rien n'est sauvegardé. Fermer garde le texte pour la réouverture (`tabLifecycle.ts`) ; les fermetures du serveur MCP le gardent aussi sans repasser par `closeGuard`.
 - `externalDrop.ts` : des fichiers venus de Windows partent en objets joints de `terminal.drop`, une ligne de l'arbre des fichiers dans `terminal.dropPath` ; l'hôte protège le chemin selon le shell. Un glisser de l'arbre n'est accepté que si sa valeur commence par un jeton aléatoire tiré au chargement de la page (`treeDragValue`) : Chromium transporte aussi les types personnalisés venus d'autres applications, et `dragend` arrive dès le début d'un glisser dans la WebView2, il ne peut pas servir de repère. Un pane recouvert par un message refuse le dépôt, pour ne rien taper dans un terminal masqué ; tout autre dépôt de fichiers ou de liens est refusé, sinon Chromium l'ouvrirait dans une nouvelle fenêtre.
 
 Autres modules :
@@ -125,7 +127,7 @@ Un composant par fichier, à plat, préfixé par domaine : `Git*`, `MergeRequest
 - Le focus qui entre dans un pane inactif le rend actif : la saisie et le pane actif ne divergent jamais. Tant qu'un message (`PaneOverlay`) recouvre un pane, le terminal sort de l'ordre de Tab ; le bouton par défaut du message prend le focus, « Ignorer » pour un dossier disparu car le shell y tourne encore. Juste après une prise de focus automatique venue du terminal, Entrée et Espace sont annulés (`ACTIVATION_GUARD_MS`), pour qu'une frappe partie vers le terminal n'active pas le bouton ; un pane inactif qui réapparaît ne vole jamais le focus.
 - Un seul `Tooltip`, monté par `AppShell`, affiche le texte de `data-tip` en position fixe, jamais tronqué ; sans `data-tip`, un texte coupé par `truncate` montre son texte complet au survol. Jamais d'attribut `title`.
 - Listes longues virtualisées par `useVirtualRows` (graphe et diff Git).
-- Onglets et workspaces se glissent par événements pointeur (`pointerDrag.ts`, `tabDrag.ts`, `workspaceDrag.ts`, cible par `elementFromPoint` sur des attributs `data-drop-*` et `data-workspace-*`) ; les instances xterm.js suivent leurs panes sans être recréées. Hors de ces cibles, un onglet glissé vise le pane sous le pointeur (`data-pane-id`, hors panes de l'onglet glissé) et son bord le plus proche (`uiStore.paneDropTarget`), que `PaneDropIndicator` surligne en position fixe sans capter le pointeur ; survoler un autre onglet (`data-drop-tab`) l'affiche après 600 ms. Seule une ligne de l'arbre glissée vers un pane utilise le glisser-déposer HTML5.
+- Onglets, workspaces et panes (par leur en-tête, `paneDrag.ts` : seul dans son onglet, un pane se glisse comme l'onglet ; sinon `movePaneBeside`, `movePaneToTabAt` de `paneMoves.ts` ou `detachPane`) se glissent par événements pointeur (`pointerDrag.ts`, `tabDrag.ts`, `workspaceDrag.ts`, cible par `elementFromPoint` sur des attributs `data-drop-*` et `data-workspace-*`) ; les instances xterm.js suivent leurs panes sans être recréées. Hors de ces cibles, un onglet glissé vise le pane sous le pointeur (`data-pane-id`, hors panes de l'onglet glissé) et son bord le plus proche (`uiStore.paneDropTarget`), que `PaneDropIndicator` surligne en position fixe sans capter le pointeur ; survoler un autre onglet (`data-drop-tab`) l'affiche après 600 ms. Seule une ligne de l'arbre glissée vers un pane utilise le glisser-déposer HTML5.
 
 ### `src/panel/`
 
@@ -134,6 +136,17 @@ Un composant par fichier, à plat, préfixé par domaine : `Git*`, `MergeRequest
 - `togglePanelView(vue, focus)` ouvre le panneau sur la vue demandée, passe d'une autre vue à celle-ci, ou ferme le panneau si cette vue était déjà affichée, puis donne le focus à la vue ou le rend au terminal. `openPanelView` ouvre sans jamais fermer (Ctrl + clic sur la branche d'un pane, recherche d'un commit).
 - Ouvrir la vue Git rouvre toujours le graphe, qui recouvre les terminaux de l'onglet et prend le focus.
 - `revealInFileTree` et `showFileChanges` réessaient jusqu'au chargement de la ligne ou d'un état Git frais, annulés par un compteur de génération ; le premier ne prend le focus que s'il est libre ou déjà dans l'arbre. `showFileChanges` compare les chemins à partir de `displayRoot`, racine vue du dossier suivi, pour rester juste sous une jonction ou un lecteur `subst`.
+
+### `src/window/`
+
+Fenêtres détachées (section 5 de la spec, « Fenêtres détachées »). L'hôte possède les terminaux et choisit la fenêtre de destination ; le web choisit quoi déplacer et l'insère.
+
+- `windowTransfer.ts` : détacher ou rattacher un onglet ou un workspace. Le dernier onglet d'un workspace emmène le workspace entier ; un onglet seul part dans une copie de son workspace (même identifiant et nom) dont la note est liée (`linkedNote`) quand elle vient de la fenêtre principale. Ordre : `terminal.hold`, sérialisation des terminaux, `window.transfer`, puis, si l'hôte répond `done`, `release` des instances et retrait de la session (`takeTab`, `takeWorkspace` de `store/windowTransfers.ts`), sans `terminal.close` ni onglet fermé. Un glisser relâché hors de la fenêtre (`isOutsideWindow`) transfère « au curseur ».
+- `windowReceive.ts` : adopte les terminaux, calcule la cible au point de dépôt avec les mêmes fonctions que le glisser (onglet, côté d'un pane, place dans le panneau), insère les workspaces (`insertTransfer` : un workspace de même identifiant reçoit les onglets et la note, sauf une note liée, abandonnée ; un workspace nouveau perd `linkedNote` dans la fenêtre principale, sa note redevenant modifiable), applique la cible par les déplacements existants, envoie `terminal.adopted` et rejoint le pane reçu.
+- Note liée : en lecture seule (`setWorkspaceNote` l'ignore, un déplacement ne la fusionne pas), recopiée depuis `windowStore.mainWorkspaces` à chaque envoi de la fenêtre principale (`syncLinkedNotes`) ; `LinkedNoteBanner` explique pourquoi et envoie `window.showMainNote`, qui affiche la note dans la fenêtre principale (`window.showNote`).
+- `windowDrag.ts` : pendant un glisser hors de la fenêtre, `trackOutsideDrag` envoie `window.dragMove` puis `window.dragEnd` ; la fenêtre survolée surligne la cible reçue par `window.dragOver` avec les indicateurs habituels, sous un glisser fictif (`EXTERNAL_DRAG_ID`) qui fige aussi ses panes navigateur ; `transferDropAt` calcule la même cible au survol et au dépôt. `TransferDragGhost` affiche, dans la fenêtre, l'étiquette qui suit le pointeur et le bandeau d'aide.
+- `windowSync.ts` : la fenêtre principale envoie ses workspaces avec leur note (`window.workspaces`) ; une fenêtre détachée envoie ses onglets (`window.summary`) et demande sa fermeture quand son dernier workspace en sort.
+- Fenêtre détachée : `runCommand` et la palette écartent les Paramètres et les préférences, l'en-tête affiche « Fenêtre détachée » à la place des Paramètres et de la mise à jour, le titre se termine par « (fenêtre détachée) ».
 
 ### `src/notes/`
 
@@ -214,7 +227,7 @@ Clonage d'un dépôt (section 9 de la spec, « Cloner un dépôt »). L'hôte va
 Panes navigateur (section 6 de la spec). Un `Pane` de type `PaneKind.Browser` garde `url` et `viewport` en plus du dossier et du shell du pane d'où il a été ouvert. Sa page vit dans une WebView2 posée par l'hôte ; le web ne rend que l'en-tête et un corps vide (`BrowserPaneView`, à la place de `PaneView`, corps `[data-browser-body]`).
 
 - `browserLayer.ts` : une boucle `requestAnimationFrame` envoie `browser.attach` à la première apparition d'un corps, `browser.bounds` quand son rectangle change, `visible: false` quand il quitte le DOM. Un pane navigateur compte comme démarré dès qu'il a été affiché ; `disposeMissingBrowsers` ferme la vue des panes sortis de la session.
-- La WebView2 de la page n'est pas transparente : rien de l'interface ne peut s'afficher par-dessus. Quand un `role` `menu`, `dialog` ou `alertdialog` est ouvert, qu'un onglet est glissé (`uiStore.draggingTabId`, pour que le pane reçoive le pointeur et l'indicateur de dépôt), qu'une infobulle (`role="tooltip"`) chevauche le pane ou qu'un élément recouvre l'un des 16 points échantillonnés, la page est figée : capture `browser.snapshot` affichée dans le corps, vue masquée une fois l'image chargée, puis réaffichée à la fin. Un élément flottant nouveau doit porter l'un de ces rôles ou couvrir un point échantillonné.
+- La WebView2 de la page n'est pas transparente : rien de l'interface ne peut s'afficher par-dessus. Quand un `role` `menu`, `dialog` ou `alertdialog` est ouvert, qu'un onglet ou un workspace est glissé (`uiStore.draggingTabId`, `draggingWorkspaceId`, pour que le pane reçoive le pointeur, l'indicateur de dépôt et l'étiquette du glisser), qu'une infobulle (`role="tooltip"`) chevauche le pane ou qu'un élément recouvre l'un des 16 points échantillonnés, la page est figée : capture `browser.snapshot` affichée dans le corps, vue masquée une fois l'image chargée, puis réaffichée à la fin. Un élément flottant nouveau doit porter l'un de ces rôles ou couvrir un point échantillonné.
 - `restoreBrowserFocus` rend le focus à la page du pane actif après un raccourci renvoyé par la page ou la fin du Leader, si rien d'autre ne l'a pris. `browser.key` passe par `handleForwardedKey` (`browserKeys.ts`).
 - `requestBrowser` (`browserRequests.ts`) numérote une commande `browser.*` et attend son `browser.reply`, avec un délai.
 
