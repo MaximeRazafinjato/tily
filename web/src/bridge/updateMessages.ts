@@ -8,10 +8,15 @@ export enum UpdateStatus {
   Failed = 'failed',
 }
 
+export interface UpdateReleaseNote {
+  title?: string | null
+  text: string
+}
+
 export interface UpdateRelease {
   version: string
   name: string
-  notes: string[]
+  notes: UpdateReleaseNote[]
   url: string
   publishedAt?: string
   size: number

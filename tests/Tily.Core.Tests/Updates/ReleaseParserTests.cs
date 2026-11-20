@@ -38,7 +38,7 @@ public sealed class ReleaseParserTests
             new UpdateAssetModel("Tily-1.4.0-setup.exe", "https://github.com/MaximeRazafinjato/tily/releases/download/v1.4.0/Tily-1.4.0-setup.exe", 1234, Digest),
             release.Installer);
         Assert.Equal("1.4.0", release.Version);
-        Assert.Equal(["Mises à jour dans l’application.", "Libellés."], release.Notes);
+        Assert.Equal([new ReleaseNoteModel(null, "Mises à jour dans l’application."), new ReleaseNoteModel(null, "Libellés.")], release.Notes);
     }
 
     [Fact]

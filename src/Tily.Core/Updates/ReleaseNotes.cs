@@ -4,8 +4,10 @@ public static class ReleaseNotes
 {
     private const string HighlightsHeading = "nouveautés";
     private const int MaxLines = 40;
+    private const string TitleSeparator = " — ";
+    private const int MaxTitleLength = 60;
 
-    public static IReadOnlyList<string> Highlights(string? body)
+    public static IReadOnlyList<ReleaseNoteModel> Highlights(string? body)
     {
         var lines = (body ?? string.Empty).Replace("\r\n", "\n").Split('\n').Select(line => line.Trim()).ToList();
         var start = lines.FindIndex(line => HeadingLevel(line) > 0 && string.Equals(HeadingText(line), HighlightsHeading, StringComparison.OrdinalIgnoreCase));
@@ -13,8 +15,17 @@ public static class ReleaseNotes
         return section
             .Where(line => line.Length > 0 && HeadingLevel(line) == 0)
             .Select(WithoutBullet)
+            .Select(NoteOf)
             .Take(MaxLines)
             .ToList();
+    }
+
+    private static ReleaseNoteModel NoteOf(string line)
+    {
+        var separator = line.IndexOf(TitleSeparator, StringComparison.Ordinal);
+        var title = separator > 0 ? line[..separator].Trim() : string.Empty;
+        var text = separator > 0 ? line[(separator + TitleSeparator.Length)..].Trim() : string.Empty;
+        return title.Length is > 0 and <= MaxTitleLength && text.Length > 0 ? new ReleaseNoteModel(title, text) : new ReleaseNoteModel(null, line);
     }
 
     private static IEnumerable<string> SectionAfter(List<string> lines, int start)

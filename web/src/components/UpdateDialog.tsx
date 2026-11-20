@@ -2,6 +2,7 @@ import { useEffect, useRef, type PointerEvent } from 'react'
 import { UpdateStatus, type UpdateInfo, type UpdateRelease } from '../bridge/updateMessages'
 import { cancelUpdateDownload, closeUpdateDialog, downloadPercent, formatDate, formatMebibytes, installUpdate, openReleasePage } from '../update/updateActions'
 import { keepTabInside } from './focusTrap'
+import { InfoTip } from './InfoTip'
 import { ReleaseNote } from './ReleaseNote'
 import { SETTINGS_BUTTON, SETTINGS_HINT, SETTINGS_SECONDARY } from './settingsStyles'
 
@@ -11,6 +12,7 @@ interface UpdateDialogProps {
 }
 
 const PRIMARY = `${SETTINGS_BUTTON} border-tily-green text-tily-green-deep hover:bg-tily-green-soft`
+const INSTALL_TIP = 'Installeur vérifié par son empreinte SHA-256 avant installation. Tily se ferme, installe la mise à jour puis redémarre : la session est restaurée avec de nouveaux shells, les programmes en cours sont arrêtés après confirmation. Windows peut demander une autorisation d’administrateur si Tily est installé pour tous les utilisateurs.'
 
 const handleBackdropPointerDown = (event: PointerEvent<HTMLDivElement>) => {
   if (event.target === event.currentTarget) {
@@ -68,10 +70,20 @@ export function UpdateDialog({ info, release }: UpdateDialogProps) {
         </div>
         <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-4 py-4">
           {release.notes.length > 0 ? (
-            <ul className="flex list-disc flex-col gap-1.5 pl-5 text-[12px] text-tily-ink marker:text-tily-green">
-              {release.notes.map((note) => (
-                <li key={note}>
-                  <ReleaseNote text={note} />
+            <ul className="flex flex-col gap-3 text-[13px]">
+              {release.notes.map(({ title, text }) => (
+                <li key={`${title ?? ''}${text}`} className="flex gap-2.5">
+                  <span className="mt-[7px] size-1.5 shrink-0 rounded-full bg-tily-green" />
+                  <span className="flex min-w-0 flex-col gap-0.5">
+                    {title && (
+                      <strong className="font-semibold text-tily-ink">
+                        <ReleaseNote text={title} />
+                      </strong>
+                    )}
+                    <span className={title ? 'text-tily-ink-soft' : 'text-tily-ink'}>
+                      <ReleaseNote text={text} />
+                    </span>
+                  </span>
                 </li>
               ))}
             </ul>
@@ -90,7 +102,10 @@ export function UpdateDialog({ info, release }: UpdateDialogProps) {
           {info.blocked ? (
             <p className="text-[12px] text-tily-warning">{info.blocked}</p>
           ) : (
-            <p className={SETTINGS_HINT}>{`Installeur de ${formatMebibytes(release.size)}, vérifié par son empreinte SHA-256 avant installation. Tily se ferme, installe la mise à jour puis redémarre : la session est restaurée avec de nouveaux shells, les programmes en cours sont arrêtés après confirmation. Windows peut demander une autorisation d’administrateur si Tily est installé pour tous les utilisateurs.`}</p>
+            <p className={`flex items-center gap-1.5 ${SETTINGS_HINT}`}>
+              {`${formatMebibytes(release.size)} · Tily redémarre et restaure votre session`}
+              <InfoTip text={INSTALL_TIP} />
+            </p>
           )}
         </div>
         <div className="flex items-center gap-2 border-t border-tily-line px-4 py-3">

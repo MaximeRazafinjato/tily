@@ -194,6 +194,7 @@ Mises à jour par les releases GitHub (spec, §13).
 - Canal fixé à la compilation (`TILY_BETA`) ; le stable lit `releases/latest`, la bêta la dernière pré-release.
 - Une release n'est acceptée que si son installeur porte le nom du canal, vient de `https://github.com/MaximeRazafinjato/tily/releases/download/` et a une empreinte `sha256:` publiée par GitHub. Le téléchargement va dans un `.part` haché au fil de l'eau, supprimé si l'empreinte diffère, renommé sinon.
 - Versions comparées à la SemVer (`2.3.0-beta.2` < `2.3.0-beta.10` < `2.3.0`).
+- `ReleaseNotes` rend chaque note en `ReleaseNoteModel` : une ligne « Titre — détail » (titre de 60 caractères au plus, détail non vide) est découpée au premier « — », toute autre ligne n'a pas de titre. Ce format reste lisible dans les versions antérieures, qui affichent la ligne entière.
 - Copie installée reconnue à `unins000.exe` ; installation pour tous les utilisateurs si elle est sous `Program Files`.
 
 ### StatusLog/
