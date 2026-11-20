@@ -5,9 +5,10 @@ import { useAppearanceStore } from '../store/appearanceStore'
 import { useSessionStore } from '../store/sessionStore'
 import { createWorld, resize, type World } from './blobModel'
 import { updateBlob, updateParticles } from './blobPhysics'
-import { drawBasket, drawBlob, drawParticles, drawReticle, drawStains } from './blobRenderer'
+import { drawBasket, drawBlob, drawParticles, drawReticle, drawStains, drawTombs } from './blobRenderer'
 import { placeBasket, updateBasket } from './companionBasket'
 import { startCompanionPointer } from './companionPointer'
+import { updateSocial } from './companionSocial'
 import { clearCompanions, syncCompanions } from './companionSync'
 
 const LAYER_ID = 'tily-companions'
@@ -50,6 +51,7 @@ const draw = (context: CanvasRenderingContext2D, world: World): void => {
     return
   }
   drawStains(context, world)
+  drawTombs(context, world)
   drawBasket(context, world)
   world.blobs
     .filter((blob) => !blob.stored)
@@ -91,6 +93,7 @@ const mountLayer = (size: number, speed: number, gore: boolean): { world: World;
       readPerches(world)
     }
     updateBasket(world)
+    updateSocial(world, dt)
     ;[...world.blobs].forEach((blob) => updateBlob(world, blob, dt))
     updateParticles(world, dt)
     world.recoil = Math.max(0, world.recoil - dt * 6)

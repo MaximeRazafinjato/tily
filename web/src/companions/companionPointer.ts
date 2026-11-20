@@ -92,6 +92,10 @@ export const startCompanionPointer = (world: World): (() => void) => {
     if (pointer.history.length > HISTORY_LENGTH) {
       pointer.history.shift()
     }
+    const [previous, last] = pointer.history.slice(-2)
+    if (previous && last && last.t > previous.t) {
+      world.pointerSpeed = (Math.hypot(last.x - previous.x, last.y - previous.y) / (last.t - previous.t)) * 1000
+    }
     if (world.dragged) {
       registerShake(world, world.dragged, performance.now())
     }

@@ -58,6 +58,8 @@ const explode = (world: World, blob: Blob): void => {
   const y = blob.y - blob.radius
   spray(world, x, y, 60, -Math.PI / 2, Math.PI, 700)
   decal(world, ParticleKind.Stain, x, y, blob.radius * 1.2, STAIN_LIFE_S)
+  const below = world.perches.filter((perch) => x >= perch.x1 && x <= perch.x2 && perch.y >= blob.y - 1).sort((a, b) => a.y - b.y)[0]
+  blob.tomb = below ? { x, y: below.y, perch: below.element, alpha: 1 } : null
   blob.exploded = REFORM_S
   blob.dizzy = 0
   blob.vx = 0

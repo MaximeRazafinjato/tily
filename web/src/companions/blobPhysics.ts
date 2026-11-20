@@ -1,10 +1,12 @@
 import { FLOOR_HURT_SPEED, FLOOR_SPLAT_SPEED, impact, reform, regenerate, WALL_HURT_SPEED, WALL_SPLAT_SPEED } from './goreEffects'
-import { BlobMood, targetRadius, clamp, DONE_CELEBRATION_S, GRAVITY, impulse, jump, lerp, ParticleKind, randomBetween, removeBlob, setMood, SLEEP_AFTER_S, type Blob, type Perch, type World } from './blobModel'
+import { BlobMood, targetRadius, clamp, DONE_CELEBRATION_S, GRAVITY, impulse, jump, lerp, ParticleKind, randomBetween, removeBlob, setMood, type Blob, type Perch, type World } from './blobModel'
 
 const SPRING_STIFFNESS = 180
 const SPRING_DAMPING = 9
 const LOOK_RANGE = 320
 const ARRIVAL_DISTANCE = 8
+const NEIGHBOUR_RANGE = 250
+const TOMB_FADE_S = 1
 
 const perchOf = (world: World, blob: Blob): Perch | undefined => world.perches.find((perch) => perch.element === blob.perch)
 
@@ -117,6 +119,11 @@ const growOrLeave = (world: World, blob: Blob, dt: number): boolean => {
   return false
 }
 
+const nearestOf = (world: World, blob: Blob): Blob | undefined =>
+  world.blobs
+    .filter((other) => other !== blob && !other.stored && other.exploded === 0 && Math.abs(other.x - blob.x) < NEIGHBOUR_RANGE && Math.abs(other.y - blob.y) < NEIGHBOUR_RANGE)
+    .sort((a, b) => Math.abs(a.x - blob.x) - Math.abs(b.x - blob.x))[0]
+
 const look = (world: World, blob: Blob): void => {
   let lookX = Math.sign(blob.vx) * 0.8
   let lookY = 0
@@ -128,8 +135,9 @@ const look = (world: World, blob: Blob): void => {
     const dx = world.pointer.x - blob.x
     const dy = world.pointer.y - (blob.y - blob.radius)
     const distance = Math.max(1, Math.hypot(dx, dy))
-    lookX = distance < LOOK_RANGE ? dx / distance : Math.sin(blob.clock * 0.6) * 0.7
-    lookY = distance < LOOK_RANGE ? dy / distance : Math.sin(blob.clock * 0.4) * 0.3
+    const neighbour = distance < LOOK_RANGE ? undefined : nearestOf(world, blob)
+    lookX = distance < LOOK_RANGE ? dx / distance : neighbour ? Math.sign(neighbour.x - blob.x) * 0.8 : Math.sin(blob.clock * 0.6) * 0.7
+    lookY = distance < LOOK_RANGE ? dy / distance : neighbour ? 0 : Math.sin(blob.clock * 0.4) * 0.3
   }
   if (blob === world.dragged) {
     lookX = 0
@@ -155,7 +163,7 @@ const animate = (world: World, blob: Blob, dt: number): void => {
   blob.poke = Math.max(0, blob.poke - dt)
   blob.shake = Math.max(0, blob.shake - dt * 0.7)
   blob.errorMix = lerp(blob.errorMix, blob.mood === BlobMood.Error ? 1 : 0, 0.08)
-  if (blob.mood === BlobMood.Idle && blob.perch && blob.idleTime > SLEEP_AFTER_S && Math.random() < dt * 0.8) {
+  if (blob.mood === BlobMood.Idle && blob.perch && blob.idleTime > world.sleepAfter && Math.random() < dt * 0.8) {
     world.particles.push({ kind: ParticleKind.Snore, x: blob.x + blob.radius * 0.6, y: blob.y - blob.radius * 1.8, vx: 18, vy: -30, life: 1, hue: 0, size: blob.radius * 0.35 })
   }
 }
@@ -173,10 +181,16 @@ export const updateBlob = (world: World, blob: Blob, dt: number): void => {
     blob.exploded = Math.max(0, blob.exploded - dt)
     if (blob.exploded === 0) {
       blob.grow = 0
-      blob.perch = null
+      blob.perch = blob.tomb?.perch ?? null
+      blob.x = blob.tomb?.x ?? blob.x
+      blob.y = blob.tomb?.y ?? blob.y
       reform(blob)
     }
     return
+  }
+  if (blob.tomb) {
+    blob.tomb.alpha -= dt / TOMB_FADE_S
+    blob.tomb = blob.tomb.alpha > 0 ? blob.tomb : null
   }
   blob.dizzy = Math.max(0, blob.dizzy - dt)
   blob.hurt = Math.max(0, blob.hurt - dt)

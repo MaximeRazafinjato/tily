@@ -93,6 +93,7 @@ export const syncCompanions = (world: World): void => {
     blob.name = nameOf(agent.paneId, agents)
     blob.tool = toolLabel(agent.tool)
     blob.contextScale = contextScaleOf(agent.contextTokens)
+    blob.context = agent.contextTokens
     if (blob.reported !== mood) {
       blob.reported = mood
       setMood(world, blob, mood)
