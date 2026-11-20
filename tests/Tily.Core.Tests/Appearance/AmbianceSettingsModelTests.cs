@@ -44,6 +44,18 @@ public sealed class AmbianceSettingsModelTests
         Assert.Equal(new AmbianceCompanionsModel(true, expected), normalized.Companions);
     }
 
+    [Theory]
+    [InlineData(0, AmbianceCompanionsModel.MinSpeed)]
+    [InlineData(900, AmbianceCompanionsModel.MaxSpeed)]
+    public void Normalized_WhenCompanionSpeedOutOfRange_ThenClamped(int speed, int expected)
+    {
+        var settings = AmbianceSettingsModel.Default with { Companions = new AmbianceCompanionsModel(true, Speed: speed) };
+
+        var normalized = settings.Normalized();
+
+        Assert.Equal(expected, normalized.Companions.Speed);
+    }
+
     [Fact]
     public void Normalized_WhenCompanionsMissing_ThenDefaultDisabled()
     {
