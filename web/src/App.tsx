@@ -28,6 +28,7 @@ import { receiveCreated, receiveDeleted, receiveGitMarks, receiveListing, receiv
 import { receiveProjectFiles } from './explorer/projectFileActions'
 import { receivePreview, receivePreviewRequest, startDeferredPreviews } from './preview/previewActions'
 import { receivePreviewSaved, receivePreviewSaveFailed } from './preview/previewEdit'
+import { receiveGitConflict } from './git/gitConflictActions'
 import { receiveGitAutoFetchEnded, receiveGitAutoFetchStarted, receiveGitChanged, receiveGitDetails, receiveGitDiff, receiveGitDone, receiveGitFailed, receiveGitHistory, receiveGitPushRejected, receiveGitState } from './git/gitReceivers'
 import { insertIntoPane, joinPane } from './terminal/terminalActions'
 import { WORKTREE_FOLDER_FIELD, WORKTREE_REPOSITORY_FIELD } from './worktree/worktreeActions'
@@ -47,7 +48,7 @@ import {
   receiveWorktreeSources,
 } from './worktree/worktreeReceivers'
 import { terminalRegistry } from './terminal/terminalRegistry'
-import { receiveUpdateRestart, receiveUpdateState } from './update/updateActions'
+import { receiveReleaseHistory, receiveUpdateRestart, receiveUpdateState } from './update/updateActions'
 import { receiveStatusLogCleared, receiveStatusLogEntry, startStatusLog } from './statusLog/statusLogActions'
 import { useShortcutStore } from './store/shortcutStore'
 import { useStatusLogStore } from './store/statusLogStore'
@@ -189,6 +190,7 @@ export default function App() {
       bridge.on('git.history', (message) => receiveGitHistory(message.history, message.error)),
       bridge.on('git.diff', (message) => receiveGitDiff(message.request, message.result, message.error)),
       bridge.on('git.details', (message) => receiveGitDetails(message.request, message.result, message.error)),
+      bridge.on('git.conflict', (message) => receiveGitConflict(message.request, message.result, message.error)),
       bridge.on('git.done', (message) => receiveGitDone(message.operation, message.message, message.warning, message.output)),
       bridge.on('git.failed', (message) => receiveGitFailed(message.operation, message.message, message.output, message.code)),
       bridge.on('git.pushRejected', (message) => receiveGitPushRejected(message.operation, message.branch, message.message, message.output)),
@@ -216,6 +218,7 @@ export default function App() {
       bridge.on('clone.failed', (message) => receiveCloneFailed(message.request, message.message, message.output)),
       bridge.on('update.state', (message) => receiveUpdateState(message)),
       bridge.on('update.restart', receiveUpdateRestart),
+      bridge.on('update.history', (message) => receiveReleaseHistory(message)),
       bridge.on('statusLog.added', (message) => receiveStatusLogEntry(message.entry)),
       bridge.on('statusLog.cleared', receiveStatusLogCleared),
       bridge.on('mcp.request', (message) => void receiveMcpRequest(message)),

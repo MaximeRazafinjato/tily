@@ -4,6 +4,7 @@ import { StatusLevel, useHostStore } from '../store/hostStore'
 import { diffHasFocus, refocusGitIfLost, requestDiffFocus, restoreDiffFocus } from './gitFocus'
 import { clearRefSelection } from './gitRefSelection'
 import { closeDrawer, loadUntilRevealed, reloadDiff, retryFailedDetails, selectWorkingTree, showChange, takeInitialized, takeRetry } from './gitRequests'
+import { followShownConflict } from './gitConflictActions'
 import { GitRowGroup, rowKey } from './gitRows'
 
 const COMMIT_OPERATION = 'git.commit'
@@ -59,6 +60,9 @@ export const receiveGitState = (path: string, state: GitState | undefined, error
   const { file, commit } = useGitStore.getState()
   if (state && file && !commit) {
     followShownFile(previous, state, file)
+  }
+  if (state) {
+    followShownConflict(previous, state)
   }
   retryFailedDetails()
   refocusGitIfLost()
@@ -122,7 +126,7 @@ export const receiveGitFailed = (operation: string, message: string, output: str
   finishBusy(operation)
   const retry = takeRetry(operation)
   if (code && retry) {
-    retry()
+    retry(code)
     return
   }
   useGitStore.getState().setFailure({ message, output })

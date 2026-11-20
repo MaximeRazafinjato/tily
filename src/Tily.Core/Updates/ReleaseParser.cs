@@ -22,7 +22,22 @@ public static class ReleaseParser
             return Release(prerelease, channel);
         });
 
-    private static UpdateReleaseModel Read(string json, Func<JsonElement, UpdateReleaseModel> release)
+    public static IReadOnlyList<ReleaseHistoryModel> ParseHistory(string json, ReleaseChannel channel) =>
+        Read(json, root => root.EnumerateArray()
+            .Where(release => release.ValueKind == JsonValueKind.Object && !Flag(release, "draft") && (channel == ReleaseChannel.Beta || !Flag(release, "prerelease")))
+            .Select(History)
+            .OfType<ReleaseHistoryModel>()
+            .ToList());
+
+    private static ReleaseHistoryModel? History(JsonElement root)
+    {
+        var version = Text(root, "tag_name").TrimStart('v', 'V');
+        return ReleaseVersion.Parse(version) is null
+            ? null
+            : new ReleaseHistoryModel(version, Flag(root, "prerelease"), PublishedAt(root), Text(root, "html_url"), ReleaseNotes.Sections(Text(root, "body")));
+    }
+
+    private static T Read<T>(string json, Func<JsonElement, T> release)
     {
         try
         {
@@ -49,18 +64,21 @@ public static class ReleaseParser
         }
 
         var name = Text(root, "name");
-        DateTimeOffset? publishedAt = root.TryGetProperty("published_at", out var published) && published.ValueKind == JsonValueKind.String && published.TryGetDateTimeOffset(out var date) ? date : null;
         return new UpdateReleaseModel(
             version,
             name.Length > 0 ? name : $"{ReleaseChannels.ApplicationName(channel)} {version}",
             ReleaseNotes.Highlights(Text(root, "body")),
             Text(root, "html_url"),
-            publishedAt,
+            PublishedAt(root),
             Installer(root, version, channel));
     }
 
-    private static bool IsPrerelease(JsonElement release) =>
-        release.ValueKind == JsonValueKind.Object && release.TryGetProperty("prerelease", out var flag) && flag.ValueKind == JsonValueKind.True;
+    private static DateTimeOffset? PublishedAt(JsonElement root) =>
+        root.TryGetProperty("published_at", out var published) && published.ValueKind == JsonValueKind.String && published.TryGetDateTimeOffset(out var date) ? date : null;
+
+    private static bool IsPrerelease(JsonElement release) => release.ValueKind == JsonValueKind.Object && Flag(release, "prerelease");
+
+    private static bool Flag(JsonElement release, string property) => release.TryGetProperty(property, out var flag) && flag.ValueKind == JsonValueKind.True;
 
     private static UpdateAssetModel Installer(JsonElement root, string version, ReleaseChannel channel)
     {

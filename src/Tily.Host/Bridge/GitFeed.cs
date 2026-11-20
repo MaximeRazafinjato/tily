@@ -68,6 +68,9 @@ public sealed class GitFeed : IDisposable
             case "git.details":
                 Read(command, "git.details", repository => GitDiffReader.ReadCommit(repository, command.Commit));
                 break;
+            case "git.conflict":
+                Read(command, "git.conflict", repository => GitConflictReader.Read(repository, command.File));
+                break;
             default:
                 throw new InvalidOperationException($"Commande inconnue : {command.Type}");
         }

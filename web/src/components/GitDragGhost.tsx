@@ -1,4 +1,3 @@
-import { useShallow } from 'zustand/react/shallow'
 import { GitRefKind } from '../bridge/gitMessages'
 import { useGitStore } from '../store/gitStore'
 import { Icon } from './Icon'
@@ -8,12 +7,11 @@ const POINTER_OFFSET_X = 14
 const POINTER_OFFSET_Y = 10
 
 export function GitDragGhost() {
-  const { drag, currentBranch } = useGitStore(useShallow((store) => ({ drag: store.drag, currentBranch: store.state?.head.branch })))
+  const drag = useGitStore((store) => store.drag)
   if (!drag) {
     return null
   }
-  const draggingCurrent = drag.source.kind === GitRefKind.Branch && drag.source.name === currentBranch
-  const hint = drag.target ? `→ ${drag.target.name}` : draggingCurrent ? 'Déposez sur une autre branche' : 'Déposez sur la branche courante'
+  const hint = drag.target ? `→ ${drag.target.name}` : 'Déposez sur une autre branche'
 
   return (
     <div

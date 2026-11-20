@@ -7,7 +7,8 @@ public enum GitFailureCode
 {
     [JsonStringEnumMemberName("none")] None,
     [JsonStringEnumMemberName("notMerged")] NotMerged,
-    [JsonStringEnumMemberName("conflictMarkers")] ConflictMarkers
+    [JsonStringEnumMemberName("conflictMarkers")] ConflictMarkers,
+    [JsonStringEnumMemberName("fileChanged")] FileChanged
 }
 
 public class GitCommandException : Exception

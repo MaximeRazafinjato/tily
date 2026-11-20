@@ -38,7 +38,7 @@ public sealed class ReleaseParserTests
             new UpdateAssetModel("Tily-1.4.0-setup.exe", "https://github.com/MaximeRazafinjato/tily/releases/download/v1.4.0/Tily-1.4.0-setup.exe", 1234, Digest),
             release.Installer);
         Assert.Equal("1.4.0", release.Version);
-        Assert.Equal(["Mises à jour dans l’application.", "Libellés."], release.Notes);
+        Assert.Equal([new ReleaseNoteModel(null, "Mises à jour dans l’application."), new ReleaseNoteModel(null, "Libellés.")], release.Notes);
     }
 
     [Fact]
@@ -126,6 +126,37 @@ public sealed class ReleaseParserTests
         var exception = Assert.Throws<UpdateException>(() => ReleaseParser.ParseLatestPrerelease(ReleaseJson(), ReleaseChannel.Beta));
 
         Assert.Equal("Réponse de GitHub inattendue.", exception.Message);
+    }
+
+    [Fact]
+    public void ParseHistory_WhenStableChannel_ThenSkipsBetasDraftsAndUnreadableTags()
+    {
+        var draft = ReleaseJson("v1.6.0").Replace("\"prerelease\": false", "\"draft\": true, \"prerelease\": false");
+        var json = $"[{draft}, {ReleaseJson("v1.5.0-beta.1", prerelease: true)}, {ReleaseJson("nightly")}, {ReleaseJson()}]";
+
+        var history = ReleaseParser.ParseHistory(json, ReleaseChannel.Stable);
+
+        Assert.Equal(["1.4.0"], history.Select(release => release.Version));
+    }
+
+    [Fact]
+    public void ParseHistory_WhenBetaChannel_ThenKeepsBetasMarkedAsPrereleases()
+    {
+        var json = $"[{ReleaseJson("v1.5.0-beta.1", prerelease: true)}, {ReleaseJson()}]";
+
+        var history = ReleaseParser.ParseHistory(json, ReleaseChannel.Beta);
+
+        Assert.Equal([("1.5.0-beta.1", true), ("1.4.0", false)], history.Select(release => (release.Version, release.Prerelease)));
+    }
+
+    [Fact]
+    public void ParseHistory_WhenReleaseHasNoInstaller_ThenKeepsItsNotesWithoutInstallation()
+    {
+        var json = $"[{ReleaseJson(assetName: "Dock-1.4.0-setup.exe", digest: null)}]";
+
+        var release = Assert.Single(ReleaseParser.ParseHistory(json, ReleaseChannel.Stable));
+
+        Assert.Equal([null, "Nouveautés"], release.Sections.Select(section => section.Title));
     }
 
     [Theory]

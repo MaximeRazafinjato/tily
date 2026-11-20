@@ -37,6 +37,11 @@
   --color-tily-diff-removed-ink: #e8aaa3;
   --color-tily-diff-added-selected: #2b4a37;
   --color-tily-diff-removed-selected: #573238;
+  --color-tily-merge-change: #1f2a38;
+  --color-tily-merge-conflict: #3d2f1c;
+  --color-tily-merge-conflict-ink: #e3c27f;
+  --color-tily-merge-resolved: #1d3025;
+  --color-tily-merge-header: #26292b;
   --color-tily-lane-0: #7a9f8b;
   --color-tily-lane-1: #7f9fc9;
   --color-tily-lane-2: #c9a65f;

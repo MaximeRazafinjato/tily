@@ -18,16 +18,12 @@ const fullFormat = new Intl.DateTimeFormat('fr-FR', { dateStyle: 'full', timeSty
 
 export const levelLabel = (level: StatusLevel): string => LEVEL_LABELS[level]
 
-export const entryTime = (entry: StatusLogEntry, now: Date): string => {
+export const entryTime = (entry: StatusLogEntry): string => {
   const at = new Date(entry.at)
-  const time = timeFormat.format(at)
-  return at.toDateString() === now.toDateString() ? time : `${dayFormat.format(at)} ${time}`
+  return `${dayFormat.format(at)} ${timeFormat.format(at)}`
 }
 
-const copyLine = (entry: StatusLogEntry): string => {
-  const at = new Date(entry.at)
-  return `${dayFormat.format(at)} ${timeFormat.format(at)}  ${levelLabel(entry.level)}  ${entry.text}`
-}
+const copyLine = (entry: StatusLogEntry): string => `${entryTime(entry)}  ${levelLabel(entry.level)}  ${entry.text}`
 
 export const entryFullDate = (entry: StatusLogEntry): string => fullFormat.format(new Date(entry.at))
 
@@ -41,7 +37,10 @@ export const startStatusLog = (): (() => void) =>
 
 export const receiveStatusLogEntry = (entry: StatusLogEntry): void => useStatusLogStore.getState().add(entry)
 
-export const receiveStatusLogCleared = (): void => useStatusLogStore.getState().clear()
+export const receiveStatusLogCleared = (): void => {
+  useStatusLogStore.getState().clear()
+  useHostStore.getState().setStatus('')
+}
 
 const focusStatusLog = (): void => document.querySelector<HTMLElement>(LIST_SELECTOR)?.focus()
 

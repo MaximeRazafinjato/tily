@@ -24,7 +24,7 @@ const LANGUAGES: Record<string, () => Extension> = {
 
 const SELECTION = 'color-mix(in srgb, var(--color-tily-green) 32%, transparent)'
 
-const theme = EditorView.theme(
+export const editorTheme = EditorView.theme(
   {
     '&': { height: '100%', backgroundColor: 'transparent', color: 'var(--color-tily-ink)', fontSize: '12.5px' },
     '&.cm-focused': { outline: 'none' },
@@ -51,7 +51,7 @@ const theme = EditorView.theme(
   { dark: true },
 )
 
-const highlightStyle = HighlightStyle.define([
+export const editorHighlightStyle = HighlightStyle.define([
   { tag: [tags.keyword, tags.operatorKeyword, tags.modifier, tags.bool, tags.null], color: 'var(--color-tily-syntax-keyword)' },
   { tag: [tags.string, tags.special(tags.string), tags.regexp], color: 'var(--color-tily-syntax-string)' },
   { tag: [tags.number, tags.atom], color: 'var(--color-tily-syntax-number)' },
@@ -65,7 +65,7 @@ const highlightStyle = HighlightStyle.define([
   { tag: tags.strikethrough, textDecoration: 'line-through' },
 ])
 
-const FRENCH_PHRASES = EditorState.phrases.of({
+export const FRENCH_PHRASES = EditorState.phrases.of({
   Find: 'Rechercher',
   Replace: 'Remplacer',
   next: 'suivant',
@@ -86,6 +86,8 @@ const FRENCH_PHRASES = EditorState.phrases.of({
   'Control character': 'Caractère de contrôle',
 })
 
+export const languageExtensions = (language: string | null | undefined): Extension[] => (language && LANGUAGES[language] ? [LANGUAGES[language]()] : [])
+
 interface EditorHandlers {
   onChange: (text: string) => void
   onSave: () => void
@@ -102,8 +104,8 @@ export const editorExtensions = (language: string | undefined, { onChange, onSav
   highlightActiveLine(),
   highlightSelectionMatches(),
   EditorView.lineWrapping,
-  syntaxHighlighting(highlightStyle),
-  theme,
+  syntaxHighlighting(editorHighlightStyle),
+  editorTheme,
   FRENCH_PHRASES,
   keymap.of([{ key: 'Mod-s', preventDefault: true, run: () => {
       onSave()
@@ -114,5 +116,5 @@ export const editorExtensions = (language: string | undefined, { onChange, onSav
       onChange(update.state.doc.toString())
     }
   }),
-  ...(language && LANGUAGES[language] ? [LANGUAGES[language]()] : []),
+  ...languageExtensions(language),
 ]
