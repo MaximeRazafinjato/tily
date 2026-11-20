@@ -88,7 +88,6 @@ export interface GitGraphLayout {
   dateWidth: number
   authorShown: boolean
   dateShown: boolean
-  conflictRows: boolean
 }
 
 export interface Session {
@@ -122,7 +121,6 @@ export const DEFAULT_GIT_GRAPH: GitGraphLayout = {
   dateWidth: 120,
   authorShown: true,
   dateShown: true,
-  conflictRows: false,
 }
 export const SESSION_VERSION = 2
 export const DEFAULT_SHELL = 'powershell'
