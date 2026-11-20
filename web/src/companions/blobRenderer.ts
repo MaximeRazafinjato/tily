@@ -57,7 +57,14 @@ const drawEye = (context: CanvasRenderingContext2D, world: World, blob: Blob, ra
   const happy = !surprised && (blob.mood === BlobMood.Done || blob.poke > 0)
   const sleeping = !surprised && blob.mood === BlobMood.Idle && blob.idleTime > SLEEP_AFTER_S
   context.beginPath()
-  if (blob.mood === BlobMood.Error && !surprised) {
+  if (blob.dizzy > 0 && !surprised) {
+    for (let step = 0; step <= 24; step++) {
+      const angle = step * 0.55 + blob.clock * 8
+      const distance = (step / 24) * radius * 0.13
+      context.lineTo(x + Math.cos(angle) * distance, y + Math.sin(angle) * distance)
+    }
+    context.stroke()
+  } else if (blob.mood === BlobMood.Error && !surprised) {
     const size = radius * 0.1
     context.moveTo(x - size, y - size)
     context.lineTo(x + size, y + size)
@@ -119,7 +126,7 @@ const drawBubble = (context: CanvasRenderingContext2D, text: string, x: number, 
 
 export const drawBlob = (context: CanvasRenderingContext2D, world: World, blob: Blob): void => {
   const radius = blob.radius * (blob.leaving ? Math.max(blob.grow, 0) : easeOutBack(blob.grow))
-  if (radius <= 0.5) {
+  if (radius <= 0.5 || blob.exploded > 0) {
     return
   }
   context.save()
@@ -148,7 +155,15 @@ export const drawBlob = (context: CanvasRenderingContext2D, world: World, blob: 
 export const drawParticles = (context: CanvasRenderingContext2D, world: World): void => {
   world.particles.forEach((particle) => {
     context.globalAlpha = Math.max(0, particle.life)
-    if (particle.kind === ParticleKind.Spark) {
+    if (particle.kind === ParticleKind.Stain) {
+      return
+    }
+    if (particle.kind === ParticleKind.Drop) {
+      context.fillStyle = `hsl(${particle.hue}, 85%, 38%)`
+      context.beginPath()
+      context.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2)
+      context.fill()
+    } else if (particle.kind === ParticleKind.Spark) {
       context.fillStyle = `hsl(${particle.hue}, 90%, 65%)`
       context.beginPath()
       context.arc(particle.x, particle.y, particle.size * particle.life, 0, Math.PI * 2)
@@ -159,6 +174,23 @@ export const drawParticles = (context: CanvasRenderingContext2D, world: World): 
       context.fillText('z', particle.x, particle.y)
     }
   })
+  context.globalAlpha = 1
+}
+
+export const drawStains = (context: CanvasRenderingContext2D, world: World): void => {
+  world.particles
+    .filter((particle) => particle.kind === ParticleKind.Stain)
+    .forEach((particle) => {
+      context.globalAlpha = Math.min(1, particle.life * 1.5) * 0.85
+      context.fillStyle = `hsl(${particle.hue}, 80%, 30%)`
+      context.beginPath()
+      context.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2)
+      ;(particle.spots ?? []).forEach(([dx, dy, size]) => {
+        context.moveTo(particle.x + dx + size, particle.y + dy)
+        context.arc(particle.x + dx, particle.y + dy, size, 0, Math.PI * 2)
+      })
+      context.fill()
+    })
   context.globalAlpha = 1
 }
 

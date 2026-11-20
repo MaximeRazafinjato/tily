@@ -5,7 +5,7 @@ import { useAppearanceStore } from '../store/appearanceStore'
 import { useSessionStore } from '../store/sessionStore'
 import { createWorld, resize, type World } from './blobModel'
 import { updateBlob, updateParticles } from './blobPhysics'
-import { drawBasket, drawBlob, drawParticles } from './blobRenderer'
+import { drawBasket, drawBlob, drawParticles, drawStains } from './blobRenderer'
 import { placeBasket, updateBasket } from './companionBasket'
 import { startCompanionPointer } from './companionPointer'
 import { clearCompanions, syncCompanions } from './companionSync'
@@ -46,6 +46,7 @@ const draw = (context: CanvasRenderingContext2D, world: World): void => {
   if (document.querySelector(MODAL_SELECTOR)) {
     return
   }
+  drawStains(context, world)
   drawBasket(context, world)
   world.blobs
     .filter((blob) => !blob.stored)
@@ -54,14 +55,14 @@ const draw = (context: CanvasRenderingContext2D, world: World): void => {
   drawParticles(context, world)
 }
 
-const mountLayer = (size: number, speed: number): { world: World; stop: () => void } => {
+const mountLayer = (size: number, speed: number, gore: boolean): { world: World; stop: () => void } => {
   const canvas = document.createElement('canvas')
   canvas.id = LAYER_ID
   canvas.setAttribute('aria-hidden', 'true')
   Object.assign(canvas.style, { position: 'fixed', inset: '0', width: '100%', height: '100%', zIndex: LAYER_Z_INDEX, pointerEvents: 'none' })
   document.body.append(canvas)
   const context = canvas.getContext('2d')
-  const world = createWorld(size, speed)
+  const world = createWorld(size, speed, gore)
   if (!context) {
     canvas.remove()
     return { world, stop: () => {} }
@@ -123,10 +124,11 @@ export const startCompanions = (): (() => void) => {
       return
     }
     if (!layer) {
-      layer = mountLayer(companions.size, companions.speed / 100)
+      layer = mountLayer(companions.size, companions.speed / 100, companions.gore)
       return
     }
     layer.world.speed = companions.speed / 100
+    layer.world.gore = companions.gore
     if (layer.world.size !== companions.size) {
       layer.world.size = companions.size
       resize(layer.world)

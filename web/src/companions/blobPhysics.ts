@@ -1,3 +1,4 @@
+import { FLOOR_SPLAT_SPEED, splat, WALL_SPLAT_SPEED } from './goreEffects'
 import { BlobMood, clamp, DONE_CELEBRATION_S, GRAVITY, impulse, jump, lerp, ParticleKind, randomBetween, removeBlob, setMood, SLEEP_AFTER_S, type Blob, type Perch, type World } from './blobModel'
 
 const SPRING_STIFFNESS = 180
@@ -16,6 +17,9 @@ const land = (world: World, blob: Blob, previousY: number): void => {
     .sort((a, b) => a.y - b.y)[0]
   if (!landing) {
     return
+  }
+  if (blob.vy > FLOOR_SPLAT_SPEED) {
+    splat(world, blob, blob.x, landing.y, -Math.PI / 2, blob.vy)
   }
   if (blob.vy > 300) {
     impulse(blob, Math.min(blob.vy / 70, 14))
@@ -59,8 +63,19 @@ const fall = (world: World, blob: Blob, dt: number): void => {
   blob.y += blob.vy * dt
   blob.x += blob.vx * dt
   if (blob.x < blob.radius || blob.x > world.width - blob.radius) {
+    const left = blob.x < blob.radius
+    if (Math.abs(blob.vx) > WALL_SPLAT_SPEED) {
+      splat(world, blob, left ? 0 : world.width, blob.y - blob.radius, left ? 0 : Math.PI, Math.abs(blob.vx))
+    }
     blob.x = clamp(blob.x, blob.radius, world.width - blob.radius)
     blob.vx *= -0.5
+  }
+  if (blob.y - blob.radius * 2 < 0 && blob.vy < 0) {
+    if (-blob.vy > WALL_SPLAT_SPEED) {
+      splat(world, blob, blob.x, 0, Math.PI / 2, -blob.vy)
+    }
+    blob.y = blob.radius * 2
+    blob.vy *= -0.4
   }
   land(world, blob, previousY)
   const lowest = world.perches.filter((perch) => blob.x >= perch.x1 && blob.x <= perch.x2).sort((a, b) => b.y - a.y)[0]
@@ -78,6 +93,10 @@ const move = (world: World, blob: Blob, dt: number): void => {
   }
   if (perch && blob.perch) {
     blob.y = perch.y
+    if (blob.dizzy > 0 && Math.random() < dt * 2) {
+      blob.vx = randomBetween(-90, 90)
+      jump(world, blob, 160)
+    }
     if (blob.mood === BlobMood.Working || (blob.leaving && blob.parent)) {
       walk(world, blob, dt, perch)
     }
@@ -156,6 +175,15 @@ export const updateBlob = (world: World, blob: Blob, dt: number): void => {
   if (blob.mood === BlobMood.Done && blob.moodTime > DONE_CELEBRATION_S) {
     setMood(world, blob, BlobMood.Idle)
   }
+  if (blob.exploded > 0) {
+    blob.exploded = Math.max(0, blob.exploded - dt)
+    if (blob.exploded === 0) {
+      blob.grow = 0
+      blob.perch = null
+    }
+    return
+  }
+  blob.dizzy = Math.max(0, blob.dizzy - dt)
   if (!growOrLeave(world, blob, dt) || blob.stored) {
     return
   }
@@ -171,12 +199,16 @@ export const updateBlob = (world: World, blob: Blob, dt: number): void => {
 
 export const updateParticles = (world: World, dt: number): void => {
   world.particles = world.particles.filter((particle) => {
-    particle.life -= dt * (particle.kind === ParticleKind.Snore ? 0.5 : 1)
-    if (particle.kind === ParticleKind.Spark) {
+    if (particle.kind === ParticleKind.Stain) {
+      particle.life -= dt / (particle.lifetime ?? 1)
+      return particle.life > 0
+    }
+    particle.life -= dt * (particle.kind === ParticleKind.Snore ? 0.5 : particle.kind === ParticleKind.Drop ? 0.7 : 1)
+    if (particle.kind === ParticleKind.Spark || particle.kind === ParticleKind.Drop) {
       particle.vy += GRAVITY * 0.5 * dt
     }
     particle.x += particle.vx * dt
     particle.y += particle.vy * dt
-    return particle.life > 0
+    return particle.life > 0 && particle.y < world.height + 20
   })
 }

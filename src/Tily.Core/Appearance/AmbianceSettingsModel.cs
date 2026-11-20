@@ -103,7 +103,7 @@ public sealed record AmbiancePerformanceModel(bool ShaderTint = false, int Shade
     public const int MaxFpsLimit = 60;
 }
 
-public sealed record AmbianceCompanionsModel(bool Enabled = false, int Size = 26, int Speed = 100)
+public sealed record AmbianceCompanionsModel(bool Enabled = false, int Size = 26, int Speed = 100, bool Gore = false)
 {
     public const int MinSize = 14;
     public const int MaxSize = 48;
