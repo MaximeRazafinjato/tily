@@ -27,6 +27,10 @@ export const GRAVITY = 2200
 export const CHILD_SCALE = 0.5
 export const DONE_CELEBRATION_S = 2.5
 export const SLEEP_AFTER_S = 5
+const NORMAL_CONTEXT = 100_000
+const LARGE_CONTEXT = 1_000_000
+const EMPTY_CONTEXT_SCALE = 0.7
+const MAX_CONTEXT_SCALE = 3
 
 export interface Perch {
   element: Element | null
@@ -41,6 +45,7 @@ export interface Blob {
   name: string
   hue: number
   radius: number
+  contextScale: number
   x: number
   y: number
   vx: number
@@ -158,6 +163,7 @@ export const createBlob = (world: World, key: string, paneId: string, hue: numbe
     name: '',
     hue,
     radius: world.size * (parent ? CHILD_SCALE : 1),
+    contextScale: 1,
     x,
     y: parent ? parent.y - parent.radius : world.height * 0.4,
     vx: parent ? pick([-1, 1]) * randomBetween(160, 260) : 0,
@@ -246,8 +252,19 @@ export const removeBlob = (world: World, blob: Blob): void => {
   }
 }
 
+export const targetRadius = (world: World, blob: Blob): number => world.size * (blob.parent ? CHILD_SCALE : blob.contextScale)
+
+export const contextScaleOf = (tokens: number | undefined): number => {
+  if (tokens === undefined) {
+    return 1
+  }
+  return tokens <= NORMAL_CONTEXT
+    ? EMPTY_CONTEXT_SCALE + (1 - EMPTY_CONTEXT_SCALE) * (tokens / NORMAL_CONTEXT)
+    : Math.min(MAX_CONTEXT_SCALE, 1 + (MAX_CONTEXT_SCALE - 1) * ((tokens - NORMAL_CONTEXT) / (LARGE_CONTEXT - NORMAL_CONTEXT)))
+}
+
 export const resize = (world: World): void => {
   world.blobs.forEach((blob) => {
-    blob.radius = world.size * (blob.parent ? CHILD_SCALE : 1)
+    blob.radius = targetRadius(world, blob)
   })
 }
