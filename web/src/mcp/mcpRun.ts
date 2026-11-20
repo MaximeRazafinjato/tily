@@ -5,6 +5,7 @@ import { textArgument, type McpArguments } from './mcpArguments'
 import { describeCommand, type McpCommand } from './mcpCommands'
 import { paneLabel, requireConsent } from './mcpConsent'
 import { locationOf, requireStartedPane, type McpPaneTarget } from './mcpPanes'
+import { localIsoTime } from './mcpTime'
 import { outputSettled } from './mcpWaitFor'
 
 const START_TIMEOUT_MS = 3000
@@ -107,7 +108,7 @@ const send = async (target: McpPaneTarget, command: string): Promise<McpRunResul
   }
   const { running } = commandTracking(terminal)
   return running
-    ? { pane: target.pane.id, outcome: RunOutcome.Running, startedAt: new Date(running.startedAt).toISOString(), message: 'La commande a démarré : suivez-la avec tily_wait_for et tily_read_pane.' }
+    ? { pane: target.pane.id, outcome: RunOutcome.Running, startedAt: localIsoTime(running.startedAt), message: 'La commande a démarré : suivez-la avec tily_wait_for et tily_read_pane.' }
     : { pane: target.pane.id, outcome: RunOutcome.Sent, message: 'Commande envoyée, mais son démarrage n’a pas été signalé dans les 3 s : vérifiez avec tily_read_pane.' }
 }
 

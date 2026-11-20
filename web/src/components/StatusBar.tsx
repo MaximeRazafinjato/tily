@@ -23,13 +23,7 @@ const STATUS_CLASSES: Record<StatusLevel, string> = {
 
 const INFO_FADE_MS = 8000
 
-const untilTomorrow = (): number => {
-  const now = new Date()
-  return new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).getTime() - now.getTime()
-}
-
 export function StatusBar() {
-  const [today, setToday] = useState(() => new Date())
   const [fadedAt, setFadedAt] = useState('')
   const status = useHostStore((state) => state.status)
   const unsaved = useHostStore((state) => state.unsaved)
@@ -43,11 +37,6 @@ export function StatusBar() {
   const spinning = Boolean(busy) || worktreeBusy
 
   useEffect(() => {
-    const timer = setTimeout(() => setToday(new Date()), untilTomorrow())
-    return () => clearTimeout(timer)
-  }, [today])
-
-  useEffect(() => {
     if (status.level !== StatusLevel.Info || !status.at) {
       return
     }
@@ -59,7 +48,7 @@ export function StatusBar() {
 
   return (
     <>
-      {logOpen && <StatusLogDrawer today={today} />}
+      {logOpen && <StatusLogDrawer />}
       <footer data-surface="paper" className={`flex h-[24px] shrink-0 items-center border-t border-tily-line bg-tily-paper text-[11px] ${spinning ? 'text-tily-ink-soft' : STATUS_CLASSES[status.level]}`}>
         <button
           type="button"

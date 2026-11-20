@@ -1,6 +1,7 @@
 import { commandTracking, finishedCommandOutput, OutputFailure, type FinishedCommand } from '../terminal/commandOutput'
 import { capText, lastLines } from '../terminal/terminalText'
 import { flagArgument, numberArgument, textArgument, type McpArguments } from './mcpArguments'
+import { localIsoTime } from './mcpTime'
 import { locationOf, requireSession, requireStartedPane, startedPanes, type McpPaneTarget } from './mcpPanes'
 
 const DEFAULT_LIMIT = 20
@@ -45,8 +46,6 @@ interface McpCommandList {
   note?: string
 }
 
-const isoTime = (time: number): string => new Date(time).toISOString()
-
 const withExcerpt = (target: McpPaneTarget, described: McpCommand): McpCommand => {
   const output = finishedCommandOutput(target.handle.terminal, described.id)
   if ('text' in output) {
@@ -64,7 +63,7 @@ export const describeCommand = (target: McpPaneTarget, command: FinishedCommand,
     cwd: command.cwd,
     success: command.success,
     durationMs: command.durationMs,
-    finishedAt: isoTime(command.finishedAt),
+    finishedAt: localIsoTime(command.finishedAt),
   }
   return excerpt ? withExcerpt(target, described) : described
 }
@@ -81,7 +80,7 @@ export const listCommands = (values: McpArguments): McpCommandList => {
     .map(({ target, command }) => describeCommand(target, command, true))
   const running = tracked.flatMap(({ target, tracking }) =>
     tracking.running && tracking.running.command !== ''
-      ? [{ pane: target.pane.id, location: locationOf(target), command: tracking.running.command, cwd: tracking.running.cwd, startedAt: isoTime(tracking.running.startedAt) }]
+      ? [{ pane: target.pane.id, location: locationOf(target), command: tracking.running.command, cwd: tracking.running.cwd, startedAt: localIsoTime(tracking.running.startedAt) }]
       : [],
   )
   const untracked = tracked.filter(({ tracking }) => !tracking.integrated).map(({ target }) => ({ pane: target.pane.id, location: locationOf(target), shell: target.pane.shell }))
