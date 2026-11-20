@@ -38,7 +38,6 @@ const TYPE_LABELS: [AmbianceGradientType, string][] = [
 ]
 
 const BANDED_TYPES = new Set([AmbianceGradientType.Linear, AmbianceGradientType.Radial, AmbianceGradientType.Particles])
-const VEIL_TIP = 'Opacité des barres et panneaux par-dessus le fond : 0 % les rend transparents, 100 % les rend opaques comme sans ambiance.'
 const TINT_TIP = 'Les décors gardent leurs couleurs naturelles, sauf si cette case les teinte avec les trois premières couleurs.'
 const SKY_TIP = 'Le ciel suit l’heure de l’ordinateur : jour, coucher de soleil, nuit étoilée.'
 
@@ -52,7 +51,6 @@ export function AmbianceBackgroundFields({ ambiance, onChange, onPickMedia }: Am
   const handleSolidColorChange = (solidColor: string) => updateBackground({ solidColor })
   const handleFitChange = (event: ChangeEvent<HTMLSelectElement>) => updateBackground({ fit: event.target.value as AmbianceFit })
   const handleOpacityChange = (opacity: number) => updateBackground({ opacity })
-  const handleVeilChange = (interfaceVeil: number) => onChange({ interfaceVeil })
   const handleGradientChange = (next: AmbianceGradient) => onChange({ gradient: next })
   const handlePresetsChange = (presets: AmbiancePreset[]) => onChange({ presets })
   const handleTypeChange = (event: ChangeEvent<HTMLSelectElement>) => updateGradient({ type: event.target.value as AmbianceGradientType })
@@ -69,12 +67,14 @@ export function AmbianceBackgroundFields({ ambiance, onChange, onPickMedia }: Am
 
   return (
     <>
-      <SettingsField label="Fond">
+      <SettingsField label="Afficher">
         <label className={SETTINGS_CHECKBOX}>
           <input type="checkbox" checked={background.enabled} onChange={handleBackgroundEnabledChange} />
-          Afficher un fond derrière l’interface
+          Un fond derrière l’interface
         </label>
-        {shown && (
+      </SettingsField>
+      {shown && (
+        <SettingsField label="Source">
           <select className={SETTINGS_INPUT} aria-label="Source du fond" value={background.source} onChange={handleSourceChange}>
             {SOURCE_LABELS.map(([source, label]) => (
               <option key={source} value={source}>
@@ -82,8 +82,8 @@ export function AmbianceBackgroundFields({ ambiance, onChange, onPickMedia }: Am
               </option>
             ))}
           </select>
-        )}
-      </SettingsField>
+        </SettingsField>
+      )}
       {shown && background.source === AmbianceSource.Solid && (
         <SettingsField label="Couleur">
           <ColorInput value={background.solidColor} label="Couleur du fond" onChange={handleSolidColorChange} />
@@ -153,14 +153,9 @@ export function AmbianceBackgroundFields({ ambiance, onChange, onPickMedia }: Am
         </>
       )}
       {shown && (
-        <>
-          <SettingsField label="Intensité">
-            <AmbianceSlider label="Intensité" value={background.opacity} min={0} max={100} unit=" %" onChange={handleOpacityChange} />
-          </SettingsField>
-          <SettingsField label="Voile de l’interface" tip={VEIL_TIP}>
-            <AmbianceSlider label="Voile de l’interface" value={ambiance.interfaceVeil} min={0} max={100} unit=" %" onChange={handleVeilChange} />
-          </SettingsField>
-        </>
+        <SettingsField label="Intensité">
+          <AmbianceSlider label="Intensité" value={background.opacity} min={0} max={100} unit=" %" onChange={handleOpacityChange} />
+        </SettingsField>
       )}
     </>
   )
