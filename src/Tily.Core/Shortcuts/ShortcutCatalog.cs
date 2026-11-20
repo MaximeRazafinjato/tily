@@ -60,6 +60,7 @@ public static class ShortcutCatalog
         new("appearanceSettings"),
         new("ambianceSettings"),
         new("toggleAmbiance", "Ctrl+Alt+R"),
+        new("releaseNotes"),
         new("moveWorkspaceUp"),
         new("moveWorkspaceDown"),
         new("closeWorkspace"),

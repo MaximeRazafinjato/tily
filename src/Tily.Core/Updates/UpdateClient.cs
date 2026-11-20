@@ -19,12 +19,20 @@ public sealed class UpdateClient(HttpClient http, ReleaseChannel channel = Relea
     public async Task<UpdateReleaseModel> LatestAsync(CancellationToken cancellationToken)
     {
         var beta = channel == ReleaseChannel.Beta;
-        using var request = new HttpRequestMessage(HttpMethod.Get, beta ? UpdateSource.ReleasesUrl : UpdateSource.LatestReleaseUrl);
+        var json = await ReadApiAsync(beta ? UpdateSource.ReleasesUrl : UpdateSource.LatestReleaseUrl, cancellationToken);
+        return beta ? ReleaseParser.ParseLatestPrerelease(json, channel) : ReleaseParser.Parse(json, channel);
+    }
+
+    public async Task<IReadOnlyList<ReleaseHistoryModel>> HistoryAsync(CancellationToken cancellationToken) =>
+        ReleaseParser.ParseHistory(await ReadApiAsync(UpdateSource.HistoryUrl, cancellationToken), channel);
+
+    private async Task<string> ReadApiAsync(string url, CancellationToken cancellationToken)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Get, url);
         request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github+json"));
         request.Headers.Add("X-GitHub-Api-Version", "2022-11-28");
         using var response = await SendAsync(request, cancellationToken);
-        var json = await response.Content.ReadAsStringAsync(cancellationToken);
-        return beta ? ReleaseParser.ParseLatestPrerelease(json, channel) : ReleaseParser.Parse(json, channel);
+        return await response.Content.ReadAsStringAsync(cancellationToken);
     }
 
     public async Task<string> DownloadAsync(UpdateAssetModel asset, string directory, Action<long, long> progress, CancellationToken cancellationToken)

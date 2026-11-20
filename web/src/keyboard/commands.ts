@@ -49,6 +49,7 @@ export enum Command {
   AppearanceSettings = 'appearanceSettings',
   AmbianceSettings = 'ambianceSettings',
   ToggleAmbiance = 'toggleAmbiance',
+  ReleaseNotes = 'releaseNotes',
   MoveWorkspaceUp = 'moveWorkspaceUp',
   MoveWorkspaceDown = 'moveWorkspaceDown',
   CloseWorkspace = 'closeWorkspace',

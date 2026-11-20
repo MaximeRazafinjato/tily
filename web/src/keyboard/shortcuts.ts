@@ -213,6 +213,9 @@ export const runCommand = (command: Command): void => {
     case Command.ToggleAmbiance:
       toggleAmbiance()
       break
+    case Command.ReleaseNotes:
+      openSettings(SettingsSection.ReleaseNotes)
+      break
     case Command.SettingsExport:
       openSettings()
       bridge.send({ type: 'settings.export' })
