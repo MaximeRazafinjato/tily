@@ -4,7 +4,7 @@ import { findPane, panesOf } from '../model/session'
 import { useAgentStore } from '../store/agentStore'
 import { projectKey, useAppearanceStore } from '../store/appearanceStore'
 import { useSessionStore } from '../store/sessionStore'
-import { BlobMood, createBlob, hashOf, removeBlob, setMood, type Blob, type World } from './blobModel'
+import { BlobMood, contextScaleOf, createBlob, hashOf, removeBlob, setMood, type Blob, type World } from './blobModel'
 
 const MOODS: Record<AgentState, BlobMood> = {
   [AgentState.Working]: BlobMood.Working,
@@ -92,6 +92,7 @@ export const syncCompanions = (world: World): void => {
     blob.hue = hueOf(agent.paneId)
     blob.name = nameOf(agent.paneId, agents)
     blob.tool = toolLabel(agent.tool)
+    blob.contextScale = contextScaleOf(agent.contextTokens)
     if (blob.reported !== mood) {
       blob.reported = mood
       setMood(world, blob, mood)

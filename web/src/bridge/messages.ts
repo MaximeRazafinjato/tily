@@ -191,6 +191,7 @@ export interface PaneAgent {
   interrupted?: boolean
   tool?: string
   subagents?: Subagent[]
+  contextTokens?: number
 }
 
 export interface Subagent {

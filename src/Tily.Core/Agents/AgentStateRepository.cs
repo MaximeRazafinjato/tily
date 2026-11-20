@@ -18,6 +18,8 @@ public sealed class AgentStateRepository
         ["unknown"] = AgentState.Unknown
     };
 
+    private readonly ClaudeTranscriptReader _transcripts = new();
+
     public AgentStateRepository(string dataDirectory)
     {
         Directory = Path.Combine(dataDirectory, "agents");
@@ -55,7 +57,8 @@ public sealed class AgentStateRepository
         {
             UpdatedAtUtc = writtenAtUtc,
             Tool = SingleLine(file.Tool),
-            Subagents = ReadSubagents(paneId, notBeforeUtc)
+            Subagents = ReadSubagents(paneId, notBeforeUtc),
+            ContextTokens = _transcripts.ContextTokens(file.Transcript)
         };
     }
 

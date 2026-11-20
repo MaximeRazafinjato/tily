@@ -22,6 +22,8 @@ public sealed record PaneAgentModel(string PaneId, string Agent, AgentState Stat
     public string? Tool { get; init; }
 
     public IReadOnlyList<SubagentModel>? Subagents { get; init; }
+
+    public int? ContextTokens { get; init; }
 }
 
 public sealed record PaneProbeModel(string PaneId, DateTime StartedAtUtc, IReadOnlyList<string> Processes, IReadOnlyList<int>? ProcessIds = null);
@@ -33,6 +35,7 @@ public sealed class AgentStateFileModel
     public string? Message { get; set; }
     public string? Detail { get; set; }
     public string? Tool { get; set; }
+    public string? Transcript { get; set; }
 }
 
 public sealed class SubagentFileModel
@@ -48,4 +51,6 @@ public sealed record AgentStateModel(string Agent, AgentState State, string? Mes
     public string? Tool { get; init; }
 
     public IReadOnlyList<SubagentModel>? Subagents { get; init; }
+
+    public int? ContextTokens { get; init; }
 }

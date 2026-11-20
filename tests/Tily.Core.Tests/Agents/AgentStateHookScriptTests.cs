@@ -156,6 +156,14 @@ public sealed class AgentStateHookScriptTests : IDisposable
     }
 
     [Fact]
+    public void Run_WhenHookCarriesTranscript_ThenWritesItsPath()
+    {
+        var state = Run("{ \"hook_event_name\": \"PostToolUse\", \"tool_name\": \"Read\", \"transcript_path\": \"C:\\\\sessions\\\\a.jsonl\" }");
+
+        Assert.Equal(@"C:\sessions\a.jsonl", state["transcript"]!.GetValue<string>());
+    }
+
+    [Fact]
     public void Run_WhenSubagentUsesTool_ThenWritesItInSubagentFileOnly()
     {
         Run("{ \"hook_event_name\": \"Stop\", \"last_assistant_message\": \"Lancé.\" }");

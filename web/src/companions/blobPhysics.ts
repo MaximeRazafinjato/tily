@@ -1,5 +1,5 @@
 import { FLOOR_SPLAT_SPEED, splat, WALL_SPLAT_SPEED } from './goreEffects'
-import { BlobMood, clamp, DONE_CELEBRATION_S, GRAVITY, impulse, jump, lerp, ParticleKind, randomBetween, removeBlob, setMood, SLEEP_AFTER_S, type Blob, type Perch, type World } from './blobModel'
+import { BlobMood, targetRadius, clamp, DONE_CELEBRATION_S, GRAVITY, impulse, jump, lerp, ParticleKind, randomBetween, removeBlob, setMood, SLEEP_AFTER_S, type Blob, type Perch, type World } from './blobModel'
 
 const SPRING_STIFFNESS = 180
 const SPRING_DAMPING = 9
@@ -184,6 +184,7 @@ export const updateBlob = (world: World, blob: Blob, dt: number): void => {
     return
   }
   blob.dizzy = Math.max(0, blob.dizzy - dt)
+  blob.radius = lerp(blob.radius, targetRadius(world, blob), Math.min(1, dt * 2))
   if (!growOrLeave(world, blob, dt) || blob.stored) {
     return
   }

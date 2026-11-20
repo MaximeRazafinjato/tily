@@ -225,4 +225,6 @@ switch ($eventName) {
 }
 if (-not $state) { exit 0 }
 
-Write-StateFile $file @{ agent = 'claude'; state = $state; message = $message; detail = $detail; tool = $tool }
+$transcript = [string]$hook.transcript_path
+if ([string]::IsNullOrWhiteSpace($transcript)) { $transcript = $null }
+Write-StateFile $file @{ agent = 'claude'; state = $state; message = $message; detail = $detail; tool = $tool; transcript = $transcript }
