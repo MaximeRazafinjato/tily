@@ -119,6 +119,7 @@ export interface AmbianceCompanions {
   enabled: boolean
   size: number
   speed: number
+  gore: boolean
 }
 
 export const COMPANION_SIZE_MIN = 14

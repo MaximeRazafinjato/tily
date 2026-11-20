@@ -17,6 +17,7 @@ export function AmbianceCompanionFields({ ambiance, onChange }: AmbianceCompanio
   const handleEnabledChange = (event: ChangeEvent<HTMLInputElement>) => update({ enabled: event.target.checked })
   const handleSizeChange = (size: number) => update({ size })
   const handleSpeedChange = (speed: number) => update({ speed })
+  const handleGoreChange = (event: ChangeEvent<HTMLInputElement>) => update({ gore: event.target.checked })
   return (
     <SettingsField label="Compagnons d’agents" tip={TIP}>
       <label className={SETTINGS_CHECKBOX}>
@@ -27,6 +28,10 @@ export function AmbianceCompanionFields({ ambiance, onChange }: AmbianceCompanio
         <>
           <AmbianceSlider label="Taille des compagnons" value={companions.size} min={COMPANION_SIZE_MIN} max={COMPANION_SIZE_MAX} unit=" px" onChange={handleSizeChange} />
           <AmbianceSlider label="Vitesse des compagnons" value={companions.speed} min={COMPANION_SPEED_MIN} max={COMPANION_SPEED_MAX} step={5} unit=" %" onChange={handleSpeedChange} />
+          <label className={SETTINGS_CHECKBOX} data-tip="Un compagnon lancé fort contre un bord ou le sol s’écrase en éclaboussures ; secoué, il est étourdi, puis explose et se reforme.">
+            <input type="checkbox" checked={companions.gore} onChange={handleGoreChange} />
+            Mode gore
+          </label>
         </>
       )}
     </SettingsField>

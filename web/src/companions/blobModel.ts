@@ -69,11 +69,16 @@ export interface Blob {
   shake: number
   errorMix: number
   hopTimer: number
+  dizzy: number
+  exploded: number
+  shakes: number[]
 }
 
 export enum ParticleKind {
   Spark = 'spark',
   Snore = 'snore',
+  Drop = 'drop',
+  Stain = 'stain',
 }
 
 export interface Particle {
@@ -85,6 +90,8 @@ export interface Particle {
   life: number
   hue: number
   size: number
+  spots?: [number, number, number][]
+  lifetime?: number
 }
 
 export interface Pointer {
@@ -113,11 +120,12 @@ export interface World {
   hovered: Blob | null
   size: number
   speed: number
+  gore: boolean
   width: number
   height: number
 }
 
-export const createWorld = (size: number, speed: number): World => ({
+export const createWorld = (size: number, speed: number, gore: boolean): World => ({
   blobs: [],
   particles: [],
   perches: [],
@@ -127,6 +135,7 @@ export const createWorld = (size: number, speed: number): World => ({
   hovered: null,
   size,
   speed,
+  gore,
   width: innerWidth,
   height: innerHeight,
 })
@@ -177,6 +186,9 @@ export const createBlob = (world: World, key: string, paneId: string, hue: numbe
     shake: 0,
     errorMix: 0,
     hopTimer: 0,
+    dizzy: 0,
+    exploded: 0,
+    shakes: [],
   }
 }
 

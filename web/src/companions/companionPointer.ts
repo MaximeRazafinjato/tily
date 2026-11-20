@@ -1,6 +1,7 @@
 import { joinPane } from '../terminal/terminalActions'
 import { clamp, impulse, type Blob, type World } from './blobModel'
 import { insideBasket, releaseStored, storeBlob } from './companionBasket'
+import { registerShake } from './goreEffects'
 
 const HISTORY_LENGTH = 6
 const CLICK_DISTANCE = 3
@@ -11,7 +12,7 @@ const DRAG_CLASS = 'tily-companion-drag'
 const CURSOR_STYLE = `html.${HOVER_CLASS}, html.${HOVER_CLASS} * { cursor: grab !important } html.${DRAG_CLASS}, html.${DRAG_CLASS} * { cursor: grabbing !important }`
 
 const blobAt = (world: World, x: number, y: number): Blob | undefined =>
-  [...world.blobs].reverse().find((blob) => !blob.leaving && !blob.stored && Math.hypot(x - blob.x, y - (blob.y - blob.radius)) < blob.radius * 1.05)
+  [...world.blobs].reverse().find((blob) => !blob.leaving && !blob.stored && blob.exploded === 0 && Math.hypot(x - blob.x, y - (blob.y - blob.radius)) < blob.radius * 1.05)
 
 const throwVelocity = (world: World): { vx: number; vy: number; moved: number } => {
   const { history } = world.pointer
@@ -82,6 +83,9 @@ export const startCompanionPointer = (world: World): (() => void) => {
     pointer.history.push({ x: pointer.x, y: pointer.y, t: performance.now() })
     if (pointer.history.length > HISTORY_LENGTH) {
       pointer.history.shift()
+    }
+    if (world.dragged) {
+      registerShake(world, world.dragged, performance.now())
     }
     world.hovered = world.dragged ? null : (blobAt(world, pointer.x, pointer.y) ?? null)
     const hovering = !world.dragged && (world.hovered !== null || insideBasket(world, pointer.x, pointer.y))
