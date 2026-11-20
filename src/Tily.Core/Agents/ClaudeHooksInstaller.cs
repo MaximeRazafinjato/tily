@@ -10,7 +10,7 @@ public sealed record ClaudeHookGroupModel(string? Matcher, string? Condition);
 
 public sealed class ClaudeHooksInstaller
 {
-    public static readonly IReadOnlyList<string> Events = ["SessionStart", "UserPromptSubmit", "PreToolUse", "PostToolUse", "PermissionRequest", "Notification", "Stop", "StopFailure", "SessionEnd"];
+    public static readonly IReadOnlyList<string> Events = ["SessionStart", "UserPromptSubmit", "PreToolUse", "PostToolUse", "PermissionRequest", "Notification", "Stop", "StopFailure", "SessionEnd", "SubagentStart", "SubagentStop"];
     public const string PreviewCommandCondition = "Bash(start *)";
     private static readonly ClaudeHookGroupModel[] DefaultGroups = [new(null, null)];
     private static readonly Dictionary<string, ClaudeHookGroupModel[]> Groups = new()
