@@ -83,7 +83,8 @@ export const startCompanionPointer = (world: World): (() => void) => {
     if (pointer.history.length > HISTORY_LENGTH) {
       pointer.history.shift()
     }
-    const hovering = !world.dragged && (blobAt(world, pointer.x, pointer.y) !== undefined || insideBasket(world, pointer.x, pointer.y))
+    world.hovered = world.dragged ? null : (blobAt(world, pointer.x, pointer.y) ?? null)
+    const hovering = !world.dragged && (world.hovered !== null || insideBasket(world, pointer.x, pointer.y))
     document.documentElement.classList.toggle(HOVER_CLASS, hovering)
   }
 

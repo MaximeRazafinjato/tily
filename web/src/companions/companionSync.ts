@@ -1,6 +1,6 @@
 import { AgentState, type PaneAgent } from '../bridge/messages'
 import { hexToRgb } from '../ambiance/renderPacing'
-import { findPane } from '../model/session'
+import { findPane, folderName } from '../model/session'
 import { useAgentStore } from '../store/agentStore'
 import { projectKey, useAppearanceStore } from '../store/appearanceStore'
 import { useSessionStore } from '../store/sessionStore'
@@ -29,9 +29,13 @@ const hueOfHex = (hex: string): number => {
   return sector * 60
 }
 
-const hueOf = (paneId: string): number => {
+const pathOf = (paneId: string): string | undefined => {
   const { session } = useSessionStore.getState()
-  const path = session ? findPane(session, paneId)?.path : undefined
+  return session ? findPane(session, paneId)?.path : undefined
+}
+
+const hueOf = (paneId: string): number => {
+  const path = pathOf(paneId)
   const color = path ? useAppearanceStore.getState().projects[projectKey(path)]?.color : undefined
   return color ? hueOfHex(color) : hashOf(paneId) % 360
 }
@@ -51,7 +55,8 @@ const syncChildren = (world: World, blob: Blob, agent: PaneAgent): void => {
       blob.children.push(child)
       world.blobs.push(child)
     }
-    child.tool = toolLabel(subagent.tool) || subagent.type
+    child.name = subagent.type
+    child.tool = toolLabel(subagent.tool)
   })
 }
 
@@ -75,6 +80,7 @@ export const syncCompanions = (world: World): void => {
       blob.mood = mood === BlobMood.Done ? BlobMood.Idle : mood
     }
     blob.hue = hueOf(agent.paneId)
+    blob.name = folderName(pathOf(agent.paneId) ?? '')
     blob.tool = toolLabel(agent.tool)
     if (blob.reported !== mood) {
       blob.reported = mood

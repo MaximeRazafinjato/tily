@@ -187,6 +187,28 @@ public sealed class AgentStateHookScriptTests : IDisposable
     }
 
     [Fact]
+    public void Run_WhenSubagentToolHookArrivesAfterStop_ThenSubagentStaysRemoved()
+    {
+        Execute("{ \"hook_event_name\": \"SubagentStart\", \"agent_id\": \"a5f11e0c\", \"agent_type\": \"Explore\" }");
+        Execute("{ \"hook_event_name\": \"SubagentStop\", \"agent_id\": \"a5f11e0c\", \"agent_type\": \"Explore\" }");
+
+        Execute("{ \"hook_event_name\": \"PostToolUse\", \"agent_id\": \"a5f11e0c\", \"agent_type\": \"Explore\", \"tool_name\": \"Read\" }");
+
+        Assert.False(File.Exists(SubagentPath("a5f11e0c")));
+    }
+
+    [Fact]
+    public void Run_WhenTurnStopsWithBackgroundTasks_ThenRemovesSubagentsNoLongerRunning()
+    {
+        Execute("{ \"hook_event_name\": \"SubagentStart\", \"agent_id\": \"a1\", \"agent_type\": \"Explore\" }");
+        Execute("{ \"hook_event_name\": \"SubagentStart\", \"agent_id\": \"a2\", \"agent_type\": \"Explore\" }");
+
+        Execute("{ \"hook_event_name\": \"Stop\", \"last_assistant_message\": \"Fini.\", \"background_tasks\": [ { \"id\": \"a2\", \"type\": \"subagent\", \"status\": \"running\" } ] }");
+
+        Assert.Equal((false, true), (File.Exists(SubagentPath("a1")), File.Exists(SubagentPath("a2"))));
+    }
+
+    [Fact]
     public void Run_WhenSessionEnds_ThenRemovesSubagentFiles()
     {
         Execute("{ \"hook_event_name\": \"SubagentStart\", \"agent_id\": \"a5f11e0c\", \"agent_type\": \"Explore\" }");

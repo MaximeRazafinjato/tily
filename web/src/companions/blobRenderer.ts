@@ -13,6 +13,14 @@ const WOBBLE: Record<BlobMood, { energy: number; speed: number }> = {
 }
 const DRAGGED_WOBBLE = { energy: 0.08, speed: 8 }
 
+const labelOf = (blob: Blob, hovered: boolean, waiting: boolean): string => {
+  if (!hovered) {
+    return waiting ? '?' : ''
+  }
+  const activity = waiting ? '?' : blob.mood === BlobMood.Working ? blob.tool : ''
+  return [blob.name, activity].filter(Boolean).join(' · ')
+}
+
 const easeOutBack = (progress: number): number => 1 + 2.7 * (progress - 1) ** 3 + 1.7 * (progress - 1) ** 2
 
 const colorOf = (blob: Blob): string => {
@@ -130,12 +138,10 @@ export const drawBlob = (context: CanvasRenderingContext2D, world: World, blob: 
   if (blob === world.dragged || blob.leaving || blob.grow < 1) {
     return
   }
-  const top = blob.y - radius * 2 * (1 - blob.squash) - 8
-  if (blob.mood === BlobMood.Working && blob.tool) {
-    drawBubble(context, blob.tool, blob.x, top, 0)
-  }
-  if (blob.mood === BlobMood.Waiting) {
-    drawBubble(context, '?', blob.x, top, 0.08 * Math.sin(blob.moodTime * 6))
+  const waiting = blob.mood === BlobMood.Waiting
+  const label = labelOf(blob, world.hovered === blob, waiting)
+  if (label) {
+    drawBubble(context, label, blob.x, blob.y - radius * 2 * (1 - blob.squash) - 8, waiting ? 0.08 * Math.sin(blob.moodTime * 6) : 0)
   }
 }
 
