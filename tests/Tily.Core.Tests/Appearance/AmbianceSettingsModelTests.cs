@@ -32,6 +32,28 @@ public sealed class AmbianceSettingsModelTests
             (normalized.Gradient.Angle, normalized.Gradient.Band, normalized.Gradient.Duration, normalized.Background.Opacity, normalized.InterfaceVeil, normalized.Terminal.Veil, normalized.Performance.ShaderQuality, normalized.Performance.FpsLimit));
     }
 
+    [Theory]
+    [InlineData(2, AmbianceCompanionsModel.MinSize)]
+    [InlineData(200, AmbianceCompanionsModel.MaxSize)]
+    public void Normalized_WhenCompanionSizeOutOfRange_ThenClamped(int size, int expected)
+    {
+        var settings = AmbianceSettingsModel.Default with { Companions = new AmbianceCompanionsModel(true, size) };
+
+        var normalized = settings.Normalized();
+
+        Assert.Equal(new AmbianceCompanionsModel(true, expected), normalized.Companions);
+    }
+
+    [Fact]
+    public void Normalized_WhenCompanionsMissing_ThenDefaultDisabled()
+    {
+        var settings = AmbianceSettingsModel.Default with { Companions = null! };
+
+        var normalized = settings.Normalized();
+
+        Assert.Equal(new AmbianceCompanionsModel(), normalized.Companions);
+    }
+
     [Fact]
     public void Normalized_WhenColorsInvalid_ThenKeepsValidOnesLowercase()
     {
