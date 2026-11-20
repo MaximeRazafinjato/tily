@@ -41,7 +41,10 @@ export const startStatusLog = (): (() => void) =>
 
 export const receiveStatusLogEntry = (entry: StatusLogEntry): void => useStatusLogStore.getState().add(entry)
 
-export const receiveStatusLogCleared = (): void => useStatusLogStore.getState().clear()
+export const receiveStatusLogCleared = (): void => {
+  useStatusLogStore.getState().clear()
+  useHostStore.getState().setStatus('')
+}
 
 const focusStatusLog = (): void => document.querySelector<HTMLElement>(LIST_SELECTOR)?.focus()
 
