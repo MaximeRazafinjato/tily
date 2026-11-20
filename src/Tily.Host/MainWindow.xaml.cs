@@ -11,6 +11,7 @@ namespace Tily.Host;
 public sealed partial class MainWindow : Window
 {
     private const string VirtualHost = "tily.example";
+    private const string AmbianceMediaHost = "tily.ambiance";
     private const string DevServerVariable = "TILY_WEB_DEV_URL";
     private readonly HostBridge _bridge;
     private readonly string _startUrl = ResolveStartUrl();
@@ -47,6 +48,9 @@ public sealed partial class MainWindow : Window
         core.NavigationStarting += HandleNavigationStarting;
         core.NewWindowRequested += HandleNewWindowRequested;
         core.SetVirtualHostNameToFolderMapping(VirtualHost, Path.Combine(AppContext.BaseDirectory, "wwwroot"), CoreWebView2HostResourceAccessKind.Allow);
+        var media = new AmbianceMedia(App.DataDirectory);
+        Directory.CreateDirectory(media.Folder);
+        core.SetVirtualHostNameToFolderMapping(AmbianceMediaHost, media.Folder, CoreWebView2HostResourceAccessKind.Allow);
         _bridge.Attach(core);
         core.Navigate(_startUrl);
         View.Focus(FocusState.Programmatic);
@@ -98,7 +102,7 @@ public sealed partial class MainWindow : Window
 
     private static void HandlePermissionRequested(CoreWebView2 sender, CoreWebView2PermissionRequestedEventArgs args)
     {
-        if (args.PermissionKind == CoreWebView2PermissionKind.ClipboardRead)
+        if (args.PermissionKind is CoreWebView2PermissionKind.ClipboardRead or CoreWebView2PermissionKind.LocalFonts)
         {
             args.State = CoreWebView2PermissionState.Allow;
         }

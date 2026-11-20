@@ -47,6 +47,8 @@ export enum Command {
   WorkspaceColor = 'workspaceColor',
   TabColor = 'tabColor',
   AppearanceSettings = 'appearanceSettings',
+  AmbianceSettings = 'ambianceSettings',
+  ToggleAmbiance = 'toggleAmbiance',
   MoveWorkspaceUp = 'moveWorkspaceUp',
   MoveWorkspaceDown = 'moveWorkspaceDown',
   CloseWorkspace = 'closeWorkspace',

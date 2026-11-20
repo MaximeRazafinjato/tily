@@ -107,6 +107,54 @@ button:not([aria-disabled="true"]) {
   cursor: pointer;
 }
 
+@property --tily-ambiance-shift {
+  syntax: '<length>';
+  inherits: false;
+  initial-value: 0px;
+}
+
+@property --tily-ambiance-orbit {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 0deg;
+}
+
+@keyframes tily-ambiance-plasma-a {
+  0% { transform: rotate(0deg) scale(1); }
+  50% { transform: rotate(180deg) scale(1.3) translate(4%, -3%); }
+  100% { transform: rotate(360deg) scale(1); }
+}
+
+@keyframes tily-ambiance-plasma-b {
+  0% { transform: rotate(0deg) scale(1.2); }
+  50% { transform: rotate(-180deg) scale(0.9) translate(-4%, 3%); }
+  100% { transform: rotate(-360deg) scale(1.2); }
+}
+
+.tily-ambient-gradient::before,
+.tily-ambient-gradient::after {
+  content: '';
+  position: absolute;
+  will-change: transform;
+}
+
+html[data-ambiance] [data-surface='paper'] {
+  background-color: color-mix(in srgb, var(--color-tily-paper) var(--tily-ambiance-veil, 0%), transparent);
+}
+
+html[data-ambiance] [data-surface='panel'] {
+  background-color: color-mix(in srgb, var(--color-tily-panel) var(--tily-ambiance-veil, 0%), transparent);
+}
+
+html[data-ambiance-terminal] [data-surface='terminal'],
+html[data-ambiance-terminal] [data-surface='terminal'] .xterm-viewport {
+  background-color: transparent !important;
+}
+
+html[data-ambiance] [data-surface='tab'] {
+  background-color: color-mix(in srgb, var(--color-tily-panel) max(var(--tily-ambiance-veil, 0%), 50%), transparent);
+}
+
 html[data-git-dragging],
 html[data-git-dragging] * {
   cursor: grabbing !important;

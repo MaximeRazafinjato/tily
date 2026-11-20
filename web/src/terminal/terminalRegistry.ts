@@ -65,6 +65,7 @@ const initialCommands = new Map<string, string>()
 let scrollbackLines = DEFAULT_SCROLLBACK_LINES
 let fontSize = DEFAULT_FONT_SIZE
 let theme: ITheme = {}
+let fontFamily = FONT_FAMILY
 let webglUnavailable = false
 
 const start = (handle: TerminalHandle, pane: Pane): void => {
@@ -184,8 +185,9 @@ const openLinkOnCtrlClick = (event: MouseEvent, url: string): void => {
 const createHandle = (pane: Pane): TerminalHandle => {
   const terminal = new Terminal({
     allowProposedApi: true,
+    allowTransparency: true,
     cursorBlink: true,
-    fontFamily: FONT_FAMILY,
+    fontFamily,
     fontSize,
     scrollback: scrollbackLines,
     theme,
@@ -241,6 +243,20 @@ export const terminalRegistry = {
     fontSize = size
     handles.forEach((handle) => {
       handle.terminal.options.fontSize = size
+      if (handle.terminal.element?.isConnected) {
+        handle.fit.fit()
+      }
+    })
+  },
+
+  setFontFamily(family: string | undefined): void {
+    const next = family ? `"${family}", ${FONT_FAMILY}` : FONT_FAMILY
+    if (next === fontFamily) {
+      return
+    }
+    fontFamily = next
+    handles.forEach((handle) => {
+      handle.terminal.options.fontFamily = next
       if (handle.terminal.element?.isConnected) {
         handle.fit.fit()
       }

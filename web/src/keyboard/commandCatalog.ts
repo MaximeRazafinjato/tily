@@ -18,6 +18,8 @@ export const COMMAND_GROUPS: CommandGroup[] = [
       { command: Command.Palette, label: 'Ouvrir la palette', hint: 'palette' },
       { command: Command.Settings, label: 'Paramètres', hint: 'paramètres' },
       { command: Command.AppearanceSettings, label: 'Couleur de Tily et palette du terminal…', hint: 'couleur de Tily' },
+      { command: Command.AmbianceSettings, label: 'Ambiance…', hint: 'ambiance' },
+      { command: Command.ToggleAmbiance, label: 'Activer ou couper l’ambiance', hint: 'activer l’ambiance' },
       { command: Command.Projects, label: 'Ouvrir un projet', hint: 'projet' },
       { command: Command.CloneRepository, label: 'Cloner un dépôt…', hint: 'cloner un dépôt' },
       { command: Command.OpenFile, label: 'Ouvrir un fichier du projet…', hint: 'fichier du projet' },

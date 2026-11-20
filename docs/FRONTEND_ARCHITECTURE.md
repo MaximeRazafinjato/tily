@@ -221,6 +221,17 @@ Panes navigateur (section 6 de la spec). Un `Pane` de type `PaneKind.Browser` ga
 
 `appearanceActions.ts` (section 3 de la spec, « Couleurs ») : aucun calcul de couleur côté web. `receiveAppearance` pose les tokens `--color-tily-*` reçus sur `<html>` et le thème du terminal. `startAppearanceProjects` envoie `appearance.projects` quand l'ensemble des dossiers des panes actifs des workspaces change. Les couleurs de workspace et d'onglet sont des mutations de session ; celle d'un projet est appliquée tout de suite dans `appearanceStore` et part à l'hôte après une courte pause, pour ne pas écrire `appearance.json` à chaque mouvement du sélecteur. Elles ne font que surligner un nom (`TruncatedName`, `highlightStyle.ts`, `useWorkspaceHighlight`) : un onglet n'hérite pas de son workspace.
 
+### `src/ambiance/`
+
+Ambiance (section 3 de la spec, « Ambiance ») : l'hôte valide les réglages, le web les affiche.
+
+- `appearanceStore` garde l'ambiance enregistrée. `startAmbiance` l'applique : `data-ambiance` et `--tily-ambiance-veil` sur `<html>` tant que le fond est affiché, seules les surfaces marquées `data-surface` (`paper`, `panel`, `tab`) devenant translucides (`index.css`), jamais menus ni dialogues ; `data-ambiance-terminal` rend transparents les panes (`terminal`) dont xterm.js (`allowTransparency`) peint le fond du thème avec le voile (`terminalThemeOf`) ; police des terminaux (`setFontFamily`) ; accent animé (`accentAnimation.ts`), qui rend à l'arrêt les tokens de l'hôte. Le thème des terminaux ne passe que par `startAmbiance`.
+- `AmbianceLayer` dessine un fond : CSS généré par `gradientStyle.ts` sur `::before` et `::after`, keyframes nommées par calque ; canvas 2D (`particleRenderer.ts`) ou WebGL (`shaderRenderer.ts`, sources dans `shaderSources.ts`) qui relisent les réglages à chaque image et suivent `shouldRender` (images par seconde, pause hors focus). Un contexte WebGL rendu est libéré (`WEBGL_lose_context`), car Chromium en limite le nombre avec les terminaux.
+- `AmbientBackground`, premier enfant d'`AppShell` (contexte d'empilement `isolate`), est le calque de l'application : `fixed`, `-z-10`, sans `role` et en `pointer-events-none`, il ne fige pas les panes navigateur. `AmbiancePreview` est la miniature de Paramètres : une fausse fenêtre de 1280 × 720 réduite par `transform`, avec son propre calque, qui suit le brouillon.
+- Effets d'alerte (`alerts/`) : `attentionNotifier` appelle `playAgentAlert` aux mêmes transitions que `attention.raise`. Les effets vivent dans un calque créé à la volée dans `body`, en `pointer-events: none` et sans rôle, et se retirent à la fin de leur animation ; secousse et glitch animent `#root`.
+- Image ou vidéo : le fichier choisi (`dialog.pick`, cible `media`) part à l'hôte (`appearance.importMedia`), qui le copie et renvoie son nom (`appearance.mediaImported`, routé vers Paramètres comme un chemin choisi) ; il est servi par `https://tily.ambiance/`.
+- Un preset est reconnu par l'égalité de son dégradé ; les presets intégrés viennent de l'hôte avec le catalogue d'apparence.
+
 ### `src/agents/`
 
 États des agents (section 11 de la spec). L'hôte lit les états écrits par les hooks Claude Code ; le web les reçoit dans `agent.states` et les présente.

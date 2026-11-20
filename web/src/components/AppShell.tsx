@@ -31,6 +31,7 @@ import { changePaneShell, dismissPaneState, restartPane, restartPaneIn } from '.
 import { closeOtherTabsKeepingText, closePaneKeepingText, closeTabKeepingText, closeWorkspaceKeepingText, duplicateTabKeepingLayout, restoreClosedTab } from '../terminal/tabLifecycle'
 import { focusPane, joinPane } from '../terminal/terminalActions'
 import { togglePaneZoom, useEndZoomWhenPaneChanges, zoomedPaneOf } from '../terminal/paneZoom'
+import { AmbientBackground } from './AmbientBackground'
 import { AttentionToasts } from './AttentionToasts'
 import { CloseConfirmDialog } from './CloseConfirmDialog'
 import { McpConsentDialog } from './McpConsentDialog'
@@ -351,7 +352,7 @@ export function AppShell({ session }: AppShellProps) {
           onNew={newTab}
           onMove={moveTab}
         />
-        <div className="relative min-h-0 flex-1 border-t border-tily-line bg-tily-panel p-1">
+        <div data-surface="panel" className="relative min-h-0 flex-1 border-t border-tily-line bg-tily-panel p-1">
           <SplitView key={currentTab.id} node={zoomedPane ? { pane: zoomedPane } : currentTab.tree} zoomed={zoomedPane !== undefined} onToggleZoom={togglePaneZoom} activePaneId={currentTab.active} onFocus={selectPane} onClose={closePaneKeepingText} onSplit={handleSplit} onResize={handleResize} shells={availableShells} onRestart={restartPane} onRestartIn={restartPaneIn} onChangeShell={changePaneShell} onDismissState={dismissPaneState} />
           {graphShown && <GitGraphView layout={session.gitGraph} />}
           {gitShown && <GitDiffDrawer />}
@@ -363,7 +364,8 @@ export function AppShell({ session }: AppShellProps) {
   }
 
   return (
-    <div className="relative flex h-full flex-col">
+    <div className="relative isolate flex h-full flex-col">
+      <AmbientBackground />
       <Header
         workspaceName={workspace?.name ?? null}
         renaming={workspace !== undefined && renamingWorkspaceId === workspace.id && renameOrigin === RenameOrigin.Header}
