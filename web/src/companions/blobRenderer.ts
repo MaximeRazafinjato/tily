@@ -1,5 +1,6 @@
 import { HURT_S, SAD_HEALTH } from './goreEffects'
-import { BlobMood, lerp, ParticleKind, SHAPES, SLEEP_AFTER_S, type Blob, type World } from './blobModel'
+import { BlobMood, lerp, ParticleKind, SHAPES, type Blob, type World } from './blobModel'
+import { formatTokens } from './companionSocial'
 
 const INK = '#1a1530'
 const ERROR_HUE = 8
@@ -19,7 +20,7 @@ const labelOf = (blob: Blob, hovered: boolean, waiting: boolean): string => {
     return waiting ? '?' : ''
   }
   const activity = waiting ? '?' : blob.mood === BlobMood.Working ? blob.tool : ''
-  return [blob.name, activity].filter(Boolean).join(' · ')
+  return [blob.name, activity, formatTokens(blob.context)].filter(Boolean).join(' · ')
 }
 
 const easeOutBack = (progress: number): number => 1 + 2.7 * (progress - 1) ** 3 + 1.7 * (progress - 1) ** 2
@@ -64,7 +65,7 @@ const drawEye = (context: CanvasRenderingContext2D, world: World, blob: Blob, ra
   const size = radius * 0.1
   const sad = !surprised && sadOf(world, blob)
   const happy = !surprised && !sad && (blob.mood === BlobMood.Done || blob.poke > 0)
-  const sleeping = !surprised && blob.mood === BlobMood.Idle && blob.idleTime > SLEEP_AFTER_S
+  const sleeping = !surprised && ((blob.mood === BlobMood.Idle && blob.idleTime > world.sleepAfter) || blob.yawn > 0)
   context.beginPath()
   if (blob.dizzy > 0 && !surprised) {
     for (let step = 0; step <= 24; step++) {
@@ -133,7 +134,10 @@ const drawFace = (context: CanvasRenderingContext2D, world: World, blob: Blob, r
     }
     return
   }
-  if (blob === world.dragged) {
+  if (blob !== world.dragged && blob.yawn > 0) {
+    const opening = Math.sin((blob.yawn / 1.3) * Math.PI)
+    context.ellipse(offsetX, offsetY + radius * 0.34, radius * 0.1, radius * (0.04 + opening * 0.14), 0, 0, Math.PI * 2)
+  } else if (blob === world.dragged) {
     context.ellipse(offsetX, offsetY + radius * 0.32, radius * 0.08, radius * 0.1, 0, 0, Math.PI * 2)
   } else if (blob.mood === BlobMood.Done || blob.poke > 0) {
     context.ellipse(offsetX, offsetY + radius * 0.3, radius * 0.13, radius * 0.09, 0, 0, Math.PI)
@@ -256,6 +260,32 @@ export const drawStains = (context: CanvasRenderingContext2D, world: World): voi
       })
       context.fill()
     })
+  context.globalAlpha = 1
+}
+
+export const drawTombs = (context: CanvasRenderingContext2D, world: World): void => {
+  world.blobs.forEach((blob) => {
+    if (!blob.tomb) {
+      return
+    }
+    const width = Math.max(16, blob.radius * 0.9)
+    const height = width * 1.3
+    const { x, y } = blob.tomb
+    context.globalAlpha = Math.max(0, Math.min(1, blob.tomb.alpha))
+    context.fillStyle = '#8d93a0'
+    context.strokeStyle = INK
+    context.lineWidth = 2
+    context.beginPath()
+    context.roundRect(x - width / 2, y - height, width, height, [width / 2, width / 2, 2, 2])
+    context.fill()
+    context.stroke()
+    context.beginPath()
+    context.moveTo(x, y - height * 0.78)
+    context.lineTo(x, y - height * 0.3)
+    context.moveTo(x - width * 0.22, y - height * 0.62)
+    context.lineTo(x + width * 0.22, y - height * 0.62)
+    context.stroke()
+  })
   context.globalAlpha = 1
 }
 

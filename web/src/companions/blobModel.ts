@@ -27,6 +27,7 @@ export const GRAVITY = 2200
 export const CHILD_SCALE = 0.5
 export const DONE_CELEBRATION_S = 2.5
 export const SLEEP_AFTER_S = 5
+export const NIGHT_SLEEP_AFTER_S = 2
 const NORMAL_CONTEXT = 100_000
 const LARGE_CONTEXT = 1_000_000
 const EMPTY_CONTEXT_SCALE = 0.7
@@ -80,6 +81,23 @@ export interface Blob {
   health: number
   hurt: number
   sinceDamage: number
+  context: number | undefined
+  bumpCooldown: number
+  fleeCooldown: number
+  approachCooldown: number
+  nearPointer: number
+  yawn: number
+  doneAt: number
+  highFiveWith: Blob | null
+  highFiveTimer: number
+  tomb: Tomb | null
+}
+
+export interface Tomb {
+  x: number
+  y: number
+  perch: Element | null
+  alpha: number
 }
 
 export enum ParticleKind {
@@ -133,6 +151,9 @@ export interface World {
   sniper: boolean
   recoil: number
   flash: number
+  pointerSpeed: number
+  sleepAfter: number
+  clock: number
   basketClicks: number[]
   width: number
   height: number
@@ -152,6 +173,9 @@ export const createWorld = (size: number, speed: number, gore: boolean): World =
   sniper: false,
   recoil: 0,
   flash: 0,
+  pointerSpeed: 0,
+  sleepAfter: SLEEP_AFTER_S,
+  clock: 0,
   basketClicks: [],
   width: innerWidth,
   height: innerHeight,
@@ -210,6 +234,16 @@ export const createBlob = (world: World, key: string, paneId: string, hue: numbe
     health: 1,
     hurt: 0,
     sinceDamage: 0,
+    context: undefined,
+    bumpCooldown: 0,
+    fleeCooldown: 0,
+    approachCooldown: 0,
+    nearPointer: 0,
+    yawn: 0,
+    doneAt: -Infinity,
+    highFiveWith: null,
+    highFiveTimer: 0,
+    tomb: null,
   }
 }
 
@@ -243,6 +277,7 @@ export const setMood = (world: World, blob: Blob, mood: BlobMood): void => {
   blob.idleTime = 0
   blob.targetX = blob.x
   if (mood === BlobMood.Done) {
+    blob.doneAt = world.clock
     jump(world, blob, 900)
     burst(world, blob, 26)
   }
