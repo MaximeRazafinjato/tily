@@ -1,22 +1,22 @@
 import { invertedEffects, isolateHistory } from '@codemirror/commands'
 import { StateEffect, StateField, type ChangeDesc, type EditorState, type TransactionSpec } from '@codemirror/state'
-import { EditorView } from '@codemirror/view'
-import { ConflictSide, linesText, sideLines, type ConflictChunk } from './conflictLayout'
+import { linesText, type ConflictChunk } from './conflictLayout'
+import { pickedLines, samePicks, type ConflictPick } from './conflictPicks'
 
 export interface ResultBlocks {
   bounds: number[]
   resolved: boolean[]
-  taken: ConflictSide[][]
+  picks: ConflictPick[][]
 }
 
-interface TakeRequest {
+export interface PickRequest {
   index: number
-  side: ConflictSide
+  picks: ConflictPick[]
 }
 
-type BlockResolution = Pick<ResultBlocks, 'resolved' | 'taken'>
+export type BlockResolution = Pick<ResultBlocks, 'resolved' | 'picks'>
 
-const takeEffect = StateEffect.define<TakeRequest>()
+const pickEffect = StateEffect.define<PickRequest>()
 const restoreEffect = StateEffect.define<BlockResolution>()
 
 const mapBounds = (bounds: number[], chunks: ConflictChunk[], changes: ChangeDesc): number[] =>
@@ -43,22 +43,20 @@ const touchedBlocks = (bounds: number[], chunks: ConflictChunk[], changes: Chang
   return touched
 }
 
-const resolve = (value: ResultBlocks, touched: Set<number>, takes: TakeRequest[]): BlockResolution => {
-  const changed = takes.length > 0 || [...touched].some((index) => !value.resolved[index])
+const resolve = (value: ResultBlocks, touched: Set<number>, requests: PickRequest[]): BlockResolution => {
+  const picked = new Map(requests.map((request) => [request.index, request.picks]))
+  const changed = picked.size > 0 || [...touched].some((index) => !value.resolved[index])
   if (!changed) {
     return value
   }
-  const taken = value.taken.map((sides, index) => {
-    const added = takes.filter((take) => take.index === index).map((take) => take.side)
-    return added.length > 0 ? [...sides, ...added] : sides
-  })
-  const resolved = value.resolved.map((done, index) => done || touched.has(index) || taken[index].length > 0)
-  return { resolved, taken }
+  const picks = value.picks.map((current, index) => picked.get(index) ?? current)
+  const resolved = value.resolved.map((done, index) => (picked.has(index) ? picks[index].length > 0 : done || touched.has(index)))
+  return { resolved, picks }
 }
 
 export const resultBlocksField = (chunks: ConflictChunk[], bounds: number[]) =>
   StateField.define<ResultBlocks>({
-    create: () => ({ bounds, resolved: chunks.map((chunk) => chunk.conflict === null), taken: chunks.map(() => []) }),
+    create: () => ({ bounds, resolved: chunks.map((chunk) => chunk.conflict === null), picks: chunks.map(() => []) }),
     update: (value, transaction) => {
       if (!transaction.docChanged && transaction.effects.length === 0) {
         return value
@@ -68,10 +66,10 @@ export const resultBlocksField = (chunks: ConflictChunk[], bounds: number[]) =>
       if (restore?.is(restoreEffect)) {
         return { bounds: mapped, ...restore.value }
       }
-      const takes = transaction.effects.flatMap((effect) => (effect.is(takeEffect) ? [effect.value] : []))
+      const requests = transaction.effects.flatMap((effect) => (effect.is(pickEffect) ? [effect.value] : []))
       const touched = transaction.docChanged ? touchedBlocks(value.bounds, chunks, transaction.changes) : new Set<number>()
-      const resolution = resolve(value, touched, takes)
-      return mapped === value.bounds && resolution === value ? value : { bounds: mapped, resolved: resolution.resolved, taken: resolution.taken }
+      const resolution = resolve(value, touched, requests)
+      return mapped === value.bounds && resolution === value ? value : { bounds: mapped, resolved: resolution.resolved, picks: resolution.picks }
     },
   })
 
@@ -79,19 +77,18 @@ export const resultHistory = (field: StateField<ResultBlocks>) =>
   invertedEffects.of((transaction) => {
     const before = transaction.startState.field(field, false)
     const after = transaction.state.field(field, false)
-    return before && after && (before.resolved !== after.resolved || before.taken !== after.taken) ? [restoreEffect.of({ resolved: before.resolved, taken: before.taken })] : []
+    return before && after && (before.resolved !== after.resolved || before.picks !== after.picks) ? [restoreEffect.of({ resolved: before.resolved, picks: before.picks })] : []
   })
 
-export const takeSide = (state: EditorState, field: StateField<ResultBlocks>, chunks: ConflictChunk[], index: number, side: ConflictSide): TransactionSpec | null => {
-  const { bounds, resolved, taken } = state.field(field)
-  if (chunks[index]?.conflict === null || taken[index].includes(side)) {
+export const pickBlocks = (state: EditorState, field: StateField<ResultBlocks>, chunks: ConflictChunk[], requests: PickRequest[]): TransactionSpec | null => {
+  const { bounds, picks } = state.field(field)
+  const changed = requests.filter((request) => chunks[request.index]?.conflict !== null && !samePicks(picks[request.index], request.picks))
+  if (changed.length === 0) {
     return null
   }
-  const from = resolved[index] ? bounds[index + 1] : bounds[index]
   return {
-    changes: { from, to: bounds[index + 1], insert: linesText(sideLines(chunks[index], side)) },
-    effects: [takeEffect.of({ index, side }), EditorView.scrollIntoView(bounds[index], { y: 'nearest' })],
-    selection: { anchor: bounds[index] },
+    changes: changed.map(({ index, picks: next }) => ({ from: bounds[index], to: bounds[index + 1], insert: linesText(pickedLines(chunks[index], next)) })),
+    effects: changed.map((request) => pickEffect.of(request)),
     annotations: isolateHistory.of('full'),
     userEvent: 'input.conflict',
   }

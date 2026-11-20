@@ -1,6 +1,7 @@
 import type { Range, Text } from '@codemirror/state'
 import { Decoration, EditorView, WidgetType, type DecorationSet } from '@codemirror/view'
-import { ConflictColumn, ConflictSide } from './conflictLayout'
+import { ConflictSide } from './conflictLayout'
+import { PickCheck } from './conflictPicks'
 
 export const LINE_HEIGHT = 18
 export const HEADER_HEIGHT = 24
@@ -8,9 +9,9 @@ export const HEADER_HEIGHT = 24
 export interface ConflictHeader {
   conflict: number
   total: number
-  column: ConflictColumn
   resolved: boolean
-  taken: boolean
+  side: ConflictSide | null
+  check: PickCheck
 }
 
 interface GapItem {
@@ -19,7 +20,7 @@ interface GapItem {
 }
 
 export interface GapHandlers {
-  take: (conflict: number, side: ConflictSide) => void
+  toggleBlock: (conflict: number, side: ConflictSide) => void
 }
 
 export interface AlignmentInput {
@@ -27,45 +28,48 @@ export interface AlignmentInput {
   counts: number[]
   targets: number[]
   headerOf: (index: number) => ConflictHeader | null
-  lineClassOf: (index: number) => string | null
+  lineClassOf: (index: number, line: number) => string | null
 }
 
-const TAKE_LABEL = 'Prendre'
-const TAKEN_LABEL = 'Pris'
-
-const TAKE_TIPS: Record<ConflictSide, string> = {
-  [ConflictSide.Ours]: 'Prendre la version courante (Ctrl+Alt+←)',
-  [ConflictSide.Theirs]: 'Prendre la version entrante (Ctrl+Alt+→)',
+const BLOCK_TIPS: Record<ConflictSide, string> = {
+  [ConflictSide.Ours]: 'Prendre tout le bloc de la version courante (Ctrl+Alt+←)',
+  [ConflictSide.Theirs]: 'Prendre tout le bloc de la version entrante (Ctrl+Alt+→)',
 }
 
 const heightOf = (items: GapItem[]): number => items.reduce((height, item) => height + (item.header ? HEADER_HEIGHT : item.lines * LINE_HEIGHT), 0)
 
 const headerTitle = ({ conflict, total }: ConflictHeader): string => `Conflit ${conflict + 1}/${total}`
 
-const takeButton = (header: ConflictHeader, side: ConflictSide, handlers: GapHandlers): HTMLButtonElement => {
-  const button = document.createElement('button')
-  button.type = 'button'
-  button.tabIndex = -1
-  button.className = 'cm-conflict-take'
-  button.textContent = header.taken ? TAKEN_LABEL : TAKE_LABEL
-  button.setAttribute('aria-label', TAKE_TIPS[side])
-  button.dataset.tip = TAKE_TIPS[side]
-  button.disabled = header.taken
-  button.addEventListener('click', () => handlers.take(header.conflict, side))
-  return button
+export const pickBox = (check: PickCheck, label: string): HTMLElement => {
+  const box = document.createElement('span')
+  box.className = `cm-pick-box cm-pick-${check}`
+  box.setAttribute('role', 'checkbox')
+  box.setAttribute('aria-checked', check === PickCheck.Mixed ? 'mixed' : String(check === PickCheck.Checked))
+  box.setAttribute('aria-label', label)
+  box.textContent = check === PickCheck.Checked ? '✓' : check === PickCheck.Mixed ? '–' : ''
+  return box
+}
+
+const blockToggle = (header: ConflictHeader, side: ConflictSide, handlers: GapHandlers): HTMLElement => {
+  const box = pickBox(header.check, BLOCK_TIPS[side])
+  box.dataset.tip = BLOCK_TIPS[side]
+  box.addEventListener('mousedown', (event) => {
+    event.preventDefault()
+    handlers.toggleBlock(header.conflict, side)
+  })
+  return box
 }
 
 const headerElement = (header: ConflictHeader, handlers: GapHandlers): HTMLElement => {
   const element = document.createElement('div')
   element.className = `cm-conflict-header${header.resolved ? ' cm-conflict-header-resolved' : ''}`
   const title = document.createElement('span')
-  title.textContent = header.column === ConflictColumn.Result ? `${headerTitle(header)} · ${header.resolved ? 'résolu' : 'à résoudre'}` : headerTitle(header)
-  if (header.column === ConflictColumn.Theirs) {
-    element.append(takeButton(header, ConflictSide.Theirs, handlers), title)
-  } else if (header.column === ConflictColumn.Ours) {
-    element.append(title, takeButton(header, ConflictSide.Ours, handlers))
-  } else {
+  if (header.side === null) {
+    title.textContent = `${headerTitle(header)} · ${header.resolved ? 'résolu' : 'à résoudre'}`
     element.append(title)
+  } else {
+    title.textContent = headerTitle(header)
+    element.append(blockToggle(header, header.side, handlers), title)
   }
   return element
 }
@@ -109,15 +113,19 @@ class GapWidget extends WidgetType {
   }
 }
 
-const lineDecorations = (doc: Text, from: number, to: number, className: string, ranges: Range<Decoration>[]): void => {
-  const decoration = Decoration.line({ class: className })
+const lineDecorations = (doc: Text, from: number, to: number, classOf: (line: number) => string | null, ranges: Range<Decoration>[]): void => {
   let line = doc.lineAt(from)
+  let offset = 0
   while (line.from < to) {
-    ranges.push(decoration.range(line.from))
+    const className = classOf(offset)
+    if (className) {
+      ranges.push(Decoration.line({ class: className }).range(line.from))
+    }
     if (line.number === doc.lines) {
       return
     }
     line = doc.line(line.number + 1)
+    offset++
   }
 }
 
@@ -133,9 +141,8 @@ export const alignmentDecorations = (doc: Text, { bounds, counts, targets, heade
     if (targets[index] > count) {
       push(bounds[index + 1], { lines: targets[index] - count, header: null })
     }
-    const className = lineClassOf(index)
-    if (className && count > 0) {
-      lineDecorations(doc, bounds[index], bounds[index + 1], className, ranges)
+    if (count > 0) {
+      lineDecorations(doc, bounds[index], bounds[index + 1], (line) => lineClassOf(index, line), ranges)
     }
   })
   for (const [position, items] of gaps) {
@@ -170,16 +177,23 @@ export const conflictTheme = EditorView.theme({
     borderTop: '1px solid var(--color-tily-line)',
   },
   '.cm-conflict-header-resolved': { color: 'var(--color-tily-green-deep)' },
-  '.cm-conflict-take': {
-    height: '18px',
-    padding: '0 8px',
-    border: '1px solid var(--color-tily-line)',
-    borderRadius: '4px',
-    backgroundColor: 'var(--color-tily-paper)',
-    color: 'var(--color-tily-ink)',
-    fontSize: '11px',
+  '.cm-pick-gutter .cm-gutterElement': { display: 'flex', alignItems: 'center', justifyContent: 'center', paddingLeft: '8px' },
+  '.cm-pick-box': {
+    boxSizing: 'border-box',
+    display: 'inline-flex',
+    flexShrink: '0',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '13px',
+    height: '13px',
+    border: '1px solid var(--color-tily-muted)',
+    borderRadius: '3px',
+    fontFamily: 'var(--font-sans)',
+    fontSize: '10px',
+    lineHeight: '1',
+    color: 'var(--color-tily-panel)',
     cursor: 'pointer',
   },
-  '.cm-conflict-take:hover:not(:disabled)': { borderColor: 'var(--color-tily-green)', color: 'var(--color-tily-green-deep)' },
-  '.cm-conflict-take:disabled': { cursor: 'default', opacity: '0.6' },
+  '.cm-pick-box:hover': { borderColor: 'var(--color-tily-green-deep)' },
+  '.cm-pick-checked, .cm-pick-mixed': { borderColor: 'var(--color-tily-green)', backgroundColor: 'var(--color-tily-green)' },
 })

@@ -5,12 +5,6 @@ export enum ConflictSide {
   Theirs = 'theirs',
 }
 
-export enum ConflictColumn {
-  Ours = 'ours',
-  Result = 'result',
-  Theirs = 'theirs',
-}
-
 export interface ConflictChunk {
   kind: GitMergeChunkKind
   ours: string[]

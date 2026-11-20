@@ -25,7 +25,6 @@ public sealed class GitGraphLayoutModel
     public int DateWidth { get; set; } = SessionLimits.DefaultGitDateWidth;
     public bool AuthorShown { get; set; } = true;
     public bool DateShown { get; set; } = true;
-    public bool ConflictRows { get; set; }
 }
 
 public sealed class ClosedTabModel
