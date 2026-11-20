@@ -1,6 +1,7 @@
 import type { ChangeEvent } from 'react'
 import type { AmbianceSettings } from '../bridge/appearanceMessages'
 import { AmbianceAlertFields } from './AmbianceAlertFields'
+import { AmbianceCompanionFields } from './AmbianceCompanionFields'
 import { AmbianceBackgroundFields } from './AmbianceBackgroundFields'
 import { AmbiancePreview } from './AmbiancePreview'
 import { AmbianceTerminalFields } from './AmbianceTerminalFields'
@@ -34,6 +35,7 @@ export function AmbianceSettingsSection({ title, ambiance, onChange, onPickMedia
           <AmbianceBackgroundFields ambiance={ambiance} onChange={onChange} onPickMedia={onPickMedia} />
           <AmbianceTerminalFields ambiance={ambiance} onChange={onChange} />
           <AmbianceAlertFields ambiance={ambiance} onChange={onChange} />
+          <AmbianceCompanionFields ambiance={ambiance} onChange={onChange} />
         </>
       )}
     </SettingsPanel>
