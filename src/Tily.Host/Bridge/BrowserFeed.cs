@@ -106,6 +106,18 @@ public sealed class BrowserFeed : IDisposable
                 return Require(command).Log.Network(command.FailedOnly, command.SinceLoad, Math.Max(1, command.Limit));
             case "browser.screenshot":
                 return await Require(command).CaptureAsync(BrowserViewports.Parse(command.Viewport), command.FullPage);
+            case "browser.elements":
+                return await BrowserDriver.SnapshotAsync(Require(command), command.Scope);
+            case "browser.click":
+                return await BrowserDriver.ClickAsync(Require(command), BrowserTargets.Required(command.Target), command.DoubleClick);
+            case "browser.type":
+                return await BrowserDriver.TypeAsync(Require(command), command.Target, command.Text ?? string.Empty, command.Clear, command.Submit);
+            case "browser.press":
+                return await BrowserDriver.PressAsync(Require(command), command.Target, command.Keys ?? string.Empty, command.Repeat);
+            case "browser.scroll":
+                return await BrowserDriver.ScrollAsync(Require(command), command.Target, BrowserScroll.Direction(command.Direction), command.Amount);
+            case "browser.evaluate":
+                return await BrowserDriver.EvaluateAsync(Require(command), command.Expression ?? string.Empty);
             default:
                 throw new InvalidOperationException($"Commande inconnue : {command.Type}");
         }
@@ -223,4 +235,15 @@ internal sealed class BrowserCommandModel
     public bool FullPage { get; init; }
     public int Limit { get; init; }
     public int Request { get; init; }
+    public BrowserTargetModel? Target { get; init; }
+    public string? Scope { get; init; }
+    public bool DoubleClick { get; init; }
+    public string? Text { get; init; }
+    public bool Clear { get; init; }
+    public bool Submit { get; init; }
+    public string? Keys { get; init; }
+    public int Repeat { get; init; }
+    public string? Direction { get; init; }
+    public double? Amount { get; init; }
+    public string? Expression { get; init; }
 }

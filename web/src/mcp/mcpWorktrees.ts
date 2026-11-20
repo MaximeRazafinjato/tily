@@ -2,7 +2,7 @@ import { bridge } from '../bridge/bridge'
 import type { HostMessageOf } from '../bridge/messages'
 import { CANCELLED_REPLY, listenReplies, newAgentRequest } from '../bridge/requestListeners'
 import { WorktreeBranchMode, WorktreeOperation, type Worktree } from '../bridge/worktreeMessages'
-import { activePane, createOwnedWorkspace, DEFAULT_SHELL, panesOf, type Session } from '../model/session'
+import { activePane, createOwnedPane, createOwnedWorkspace, DEFAULT_SHELL, panesOf, splitLeaf, SplitAxis, type Session } from '../model/session'
 import { StatusLevel, useHostStore } from '../store/hostStore'
 import { useSessionStore } from '../store/sessionStore'
 import { useWorktreeStore } from '../store/worktreeStore'
@@ -37,6 +37,8 @@ interface McpOpenedWorktree {
   pane: string
   shown: boolean
   install?: string
+  installPane?: string
+  claude?: string
 }
 
 interface CreationRequest {
@@ -45,6 +47,8 @@ interface CreationRequest {
   mode: WorktreeBranchMode
   base?: string
   install: boolean
+  claude: boolean
+  claudePrompt?: string
   database: boolean
   project: string
   folder?: string
@@ -116,10 +120,17 @@ const openOwnedWorktree = (created: Created, owner: string, focus: boolean): Mcp
   const workspace = createOwnedWorkspace(created.name, created.path, DEFAULT_SHELL, owner)
   const tab = workspace.tabs[0]
   const pane = activePane(tab)
-  if (created.install) {
+  const installPane = created.install && created.claude ? createOwnedPane(created.path, DEFAULT_SHELL, owner) : undefined
+  if (created.claude) {
+    terminalRegistry.runAtStart(pane.id, created.claude)
+  }
+  if (installPane && created.install) {
+    tab.tree = splitLeaf(tab.tree, pane.id, SplitAxis.Vertical, installPane)
+    terminalRegistry.runAtStart(installPane.id, created.install)
+  } else if (created.install) {
     terminalRegistry.runAtStart(pane.id, created.install)
   }
-  const shown = created.install !== undefined || focus
+  const shown = created.install !== undefined || created.claude !== undefined || focus
   useSessionStore.getState().change((draft) => {
     draft.workspaces.push(workspace)
     if (shown) {
@@ -133,6 +144,8 @@ const openOwnedWorktree = (created: Created, owner: string, focus: boolean): Mcp
     pane: pane.id,
     shown,
     install: created.install,
+    installPane: installPane?.id,
+    claude: created.claude,
   }
 }
 
@@ -185,7 +198,7 @@ export const createWorktree = async (values: McpArguments, caller: string | unde
   if (plan.error || !plan.path) {
     throw new Error(plan.error ?? 'Tily n’a pas pu déterminer le dossier du worktree.')
   }
-  const creation: CreationRequest = { repository, branch, mode, base, install: values.install !== false, database: values.database !== false, project: sources.project, folder }
+  const creation: CreationRequest = { repository, branch, mode, base, install: values.install !== false, claude: flagArgument(values, 'claude'), claudePrompt: textArgument(values, 'prompt'), database: values.database !== false, project: sources.project, folder }
   return runCreation(creation, owner, flagArgument(values, 'focus'))
 }
 

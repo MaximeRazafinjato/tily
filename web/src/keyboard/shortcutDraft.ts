@@ -4,14 +4,29 @@ import { COMMAND_ENTRIES } from './commandCatalog'
 import type { Command } from './commands'
 import { formatChord } from './keyChords'
 import { directProblem, leaderChordProblem, leaderKeyProblem } from './shortcutRules'
+import { terminalKeyWarning } from './terminalKeyUsages'
 
-export interface ShortcutChange {
-  shortcuts: ShortcutSettings
+export interface ShortcutFeedback {
   notice: string | null
   error: string | null
 }
 
+export interface ShortcutChange extends ShortcutFeedback {
+  shortcuts: ShortcutSettings
+}
+
 const EMPTY_BINDING: ShortcutBinding = { direct: '', leader: '' }
+const LEADER_TWICE = 'Le Leader deux fois de suite l’envoie quand même au terminal.'
+
+const joinNotices = (notices: (string | null)[]): string | null => {
+  const shown = notices.filter(Boolean)
+  return shown.length > 0 ? shown.join(' ') : null
+}
+
+const leaderWarning = (chord: string): string | null => {
+  const warning = terminalKeyWarning(chord)
+  return warning ? `${warning} ${LEADER_TWICE}` : null
+}
 
 const labelOf = (command: string): string => COMMAND_ENTRIES.find((entry) => entry.command === command)?.label ?? command
 
@@ -44,7 +59,7 @@ export const assignShortcut = (shortcuts: ShortcutSettings, command: Command, fi
   const freed = owner ? withBinding(shortcuts, owner, { [field]: '' }) : shortcuts
   return {
     shortcuts: withBinding(freed, command, { [field]: chord }),
-    notice: owner ? `${formatChord(chord)} retiré de « ${labelOf(owner)} ».` : null,
+    notice: joinNotices([owner ? `${formatChord(chord)} retiré de « ${labelOf(owner)} ».` : null, field === ShortcutField.Direct ? terminalKeyWarning(chord) : null]),
     error: null,
   }
 }
@@ -61,7 +76,7 @@ export const assignLeader = (shortcuts: ShortcutSettings, chord: string): Shortc
   const owner = directOwner ?? leaderOwner
   return {
     shortcuts: { ...freed, leader: chord },
-    notice: owner ? `${formatChord(chord)} retiré de « ${labelOf(owner)} ».` : null,
+    notice: joinNotices([owner ? `${formatChord(chord)} retiré de « ${labelOf(owner)} ».` : null, leaderWarning(chord)]),
     error: null,
   }
 }
@@ -71,8 +86,7 @@ export const resetCommand = (shortcuts: ShortcutSettings, defaults: ShortcutSett
   const cleared = withBinding(shortcuts, command, EMPTY_BINDING)
   const withDirect = direct ? assignShortcut(cleared, command, ShortcutField.Direct, direct) : { shortcuts: cleared, notice: null, error: null }
   const withLeader = leader ? assignShortcut(withDirect.shortcuts, command, ShortcutField.Leader, leader) : withDirect
-  const notices = [withDirect.notice, withDirect === withLeader ? null : withLeader.notice].filter(Boolean)
-  return { shortcuts: withLeader.shortcuts, notice: notices.length > 0 ? notices.join(' ') : null, error: withDirect.error ?? withLeader.error }
+  return { shortcuts: withLeader.shortcuts, notice: joinNotices([withDirect.notice, withDirect === withLeader ? null : withLeader.notice]), error: withDirect.error ?? withLeader.error }
 }
 
 export const isDefaultBinding = (shortcuts: ShortcutSettings, defaults: ShortcutSettings, command: Command): boolean => {

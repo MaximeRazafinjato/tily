@@ -1,7 +1,7 @@
 import { GitResetMode, GitSwitchTarget, type GitBranch, type GitCommit, type GitRemoteBranch, type GitStash, type GitTag } from '../bridge/gitMessages'
 import { GitPromptKind, useGitStore } from '../store/gitStore'
 import { currentName, plural, shortSha } from './gitLabels'
-import { askConfirmation, retryOnFailure, withRoot } from './gitRequests'
+import { askConfirmation, pullBranch, retryOnFailure, withRoot } from './gitRequests'
 
 const currentBranchName = (): string => {
   const state = useGitStore.getState().state
@@ -36,6 +36,22 @@ export const resetCurrentTo = (commit: GitCommit, mode: GitResetMode): void => {
 export const switchToBranch = (branch: GitBranch): void => withRoot((path) => ({ type: 'git.switch', path, reference: branch.name, target: GitSwitchTarget.Branch }))
 
 export const switchToRemote = (branch: GitRemoteBranch): void => withRoot((path) => ({ type: 'git.switch', path, reference: branch.name, target: GitSwitchTarget.Remote }))
+
+export const activateBranch = (branch: GitBranch): void => {
+  if (!branch.current) {
+    switchToBranch(branch)
+  } else if (branch.upstream) {
+    pullBranch()
+  }
+}
+
+export const activateRemote = (branch: GitRemoteBranch): void => {
+  if (useGitStore.getState().state?.head.upstream === branch.name) {
+    pullBranch()
+  } else {
+    switchToRemote(branch)
+  }
+}
 
 export const promptNewBranch = (start?: string, startLabel?: string): void =>
   useGitStore.getState().setPrompt({ kind: GitPromptKind.NewBranch, label: `Nouvelle branche depuis « ${startLabel ?? currentBranchName()} »`, initial: '', target: start, checkout: true })

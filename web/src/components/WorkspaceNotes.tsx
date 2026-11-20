@@ -2,6 +2,7 @@ import type { ChangeEvent, KeyboardEvent } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 import { focusActivePane } from '../explorer/fileExplorerActions'
 import { activeWorkspace, NOTE_MAX_CHARS } from '../model/session'
+import { closeNoteTyping, NoteHistoryCommand, noteHistoryCommandOf, recordNoteEdit, redoNoteEdit, undoNoteEdit } from '../notes/noteHistory'
 import { useSessionStore } from '../store/sessionStore'
 import { sendTextToActivePane } from '../terminal/terminalActions'
 import { InfoTip } from './InfoTip'
@@ -20,6 +21,21 @@ const noteTextToSend = (value: string, start: number, end: number): string => {
   return value.slice(lineStart, lineEnd < 0 ? value.length : lineEnd)
 }
 
+const revealSelection = (textarea: HTMLTextAreaElement): void => {
+  textarea.blur()
+  textarea.focus()
+}
+
+const applyNoteHistory = (textarea: HTMLTextAreaElement, workspaceId: string, command: NoteHistoryCommand): void => {
+  const restore = command === NoteHistoryCommand.Undo ? undoNoteEdit(workspaceId, textarea.value) : redoNoteEdit(workspaceId, textarea.value)
+  if (restore) {
+    textarea.value = restore.value
+    textarea.setSelectionRange(restore.selectionStart, restore.selectionEnd)
+    revealSelection(textarea)
+    useSessionStore.getState().setWorkspaceNote(workspaceId, restore.value)
+  }
+}
+
 export function WorkspaceNotes() {
   const { id, note } = useSessionStore(
     useShallow((state) => {
@@ -30,11 +46,25 @@ export function WorkspaceNotes() {
 
   const handleChange = (event: ChangeEvent<HTMLTextAreaElement>) => {
     if (id) {
-      useSessionStore.getState().setWorkspaceNote(id, event.target.value)
+      const { value, selectionEnd } = event.target
+      const inputType = event.nativeEvent instanceof InputEvent ? event.nativeEvent.inputType : ''
+      recordNoteEdit(id, note, value, selectionEnd, inputType)
+      useSessionStore.getState().setWorkspaceNote(id, value)
+    }
+  }
+  const handleBlur = () => {
+    if (id) {
+      closeNoteTyping(id)
     }
   }
   const handleKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
-    if (event.key === 'Escape') {
+    const historyCommand = event.nativeEvent.isComposing ? undefined : noteHistoryCommandOf(event)
+    if (historyCommand) {
+      event.preventDefault()
+      if (id) {
+        applyNoteHistory(event.currentTarget, id, historyCommand)
+      }
+    } else if (event.key === 'Escape') {
       event.preventDefault()
       focusActivePane()
     } else if (event.key === 'Enter' && event.ctrlKey && !event.altKey) {
@@ -56,6 +86,7 @@ export function WorkspaceNotes() {
         className="min-h-0 flex-1 resize-none rounded border border-tily-line bg-tily-panel py-[8px] pr-[28px] pl-[10px] text-[12px] leading-[1.5] text-tily-ink outline-none placeholder:text-tily-muted focus:border-tily-focus"
         onChange={handleChange}
         onKeyDown={handleKeyDown}
+        onBlur={handleBlur}
         aria-describedby={NOTE_HINT_ID}
       />
       <span className="absolute top-[12px] right-[20px] flex">

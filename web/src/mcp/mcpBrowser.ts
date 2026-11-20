@@ -62,7 +62,7 @@ const waitForStart = async (paneId: string): Promise<void> => {
   }
 }
 
-const startedBrowser = async (values: McpArguments, caller: string | undefined): Promise<PanePlace> => {
+export const startedBrowser = async (values: McpArguments, caller: string | undefined): Promise<PanePlace> => {
   const place = browserPlace(textArgument(values, 'pane'), caller)
   if (!isBrowserStarted(place.pane.id)) {
     throw new Error(`Le pane navigateur ${place.pane.id} (${locationOf(place)}) n’a pas démarré : il n’a jamais été affiché depuis le lancement de Tily. Affichez-le avec tily_focus.`)
@@ -71,7 +71,7 @@ const startedBrowser = async (values: McpArguments, caller: string | undefined):
   return place
 }
 
-const describe = (place: PanePlace) => ({ pane: place.pane.id, location: locationOf(place) })
+export const describe = (place: PanePlace) => ({ pane: place.pane.id, location: locationOf(place) })
 
 export const openBrowserPane = async (values: McpArguments, caller: string | undefined) => {
   const owner = requireCaller(caller)

@@ -177,6 +177,7 @@ export const PaneView = memo(function PaneView({ pane, active, zoomed, onToggleZ
   return (
     <section
       data-pane-id={pane.id}
+      data-surface="terminal"
       className={`grid h-full min-h-0 grid-cols-1 grid-rows-[24px_1fr] overflow-hidden rounded-md border bg-tily-terminal ${active ? 'border-tily-green' : 'border-tily-line'}`}
       onFocus={handleFocusWithin}
     >

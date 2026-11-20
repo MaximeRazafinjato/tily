@@ -19,21 +19,26 @@ import { useGitStore } from '../store/gitStore'
 import { usePreviewStore } from '../store/previewStore'
 import { useMcpConsentStore } from '../store/mcpConsentStore'
 import { usePasteStore } from '../store/pasteStore'
+import { useAppearanceStore } from '../store/appearanceStore'
 import { mergeRequestFormOpen } from '../store/mergeRequestFormStore'
 import { worktreeModalOpen } from '../store/worktreeStore'
+import { cloneDialogOpen } from '../store/cloneStore'
 import { filePickerOpen } from '../store/filePickerStore'
 import { commitPickerOpen } from '../store/commitPickerStore'
+import { tabMergePickerOpen } from '../store/tabMergePickerStore'
 import { globalSearchOpen } from '../store/terminalSearchStore'
 import { changePaneShell, dismissPaneState, restartPane, restartPaneIn } from '../terminal/paneLifecycle'
 import { closeOtherTabsKeepingText, closePaneKeepingText, closeTabKeepingText, closeWorkspaceKeepingText, duplicateTabKeepingLayout, restoreClosedTab } from '../terminal/tabLifecycle'
 import { focusPane, joinPane } from '../terminal/terminalActions'
 import { togglePaneZoom, useEndZoomWhenPaneChanges, zoomedPaneOf } from '../terminal/paneZoom'
+import { AmbientBackground } from './AmbientBackground'
 import { AttentionToasts } from './AttentionToasts'
 import { CloseConfirmDialog } from './CloseConfirmDialog'
 import { McpConsentDialog } from './McpConsentDialog'
 import { MergeRequestContextMenu } from './MergeRequestContextMenu'
 import { MergeRequestDialog } from './MergeRequestDialog'
 import { PasteConfirmDialog } from './PasteConfirmDialog'
+import { ColorDialog } from './ColorDialog'
 import { CommandPalette } from './CommandPalette'
 import { DeleteConfirmDialog } from './DeleteConfirmDialog'
 import { EmptyState } from './EmptyState'
@@ -48,6 +53,8 @@ import { HeaderWorkspaces } from './HeaderWorkspaces'
 import { ProjectPickers } from './ProjectPickers'
 import { FilePicker } from './FilePicker'
 import { CommitPicker } from './CommitPicker'
+import { PaneDropIndicator } from './PaneDropIndicator'
+import { TabMergePicker } from './TabMergePicker'
 import { TerminalSearchDialog } from './TerminalSearchDialog'
 import { RightPanel } from './RightPanel'
 import { SettingsDialog } from './SettingsDialog'
@@ -61,6 +68,7 @@ import type { WorkspacePanelActions } from './workspacePanel'
 import type { HeaderWorkspaceActions } from './workspaceStrip'
 import { WorkspaceTree } from './WorkspaceTree'
 import { WorktreeDialogs } from './WorktreeDialogs'
+import { CloneDialogs } from './CloneDialogs'
 
 interface AppShellProps {
   session: Session
@@ -181,7 +189,7 @@ const handleCancelGit = (): void => {
 
 const confirmationOpen = (): boolean => {
   const { settingsOpen, closeConfirmation } = useUiStore.getState()
-  return settingsOpen || closeConfirmation !== null || useExplorerStore.getState().deleteRequest !== null || useGitStore.getState().confirmation !== null || usePasteStore.getState().request !== null || useMcpConsentStore.getState().queue.length > 0 || worktreeModalOpen() || mergeRequestFormOpen() || filePickerOpen() || commitPickerOpen() || globalSearchOpen() || usePreviewStore.getState().pendingAction !== null
+  return settingsOpen || closeConfirmation !== null || useExplorerStore.getState().deleteRequest !== null || useGitStore.getState().confirmation !== null || usePasteStore.getState().request !== null || useMcpConsentStore.getState().queue.length > 0 || worktreeModalOpen() || cloneDialogOpen() || mergeRequestFormOpen() || filePickerOpen() || commitPickerOpen() || tabMergePickerOpen() || globalSearchOpen() || usePreviewStore.getState().pendingAction !== null || useAppearanceStore.getState().colorTarget !== null
 }
 
 const modalOpen = (): boolean => {
@@ -344,7 +352,7 @@ export function AppShell({ session }: AppShellProps) {
           onNew={newTab}
           onMove={moveTab}
         />
-        <div className="relative min-h-0 flex-1 border-t border-tily-line bg-tily-panel p-1">
+        <div data-surface="panel" className="relative min-h-0 flex-1 border-t border-tily-line bg-tily-panel p-1">
           <SplitView key={currentTab.id} node={zoomedPane ? { pane: zoomedPane } : currentTab.tree} zoomed={zoomedPane !== undefined} onToggleZoom={togglePaneZoom} activePaneId={currentTab.active} onFocus={selectPane} onClose={closePaneKeepingText} onSplit={handleSplit} onResize={handleResize} shells={availableShells} onRestart={restartPane} onRestartIn={restartPaneIn} onChangeShell={changePaneShell} onDismissState={dismissPaneState} />
           {graphShown && <GitGraphView layout={session.gitGraph} />}
           {gitShown && <GitDiffDrawer />}
@@ -356,7 +364,8 @@ export function AppShell({ session }: AppShellProps) {
   }
 
   return (
-    <div className="relative flex h-full flex-col">
+    <div className="relative isolate flex h-full flex-col">
+      <AmbientBackground />
       <Header
         workspaceName={workspace?.name ?? null}
         renaming={workspace !== undefined && renamingWorkspaceId === workspace.id && renameOrigin === RenameOrigin.Header}
@@ -397,19 +406,23 @@ export function AppShell({ session }: AppShellProps) {
       <AttentionToasts waiting={waiting} onJoin={handleJoinPane} onDismiss={handleDismissAttention} />
       <FilePicker />
       <CommitPicker />
+      <TabMergePicker />
       <TerminalSearchDialog />
       {projectPickerOpen && <ProjectPickers />}
       {settingsOpen && <SettingsDialog snapshot={settingsSnapshot} pickedPath={pickedPath} imported={importedPreferences} onClose={handleCloseSettings} onSave={handleSaveSettings} onPick={handlePickPath} onExport={handleExportPreferences} onImport={handleImportPreferences} onInstallHooks={handleInstallHooks} onRemoveHooks={handleRemoveHooks} onTestNotification={handleTestNotification} />}
       {paletteOpen && <CommandPalette session={session} shells={availableShells} onClose={handleClosePalette} onRun={handleRunPaletteItem} onToggleFavorite={toggleFavoriteCommand} />}
       {deleteRequest && <DeleteConfirmDialog request={deleteRequest} onConfirm={confirmDelete} onCancel={handleCancelDelete} />}
       <WorktreeDialogs />
+      <CloneDialogs />
       <MergeRequestDialog />
       <MergeRequestContextMenu />
       {gitConfirmation && <GitConfirmDialog confirmation={gitConfirmation} onConfirm={handleConfirmGit} onCancel={handleCancelGit} />}
       {closeConfirmation && <CloseConfirmDialog confirmation={closeConfirmation} onConfirm={confirmClose} onCancel={handleCancelClose} />}
       <PasteConfirmDialog />
+      <ColorDialog />
       {unsavedPreview && <UnsavedPreviewDialog />}
       <McpConsentDialog />
+      <PaneDropIndicator />
       <Tooltip />
       <StatusBar />
     </div>

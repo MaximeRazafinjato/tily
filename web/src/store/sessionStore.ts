@@ -2,7 +2,7 @@ import { current, produce } from 'immer'
 import { create } from 'zustand'
 import type { BrowserViewport } from '../model/browser'
 import { insertPaneBesideIn, setBrowserPageIn, setPaneViewportIn } from './browserPanes'
-import { movePaneInto, movePaneOut } from './paneMoves'
+import { movePaneInto, movePaneOut, moveTabInto } from './paneMoves'
 import {
   activePane,
   activeTab,
@@ -38,6 +38,7 @@ import {
   type ClosedTab,
   type GitGraphLayout,
   type Pane,
+  type PaneEdge,
   type Session,
   type SplitPath,
   type Tab,
@@ -63,12 +64,14 @@ interface SessionState {
   newWorkspace: (name: string, path: string, shell: string) => string
   renameWorkspace: (workspaceId: string, name: string) => void
   setWorkspaceNote: (workspaceId: string, note: string) => void
+  setWorkspaceColor: (workspaceId: string, color: string | undefined) => void
   moveWorkspace: (workspaceId: string, offset: number) => void
   moveWorkspaceBefore: (workspaceId: string, beforeWorkspaceId?: string) => void
   newTab: (shell: string) => void
   newTabAt: (path: string, shell: string) => void
   renameTab: (tabId: string, name: string) => void
   resetTabName: (tabId: string) => void
+  setTabColor: (tabId: string, color: string | undefined) => void
   moveTab: (tabId: string, targetWorkspaceId: string, beforeTabId?: string) => void
   moveActiveTab: (offset: number) => void
   shiftTab: (tabId: string, offset: number) => void
@@ -86,6 +89,7 @@ interface SessionState {
   swapActivePane: (targetPaneId: string) => void
   movePaneToNewTab: (paneId: string) => void
   movePaneToTab: (paneId: string, targetTabId: string) => void
+  moveTabIntoPane: (tabId: string, paneId: string, edge: PaneEdge) => void
   closePane: (paneId: string) => void
   setPanePath: (paneId: string, path: string) => void
   setPaneShell: (paneId: string, shell: string) => void
@@ -236,6 +240,16 @@ export const useSessionStore = create<SessionState>()((set, get) => ({
       }),
     })),
 
+  setWorkspaceColor: (workspaceId, color) =>
+    set((state) => ({
+      session: mutateSession(state.session, (draft) => {
+        const workspace = findWorkspace(draft, workspaceId)
+        if (workspace) {
+          workspace.color = color
+        }
+      }),
+    })),
+
   moveWorkspace: (workspaceId, offset) =>
     set((state) => ({
       session: mutateSession(state.session, (draft) => {
@@ -299,6 +313,16 @@ export const useSessionStore = create<SessionState>()((set, get) => ({
         if (tab) {
           tab.manual = false
           tab.name = paneName(activePane(tab)) || tab.name
+        }
+      }),
+    })),
+
+  setTabColor: (tabId, color) =>
+    set((state) => ({
+      session: mutateSession(state.session, (draft) => {
+        const tab = draft.workspaces.flatMap((workspace) => workspace.tabs).find((candidate) => candidate.id === tabId)
+        if (tab) {
+          tab.color = color
         }
       }),
     })),
@@ -487,6 +511,8 @@ export const useSessionStore = create<SessionState>()((set, get) => ({
   movePaneToNewTab: (paneId) => set((state) => ({ session: mutateSession(state.session, (draft) => movePaneOut(draft, paneId)) })),
 
   movePaneToTab: (paneId, targetTabId) => set((state) => ({ session: mutateSession(state.session, (draft) => movePaneInto(draft, paneId, targetTabId)) })),
+
+  moveTabIntoPane: (tabId, paneId, edge) => set((state) => ({ session: mutateSession(state.session, (draft) => moveTabInto(draft, tabId, paneId, edge)) })),
 
   closePane: (paneId) =>
     set((state) => {

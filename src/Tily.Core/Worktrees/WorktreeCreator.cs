@@ -5,7 +5,6 @@ namespace Tily.Core.Worktrees;
 public static class WorktreeCreator
 {
     public const string InstallCommand = "pnpm install";
-    public const string ClaudeCommand = "claude";
 
     private const string HeadsPrefix = "refs/heads/";
     private const string RemotesPrefix = "refs/remotes/";

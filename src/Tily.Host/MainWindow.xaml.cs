@@ -1,4 +1,4 @@
-using Tily.Core.Updates;
+using Tily.Core.Appearance;
 using Tily.Host.Bridge;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
@@ -11,12 +11,8 @@ namespace Tily.Host;
 public sealed partial class MainWindow : Window
 {
     private const string VirtualHost = "tily.example";
+    private const string AmbianceMediaHost = "tily.ambiance";
     private const string DevServerVariable = "TILY_WEB_DEV_URL";
-    private static readonly bool Beta = ReleaseChannels.Current == ReleaseChannel.Beta;
-    private static readonly Color Paper = Beta ? Color.FromArgb(255, 0x14, 0x18, 0x1E) : Color.FromArgb(255, 0x17, 0x19, 0x1B);
-    private static readonly Color Ink = Beta ? Color.FromArgb(255, 0xD4, 0xD8, 0xDE) : Color.FromArgb(255, 0xD8, 0xDB, 0xD7);
-    private static readonly Color Muted = Beta ? Color.FromArgb(255, 0x7D, 0x85, 0x92) : Color.FromArgb(255, 0x84, 0x8B, 0x87);
-    private static readonly Color Hover = Beta ? Color.FromArgb(255, 0x20, 0x26, 0x2F) : Color.FromArgb(255, 0x24, 0x28, 0x2A);
     private readonly HostBridge _bridge;
     private readonly string _startUrl = ResolveStartUrl();
     private bool _closeConfirmed;
@@ -31,8 +27,7 @@ public sealed partial class MainWindow : Window
         }
 
         AppWindow.SetIcon(Path.Combine(AppContext.BaseDirectory, "Assets", "Tily.ico"));
-        ApplyDarkTitleBar();
-        _bridge = new HostBridge(DispatcherQueue, App.DataDirectory, WinRT.Interop.WindowNative.GetWindowHandle(this), ForceClose, SetTitle, BrowserLayer, FocusInterface);
+        _bridge = new HostBridge(DispatcherQueue, App.DataDirectory, WinRT.Interop.WindowNative.GetWindowHandle(this), ForceClose, SetTitle, BrowserLayer, FocusInterface, ApplyWindowColors);
         View.AllowDrop = true;
         Closed += HandleClosed;
         Activated += HandleActivated;
@@ -41,7 +36,6 @@ public sealed partial class MainWindow : Window
 
     private async Task InitializeWebViewAsync()
     {
-        View.DefaultBackgroundColor = Paper;
         await View.EnsureCoreWebView2Async();
         var core = View.CoreWebView2;
         core.Settings.AreBrowserAcceleratorKeysEnabled = false;
@@ -54,6 +48,9 @@ public sealed partial class MainWindow : Window
         core.NavigationStarting += HandleNavigationStarting;
         core.NewWindowRequested += HandleNewWindowRequested;
         core.SetVirtualHostNameToFolderMapping(VirtualHost, Path.Combine(AppContext.BaseDirectory, "wwwroot"), CoreWebView2HostResourceAccessKind.Allow);
+        var media = new AmbianceMedia(App.DataDirectory);
+        Directory.CreateDirectory(media.Folder);
+        core.SetVirtualHostNameToFolderMapping(AmbianceMediaHost, media.Folder, CoreWebView2HostResourceAccessKind.Allow);
         _bridge.Attach(core);
         core.Navigate(_startUrl);
         View.Focus(FocusState.Programmatic);
@@ -63,19 +60,29 @@ public sealed partial class MainWindow : Window
 
     private void FocusInterface() => View.Focus(FocusState.Programmatic);
 
-    private void ApplyDarkTitleBar()
+    private void ApplyWindowColors(WindowColorsModel colors)
     {
+        var paper = ColorOf(colors.Background);
+        var ink = ColorOf(colors.Foreground);
+        var muted = ColorOf(colors.InactiveForeground);
+        View.DefaultBackgroundColor = paper;
         var titleBar = AppWindow.TitleBar;
-        titleBar.BackgroundColor = Paper;
-        titleBar.InactiveBackgroundColor = Paper;
-        titleBar.ForegroundColor = Ink;
-        titleBar.InactiveForegroundColor = Muted;
-        titleBar.ButtonBackgroundColor = Paper;
-        titleBar.ButtonInactiveBackgroundColor = Paper;
-        titleBar.ButtonForegroundColor = Ink;
-        titleBar.ButtonInactiveForegroundColor = Muted;
-        titleBar.ButtonHoverBackgroundColor = Hover;
-        titleBar.ButtonHoverForegroundColor = Ink;
+        titleBar.BackgroundColor = paper;
+        titleBar.InactiveBackgroundColor = paper;
+        titleBar.ForegroundColor = ink;
+        titleBar.InactiveForegroundColor = muted;
+        titleBar.ButtonBackgroundColor = paper;
+        titleBar.ButtonInactiveBackgroundColor = paper;
+        titleBar.ButtonForegroundColor = ink;
+        titleBar.ButtonInactiveForegroundColor = muted;
+        titleBar.ButtonHoverBackgroundColor = ColorOf(colors.HoverBackground);
+        titleBar.ButtonHoverForegroundColor = ink;
+    }
+
+    private static Color ColorOf(string hex)
+    {
+        var (red, green, blue) = HexColor.Channels(hex);
+        return Color.FromArgb(255, (byte)red, (byte)green, (byte)blue);
     }
 
     private static string ResolveStartUrl()
@@ -95,7 +102,7 @@ public sealed partial class MainWindow : Window
 
     private static void HandlePermissionRequested(CoreWebView2 sender, CoreWebView2PermissionRequestedEventArgs args)
     {
-        if (args.PermissionKind == CoreWebView2PermissionKind.ClipboardRead)
+        if (args.PermissionKind is CoreWebView2PermissionKind.ClipboardRead or CoreWebView2PermissionKind.LocalFonts)
         {
             args.State = CoreWebView2PermissionState.Allow;
         }

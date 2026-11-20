@@ -1,4 +1,6 @@
+import { toggleAmbiance } from '../ambiance/ambianceActions'
 import { bridge } from '../bridge/bridge'
+import { SettingsSection } from '../components/settingsSections'
 import { BrowserPlacement, openBrowser } from '../browser/browserActions'
 import { useHostStore } from '../store/hostStore'
 import { activePane, activeTab, activeWorkspace, DEFAULT_SHELL, RightPanelView, SplitAxis, type Workspace } from '../model/session'
@@ -7,7 +9,8 @@ import { equalizeActiveTab, focusPaneToward, selectTabNumber, swapPaneToward } f
 import { focusWorkspacePanel } from '../components/workspacePanel'
 import { useSessionStore } from '../store/sessionStore'
 import { requestApplicationClose } from '../terminal/closeGuard'
-import { closePaneKeepingText, movePaneToNewTab, restoreClosedTab } from '../terminal/tabLifecycle'
+import { closePaneKeepingText, movePaneToNewTab, openClaudeTab, restoreClosedTab } from '../terminal/tabLifecycle'
+import { openTabMergePicker } from '../terminal/tabMerge'
 import { focusPane, joinNextWaitingPane, scrollPaneToCommand } from '../terminal/terminalActions'
 import { CommandDirection } from '../terminal/commandOutput'
 import { togglePaneZoom } from '../terminal/paneZoom'
@@ -147,9 +150,9 @@ const toggleSidebar = (): void => {
   toggle()
 }
 
-const openSettings = (): void => {
+const openSettings = (section = SettingsSection.Shells): void => {
   bridge.send({ type: 'settings.get' })
-  useUiStore.getState().openSettings()
+  useUiStore.getState().openSettings(section)
 }
 
 const FOCUS_DIRECTIONS: Partial<Record<Command, Direction>> = {
@@ -186,6 +189,9 @@ export const runCommand = (command: Command): void => {
     case Command.NewTab:
       sessionStore.newTab(currentShell())
       break
+    case Command.NewClaudeTab:
+      openClaudeTab(currentShell())
+      break
     case Command.SplitSideBySide:
       sessionStore.splitPane(SplitAxis.Horizontal)
       break
@@ -197,6 +203,18 @@ export const runCommand = (command: Command): void => {
       break
     case Command.Settings:
       openSettings()
+      break
+    case Command.AppearanceSettings:
+      openSettings(SettingsSection.Appearance)
+      break
+    case Command.AmbianceSettings:
+      openSettings(SettingsSection.Ambiance)
+      break
+    case Command.ToggleAmbiance:
+      toggleAmbiance()
+      break
+    case Command.ReleaseNotes:
+      openSettings(SettingsSection.ReleaseNotes)
       break
     case Command.SettingsExport:
       openSettings()
@@ -259,6 +277,9 @@ export const runCommand = (command: Command): void => {
       break
     case Command.MovePaneToNewTab:
       movePaneToNewTab(currentPaneId())
+      break
+    case Command.MergeTab:
+      openTabMergePicker()
       break
     case Command.JoinWaitingAgent:
       joinNextWaitingPane()

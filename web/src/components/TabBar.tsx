@@ -23,6 +23,7 @@ import { Command } from '../keyboard/commands'
 import { shortcutTextIn, useShortcutText, withShortcut } from '../keyboard/shortcutLabels'
 import { RightPanelView } from '../model/session'
 import { useShortcutStore } from '../store/shortcutStore'
+import { HIGHLIGHT_SHAPE, highlightStyle } from './highlightStyle'
 
 interface TabBarProps {
   workspace: Workspace
@@ -220,6 +221,7 @@ export function TabBar({ workspace, shells, renamingTabId, panelView, onTogglePa
               <div
                 data-drop-workspace={workspace.id}
                 data-drop-tab={tab.id}
+                data-surface={active ? 'tab' : undefined}
                 className={`group flex min-w-[100px] items-center rounded-t-md border border-b-0 ${active ? 'border-tily-line bg-tily-panel text-tily-green-deep' : 'border-transparent text-tily-muted hover:bg-tily-green-hover'} ${draggingTabId === tab.id ? 'opacity-50' : ''}`}
                 onAuxClick={handleAuxClick}
                 onContextMenu={handleTabContextMenu}
@@ -239,7 +241,9 @@ export function TabBar({ workspace, shells, renamingTabId, panelView, onTogglePa
                     onKeyDown={handleTabKeyDown}
                   >
                     {agentSummary ? <AgentStateIcon state={agentSummary.state} tip={agentSummary.tip} /> : commandNotice && <CommandNoticeIcon notice={commandNotice} />}
-                    <span className="min-w-0 truncate">{tab.name}</span>
+                    <span className={tab.color ? `min-w-0 truncate ${HIGHLIGHT_SHAPE}` : 'min-w-0 truncate'} style={highlightStyle(tab.color)}>
+                      {tab.name}
+                    </span>
                     {tab.owner && <AgentOwnerMark owner={tab.owner} />}
                   </button>
                 )}

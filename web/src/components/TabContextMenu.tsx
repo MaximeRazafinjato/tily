@@ -1,3 +1,4 @@
+import { openTabColor } from '../appearance/appearanceActions'
 import { isManuallyNamed, type Session } from '../model/session'
 import { useSessionStore } from '../store/sessionStore'
 import type { ActionMenuItem } from './ActionMenu'
@@ -34,6 +35,7 @@ const itemsFor = ({ tabId }: TabMenuRequest, position: number, count: number, ma
   { id: 'rename', label: 'Renommer', detail: <MenuShortcut keys="F2" />, run: () => actions.rename(tabId) },
   { id: 'auto-name', label: 'Reprendre le nom du dossier', disabled: !manual, run: () => useSessionStore.getState().resetTabName(tabId) },
   { id: 'duplicate', label: 'Dupliquer l’onglet', run: () => actions.duplicate(tabId) },
+  { id: 'color', label: 'Couleur…', run: () => openTabColor(tabId) },
   { id: 'move-left', label: 'Déplacer à gauche', detail: <MenuShortcut keys="Alt+←" />, disabled: position <= 0, run: () => actions.shift(tabId, -1) },
   { id: 'move-right', label: 'Déplacer à droite', detail: <MenuShortcut keys="Alt+→" />, disabled: position < 0 || position >= count - 1, run: () => actions.shift(tabId, 1) },
   ...tabTransferItems(session, tabId),

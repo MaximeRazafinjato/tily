@@ -1,5 +1,7 @@
 import type { Session } from '../model/session'
+import type { AmbianceSettings, AppearanceCatalog, AppearanceHostMessage, AppearanceWebMessage } from './appearanceMessages'
 import type { BrowserHostMessage, BrowserWebMessage } from './browserMessages'
+import type { CloneHostMessage, CloneWebMessage } from './cloneMessages'
 import type { ForgeHostMessage, ForgeWebMessage } from './forgeMessages'
 import type { GitChangeKind, GitHostMessage, GitSettings, GitWebMessage } from './gitMessages'
 import type { McpHostMessage, McpServerInfo, McpWebMessage } from './mcpMessages'
@@ -20,6 +22,7 @@ export enum PickTarget {
   File = 'file',
   Folder = 'folder',
   Sound = 'sound',
+  Media = 'media',
 }
 
 export interface PickedPath {
@@ -59,6 +62,9 @@ export interface GitContext {
 
 export interface AppearanceSettings {
   fontSize: number
+  accent?: string
+  projectColors: Record<string, string>
+  ambiance: AmbianceSettings
 }
 
 export interface ShortcutBinding {
@@ -105,6 +111,7 @@ export interface Settings {
   editor: string
   persistence: PersistenceSettings
   projectsRoot: string
+  additionalProjectsRoots: string[]
   notifications: NotificationSettings
   worktrees: WorktreeSettings
   worktreeFolders: WorktreeProjectFolder[]
@@ -186,7 +193,7 @@ export interface PaneAgent {
 
 export type HostToWebMessage =
   | { type: 'appearance.changed'; fontSize: number }
-  | { type: 'app.hello'; version: string; name: string; channel: ReleaseChannel; session: Session; shells: ShellProfile[]; home: string; text: Record<string, string>; persistence: PersistenceSettings; appearance: AppearanceSettings; shortcuts: ShortcutSettings; statusLog: StatusLogEntry[]; recovery?: string }
+  | { type: 'app.hello'; version: string; name: string; channel: ReleaseChannel; session: Session; shells: ShellProfile[]; home: string; text: Record<string, string>; persistence: PersistenceSettings; appearance: AppearanceSettings; theme: AppearanceCatalog; shortcuts: ShortcutSettings; statusLog: StatusLogEntry[]; recovery?: string }
   | { type: 'app.closing'; activity: PaneActivity[] }
   | { type: 'session.saved' }
   | { type: 'session.saveFailed'; message: string }
@@ -202,7 +209,7 @@ export type HostToWebMessage =
   | { type: 'terminal.activityResult'; request?: number; panes: PaneActivity[] }
   | { type: 'agent.states'; panes: PaneAgent[] }
   | { type: 'agent.join'; pane: string }
-  | { type: 'projects.listed'; root: string; projects: Project[]; error?: string }
+  | { type: 'projects.listed'; root: string; projects: Project[]; error?: string; additionalRoots: string[] }
   | { type: 'projects.repositoriesFound'; request: number; sources: WorktreeSources }
   | { type: 'projects.repositoryRemembered'; project: string; repository: string }
   | { type: 'context.result'; pane: string; path: string; git: GitContext }
@@ -213,10 +220,12 @@ export type HostToWebMessage =
   | { type: 'files.deleted'; path: string }
   | { type: 'files.searched'; path: string; root: string; files: string[]; changed: string[]; truncated: boolean; error?: string }
   | { type: 'error'; pane?: string; message: string }
+  | AppearanceHostMessage
   | GitHostMessage
   | ForgeHostMessage
   | PreviewHostMessage
   | WorktreeHostMessage
+  | CloneHostMessage
   | UpdateHostMessage
   | StatusLogHostMessage
   | McpHostMessage
@@ -263,10 +272,12 @@ export type WebToHostMessage =
   | { type: 'window.close' }
   | { type: 'window.closeCancel' }
   | { type: 'window.title'; title: string }
+  | AppearanceWebMessage
   | GitWebMessage
   | ForgeWebMessage
   | PreviewWebMessage
   | WorktreeWebMessage
+  | CloneWebMessage
   | UpdateWebMessage
   | StatusLogWebMessage
   | McpWebMessage

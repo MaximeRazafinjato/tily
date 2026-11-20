@@ -30,8 +30,6 @@ const handleClose = () => closePreview(focusFileTree)
 
 const handleSave = () => savePreview()
 
-const handleToggleExpanded = () => usePreviewStore.getState().toggleExpanded()
-
 const handleKeyDown = (event: KeyboardEvent<HTMLElement>) => {
   if (event.key === 'Escape' && !event.defaultPrevented) {
     event.preventDefault()
@@ -77,7 +75,7 @@ const renderedHtml = (preview: FilePreview | null, source: boolean): string | nu
 }
 
 export function FilePreviewDrawer() {
-  const { path, preview, anchor, anchorRequest, expanded, edit } = usePreviewStore(useShallow((store) => ({ path: store.path, preview: store.preview, anchor: store.anchor, anchorRequest: store.anchorRequest, expanded: store.expanded, edit: store.edit })))
+  const { path, preview, anchor, anchorRequest, edit } = usePreviewStore(useShallow((store) => ({ path: store.path, preview: store.preview, anchor: store.anchor, anchorRequest: store.anchorRequest, edit: store.edit })))
   const bodyRef = useRef<HTMLDivElement>(null)
   const [sourcePath, setSourcePath] = useState<string | null>(null)
   const showSource = hasSource(preview) && sourcePath === preview?.path
@@ -114,7 +112,7 @@ export function FilePreviewDrawer() {
   const editorLanguage = preview?.kind === PreviewKind.Markdown ? MARKDOWN_LANGUAGE : preview?.language
 
   return (
-    <aside aria-label="Aperçu du fichier" data-preview-drawer="" className={`absolute inset-y-0 right-0 z-20 flex ${expanded ? 'w-full' : 'w-[min(920px,100%)]'} flex-col border-l border-tily-line bg-tily-panel shadow-2xl`} onKeyDown={handleKeyDown}>
+    <aside aria-label="Aperçu du fichier" data-preview-drawer="" className="absolute inset-y-0 right-0 z-20 flex w-full flex-col border-l border-tily-line bg-tily-panel shadow-2xl" onKeyDown={handleKeyDown}>
       <header className="flex h-[36px] shrink-0 items-center gap-[8px] border-b border-tily-line pr-[6px] pl-[12px]">
         {preview && !preview.error && <span className="shrink-0 rounded bg-tily-paper px-[6px] py-[1px] text-[11px] text-tily-muted">{preview.kind === PreviewKind.Image && imageSize ? `${KIND_LABELS[preview.kind]} · ${imageSize}` : KIND_LABELS[preview.kind]}</span>}
         <span className="min-w-0 flex-1 truncate text-[12px] font-semibold text-tily-ink" data-tip={path}>
@@ -134,7 +132,6 @@ export function FilePreviewDrawer() {
         )}
         {preview?.kind === PreviewKind.Html && !preview.error && <GitToolButton icon={IconName.Browser} tip="Ouvrir dans le navigateur" onClick={openPreviewInBrowser} />}
         <GitToolButton icon={IconName.Editor} tip="Ouvrir dans l’éditeur" onClick={openPreviewInEditor} />
-        <GitToolButton icon={IconName.Expand} tip={expanded ? 'Réduire l’aperçu' : 'Agrandir l’aperçu'} pressed={expanded} onClick={handleToggleExpanded} />
         <button type="button" className={PANEL_HEADER_BUTTON} aria-label="Fermer" data-tip="Fermer (Échap)" onClick={handleClose}>
           <Icon name={IconName.Close} />
         </button>

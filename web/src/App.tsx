@@ -1,6 +1,8 @@
 import { useEffect } from 'react'
 import { clearSeenCommandNotices } from './terminal/commandNotices'
 import { startAttentionNotifier } from './agents/attentionNotifier'
+import { AMBIANCE_MEDIA_FIELD, AMBIANCE_MEDIA_PICK_FIELD, importAmbianceMedia, receiveAmbiance, startAmbiance } from './ambiance/ambianceActions'
+import { receiveAppearance, receiveAppearanceCatalog, receiveProjects, startAppearanceProjects } from './appearance/appearanceActions'
 import { bridge } from './bridge/bridge'
 import { receiveBrowserFailure, receiveBrowserFocused, receiveBrowserState, receiveNewBrowserPane } from './browser/browserActions'
 import { receiveBrowserKey } from './browser/browserKeys'
@@ -9,6 +11,7 @@ import { dispatchReply } from './bridge/requestListeners'
 import { AppShell } from './components/AppShell'
 import { receiveMcpRequest } from './mcp/mcpRequests'
 import { allPanes, restoredSessionLabel } from './model/session'
+import { forgetMissingNoteHistories } from './notes/noteHistory'
 import { useAgentStore } from './store/agentStore'
 import { StatusLevel, useHostStore } from './store/hostStore'
 import { usePaneStore } from './store/paneStore'
@@ -27,7 +30,9 @@ import { receivePreviewSaved, receivePreviewSaveFailed } from './preview/preview
 import { receiveGitAutoFetchEnded, receiveGitAutoFetchStarted, receiveGitChanged, receiveGitDetails, receiveGitDiff, receiveGitDone, receiveGitFailed, receiveGitHistory, receiveGitPushRejected, receiveGitState } from './git/gitReceivers'
 import { insertIntoPane, joinPane } from './terminal/terminalActions'
 import { WORKTREE_FOLDER_FIELD, WORKTREE_REPOSITORY_FIELD } from './worktree/worktreeActions'
-import { PROJECT_REPOSITORY_FIELD, receiveProjectRepositories, receiveProjectRepositoryPicked, receiveProjectRepositoryRemembered } from './project/projectOpenActions'
+import { CLONE_FOLDER_FIELD } from './clone/cloneActions'
+import { receiveCloneDone, receiveCloneFailed, receiveCloneFolderPicked, receiveClonePlan, receiveCloneProgress, receiveCloneSuggestion } from './clone/cloneReceivers'
+import { PROJECT_FOLDER_FIELD, PROJECT_REPOSITORY_FIELD, receiveProjectFolderPicked, receiveProjectRepositories, receiveProjectRepositoryPicked, receiveProjectRepositoryRemembered } from './project/projectOpenActions'
 import {
   receiveWorktreeCreated,
   receiveWorktreeDone,
@@ -41,7 +46,7 @@ import {
   receiveWorktreeSources,
 } from './worktree/worktreeReceivers'
 import { terminalRegistry } from './terminal/terminalRegistry'
-import { receiveUpdateRestart, receiveUpdateState } from './update/updateActions'
+import { receiveReleaseHistory, receiveUpdateRestart, receiveUpdateState } from './update/updateActions'
 import { receiveStatusLogCleared, receiveStatusLogEntry, startStatusLog } from './statusLog/statusLogActions'
 import { useShortcutStore } from './store/shortcutStore'
 import { useStatusLogStore } from './store/statusLogStore'
@@ -63,16 +68,18 @@ export default function App() {
     const stopStatusLog = startStatusLog()
     const stopDeferredPreviews = startDeferredPreviews()
     const stopBrowserLayer = startBrowserLayer()
+    const stopAppearanceProjects = startAppearanceProjects()
+    const stopAmbiance = startAmbiance()
     const { markFailed, markExited, markPathMissing, markAlive } = usePaneStore.getState()
     const subscriptions = [
       bridge.on('app.hello', (message) => {
-        document.documentElement.dataset.channel = message.channel
         setHello(message.version, message.name, message.shells, message.home, message.persistence)
-        terminalRegistry.setChannel(message.channel)
+        receiveAppearanceCatalog(message.theme)
         useShortcutStore.getState().setShortcuts(message.shortcuts)
         useStatusLogStore.getState().load(message.statusLog)
         terminalRegistry.configure(message.persistence.linesPerPane)
         terminalRegistry.setFontSize(message.appearance.fontSize)
+        receiveAmbiance(message.appearance.ambiance)
         primeSessionText(message.session, message.text)
         void document.fonts.load('14px "Symbols Nerd Font Mono"').then(() => {
           load(message.session)
@@ -89,6 +96,13 @@ export default function App() {
         terminalRegistry.setFontSize(message.fontSize)
         setStatus(`Taille du texte des terminaux : ${message.fontSize} px`)
       }),
+      bridge.on('appearance.ambiance', (message) => {
+        receiveAmbiance(message.ambiance)
+        setStatus(message.ambiance.enabled ? 'Ambiance activée.' : 'Ambiance coupée.')
+      }),
+      bridge.on('appearance.mediaImported', (message) => setPickedPath({ field: AMBIANCE_MEDIA_FIELD, path: message.name })),
+      bridge.on('appearance.theme', (message) => receiveAppearance(message.state)),
+      bridge.on('appearance.projectsResolved', (message) => receiveProjects(message.projects)),
       bridge.on('settings.result', (message) => {
         applySettings({ settings: message.settings, shellSettings: message.shellSettings, files: message.files, warnings: message.warnings, agents: message.agents, mcp: message.mcp, notifications: message.notifications, shortcutDefaults: message.shortcutDefaults }, message.shells, message.persistence)
         useShortcutStore.getState().setShortcuts(message.settings.shortcuts)
@@ -97,6 +111,7 @@ export default function App() {
         }
         terminalRegistry.configure(message.persistence.linesPerPane)
         terminalRegistry.setFontSize(message.settings.appearance.fontSize)
+        receiveAmbiance(message.settings.appearance.ambiance)
         stopAutosave?.()
         stopAutosave = startTextAutosave(message.persistence.textIntervalSeconds)
         useUiStore.getState().closeSettings()
@@ -110,6 +125,12 @@ export default function App() {
           receiveWorktreeFolderPicked(message.path)
         } else if (message.field === PROJECT_REPOSITORY_FIELD) {
           receiveProjectRepositoryPicked(message.path)
+        } else if (message.field === PROJECT_FOLDER_FIELD) {
+          receiveProjectFolderPicked(message.path)
+        } else if (message.field === CLONE_FOLDER_FIELD) {
+          receiveCloneFolderPicked(message.path)
+        } else if (message.field === AMBIANCE_MEDIA_PICK_FIELD) {
+          importAmbianceMedia(message.path)
         } else {
           setPickedPath({ field: message.field, path: message.path })
         }
@@ -141,7 +162,7 @@ export default function App() {
         queryContext(message.pane)
       }),
       bridge.on('terminal.pathMissing', (message) => markPathMissing(message.pane, message.path, message.fallback)),
-      bridge.on('projects.listed', (message) => setProjects(message.root, message.projects, message.error ?? null)),
+      bridge.on('projects.listed', (message) => setProjects(message.root, message.projects, message.error ?? null, message.additionalRoots)),
       bridge.on('projects.repositoriesFound', (message) => receiveProjectRepositories(message.request, message.sources)),
       bridge.on('projects.repositoryRemembered', (message) => receiveProjectRepositoryRemembered(message.project, message.repository)),
       bridge.on('context.result', (message) => receiveContext(message.pane, message.path, message.git)),
@@ -186,8 +207,14 @@ export default function App() {
       }),
       bridge.on('worktrees.purging', (message) => receiveWorktreePurging(message.name, message.files, message.elapsedMs)),
       bridge.on('worktrees.purged', (message) => receiveWorktreePurged(message.names, message.files, message.elapsedMs, message.remaining)),
+      bridge.on('clone.suggested', (message) => receiveCloneSuggestion(message.request, message.address)),
+      bridge.on('clone.planned', (message) => receiveClonePlan(message.request, message.plan, message.roots)),
+      bridge.on('clone.progress', (message) => receiveCloneProgress(message.message)),
+      bridge.on('clone.done', (message) => receiveCloneDone(message.request, message.path, message.name, message.install, message.claude, message.message)),
+      bridge.on('clone.failed', (message) => receiveCloneFailed(message.request, message.message, message.output)),
       bridge.on('update.state', (message) => receiveUpdateState(message)),
       bridge.on('update.restart', receiveUpdateRestart),
+      bridge.on('update.history', (message) => receiveReleaseHistory(message)),
       bridge.on('statusLog.added', (message) => receiveStatusLogEntry(message.entry)),
       bridge.on('statusLog.cleared', receiveStatusLogCleared),
       bridge.on('mcp.request', (message) => void receiveMcpRequest(message)),
@@ -219,6 +246,8 @@ export default function App() {
       stopStatusLog()
       stopDeferredPreviews()
       stopBrowserLayer()
+      stopAppearanceProjects()
+      stopAmbiance()
       stopAutosave?.()
       subscriptions.forEach((unsubscribe) => unsubscribe())
     }
@@ -233,6 +262,7 @@ export default function App() {
       const livePaneIds = new Set(allPanes(state.session).map((pane) => pane.id))
       const removed = terminalRegistry.disposeMissing(livePaneIds)
       disposeMissingBrowsers(livePaneIds)
+      forgetMissingNoteHistories(new Set(state.session.workspaces.map((workspace) => workspace.id)))
       clearSeenCommandNotices()
       clearTimeout(timer)
       timer = setTimeout(() => {

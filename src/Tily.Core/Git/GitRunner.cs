@@ -4,7 +4,7 @@ using System.Text.RegularExpressions;
 
 namespace Tily.Core.Git;
 
-public sealed record GitRunOptionsModel(string? Input = null, bool NeutralLocale = false, bool LiteralPaths = false, TimeSpan? Timeout = null);
+public sealed record GitRunOptionsModel(string? Input = null, bool NeutralLocale = false, bool LiteralPaths = false, TimeSpan? Timeout = null, Action<string>? Progress = null);
 
 public sealed record GitOutputModel(int ExitCode, string Output, string Error)
 {
@@ -35,7 +35,7 @@ public sealed partial class GitRunner
         using var process = new Process { StartInfo = StartInfo(directory, arguments, settings) };
         process.Start();
         var output = process.StandardOutput.ReadToEndAsync();
-        var error = process.StandardError.ReadToEndAsync();
+        var error = settings.Progress is { } progress ? GitProgressReader.ReadAsync(process.StandardError, progress) : process.StandardError.ReadToEndAsync();
         WriteInput(process, settings.Input);
         Wait(process, settings.Timeout ?? DefaultTimeout);
         return new GitOutputModel(process.ExitCode, output.GetAwaiter().GetResult(), error.GetAwaiter().GetResult());

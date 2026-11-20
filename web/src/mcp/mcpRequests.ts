@@ -7,6 +7,7 @@ import { useBrowserStore } from '../store/browserStore'
 import { isBrowserStarted } from '../browser/browserLayer'
 import { argumentsOf } from './mcpArguments'
 import { browserConsole, browserNetwork, browserScreenshot, navigateBrowserPane, openBrowserPane, reloadBrowserPane, resizeBrowserPane } from './mcpBrowser'
+import { browserClick, browserEvaluate, browserPress, browserScroll, browserSnapshot, browserType } from './mcpBrowserInput'
 import { closeElement } from './mcpClose'
 import { listCommands } from './mcpCommands'
 import { layoutOf } from './mcpLayout'
@@ -65,6 +66,18 @@ const answer = async (request: McpRequest): Promise<unknown> => {
       return browserNetwork(argumentsOf(request.arguments), request.pane)
     case McpTool.BrowserScreenshot:
       return browserScreenshot(argumentsOf(request.arguments), request.pane)
+    case McpTool.BrowserSnapshot:
+      return browserSnapshot(argumentsOf(request.arguments), request.pane)
+    case McpTool.BrowserClick:
+      return browserClick(argumentsOf(request.arguments), request.pane)
+    case McpTool.BrowserType:
+      return browserType(argumentsOf(request.arguments), request.pane)
+    case McpTool.BrowserPress:
+      return browserPress(argumentsOf(request.arguments), request.pane)
+    case McpTool.BrowserScroll:
+      return browserScroll(argumentsOf(request.arguments), request.pane)
+    case McpTool.BrowserEvaluate:
+      return browserEvaluate(argumentsOf(request.arguments), request.pane)
     default:
       throw new Error(`Outil Tily inconnu : ${request.tool}. Mettez Tily à jour.`)
   }

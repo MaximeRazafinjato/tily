@@ -1,4 +1,4 @@
-import { useEffect, type ChangeEvent, type MouseEvent, type PointerEvent, type SubmitEvent } from 'react'
+import { useEffect, type ChangeEvent, type KeyboardEvent as ReactKeyboardEvent, type MouseEvent, type PointerEvent, type SubmitEvent } from 'react'
 import { WorktreeBranchMode, type WorktreePlan, type WorktreeSources } from '../bridge/worktreeMessages'
 import { folderName } from '../model/session'
 import type { WorktreeDraft, WorktreeFailure } from '../store/worktreeStore'
@@ -28,10 +28,20 @@ const ROW_LABEL = 'flex min-h-[28px] items-center text-[12px] text-tily-muted'
 const BROWSE_REPOSITORY = 'Parcourir les dépôts'
 const LOCAL_GROUP = 'Locales'
 const REMOTE_GROUP = 'Distantes'
+const CLAUDE_PROMPT_MAX_LENGTH = 4000
 
 const handleSubmit = (event: SubmitEvent<HTMLFormElement>) => {
   event.preventDefault()
   submitWorktree()
+}
+
+const handleFormKeyDown = (event: ReactKeyboardEvent<HTMLFormElement>) => {
+  if (event.key === 'Enter' && event.ctrlKey && !event.nativeEvent.isComposing) {
+    event.preventDefault()
+    submitWorktree()
+    return
+  }
+  keepTabInside(event)
 }
 
 const handleNewMode = () => changeWorktreeDraft({ mode: WorktreeBranchMode.New, branch: '' })
@@ -40,6 +50,7 @@ const handleBranchChange = (event: ChangeEvent<HTMLInputElement>) => changeWorkt
 const handleBaseChange = (event: ChangeEvent<HTMLSelectElement>) => changeWorktreeDraft({ base: event.target.value })
 const handleInstallChange = (event: ChangeEvent<HTMLInputElement>) => changeWorktreeDraft({ install: event.target.checked })
 const handleClaudeChange = (event: ChangeEvent<HTMLInputElement>) => changeWorktreeDraft({ claude: event.target.checked })
+const handleClaudePromptChange = (event: ChangeEvent<HTMLTextAreaElement>) => changeWorktreeDraft({ claudePrompt: event.target.value })
 const handleRepositoryChange = (event: ChangeEvent<HTMLSelectElement>) => changeWorktreeDraft({ repository: event.target.value })
 const handleRememberChange = (event: ChangeEvent<HTMLInputElement>) => changeWorktreeDraft({ remember: event.target.checked })
 const handleDatabaseChange = (event: ChangeEvent<HTMLInputElement>) => changeWorktreeDraft({ database: event.target.checked })
@@ -99,7 +110,7 @@ export function WorktreeDialog({ draft, sources, plan, planPending, busy, failur
 
   return (
     <div className="absolute inset-0 z-30 flex items-start justify-center bg-tily-paper/60 pt-[10vh]" onPointerDown={handleBackdropPointerDown} onMouseDown={handleBackdropMouseDown}>
-      <form role="dialog" aria-label="Créer un worktree" className="flex max-h-[80vh] w-[560px] max-w-[94vw] flex-col rounded-lg border border-tily-line bg-tily-panel shadow-xl" onKeyDown={keepTabInside} onSubmit={handleSubmit}>
+      <form role="dialog" aria-label="Créer un worktree" className="flex max-h-[80vh] w-[560px] max-w-[94vw] flex-col rounded-lg border border-tily-line bg-tily-panel shadow-xl" onKeyDown={handleFormKeyDown} onSubmit={handleSubmit}>
         <div className="flex items-center gap-2 border-b border-tily-line px-4 py-3">
           <h2 className="flex min-w-0 items-baseline gap-2 text-[15px] font-semibold text-tily-ink">
             Créer un worktree
@@ -191,6 +202,25 @@ export function WorktreeDialog({ draft, sources, plan, planPending, busy, failur
               </span>
             </div>
           </fieldset>
+          {draft.claude && (
+            <>
+              <span className={`${ROW_LABEL} gap-1.5`}>
+                Message
+                <InfoTip text="claude démarre avec ce premier message, les sauts de ligne devenant des espaces. Ctrl + Entrée crée le worktree." />
+              </span>
+              <fieldset className="min-w-0" disabled={busy}>
+                <textarea
+                  className={`${SETTINGS_INPUT} resize-y`}
+                  value={draft.claudePrompt}
+                  rows={3}
+                  maxLength={CLAUDE_PROMPT_MAX_LENGTH}
+                  placeholder="Facultatif"
+                  aria-label="Premier message pour Claude Code"
+                  onChange={handleClaudePromptChange}
+                />
+              </fieldset>
+            </>
+          )}
           {failure && (
             <div className="col-span-2">
               <WorktreeFailureDetails failure={failure} />

@@ -11,11 +11,6 @@ internal sealed record BrowserCaptureModel(string Png, int Width, int Height, do
     public const double MaxFullPageHeight = 16000;
 }
 
-internal sealed class BrowserNavigationWaiter
-{
-    public TaskCompletionSource<BrowserNavigationModel> Completion { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
-
-    public ulong? NavigationId { get; set; }
-}
+internal sealed record BrowserActionModel(string Target, int? Matches, string Url, string Title, int Errors, BrowserNavigationModel? Navigation, string? Value, string? Focused);
 
 internal sealed record BrowserCallbacks(Action<BrowserView> StateChanged, Action<BrowserView, string> NewPane, Action<BrowserView, JsonElement> Key, Action<BrowserView> Focused);

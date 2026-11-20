@@ -77,6 +77,14 @@ export interface BrowserCapture {
   title: string
 }
 
+export interface BrowserTarget {
+  ref?: string
+  selector?: string
+  text?: string
+  x?: number
+  y?: number
+}
+
 export type BrowserHostMessage =
   | { type: 'browser.state'; state: BrowserState }
   | { type: 'browser.newPane'; pane: string; url: string }
@@ -99,3 +107,9 @@ export type BrowserWebMessage =
   | { type: 'browser.console'; pane: string; request: number; level: BrowserLogLevel; sinceLoad: boolean; limit: number }
   | { type: 'browser.network'; pane: string; request: number; failedOnly: boolean; sinceLoad: boolean; limit: number }
   | { type: 'browser.screenshot'; pane: string; request: number; viewport: BrowserViewport; fullPage: boolean }
+  | { type: 'browser.elements'; pane: string; request: number; scope?: string }
+  | { type: 'browser.click'; pane: string; request: number; target: BrowserTarget; doubleClick: boolean }
+  | { type: 'browser.type'; pane: string; request: number; target?: BrowserTarget; text: string; clear: boolean; submit: boolean }
+  | { type: 'browser.press'; pane: string; request: number; target?: BrowserTarget; keys: string; repeat: number }
+  | { type: 'browser.scroll'; pane: string; request: number; target?: BrowserTarget; direction?: string; amount?: number }
+  | { type: 'browser.evaluate'; pane: string; request: number; expression: string }

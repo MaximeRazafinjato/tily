@@ -17,6 +17,7 @@ interface HostState {
   leaderActive: boolean
   projects: Project[]
   projectsRoot: string
+  projectsAdditionalRoots: string[]
   projectsError: string | null
   contexts: Record<string, GitContext>
   unsaved: boolean
@@ -31,7 +32,7 @@ interface HostState {
   setUnsaved: (unsaved: boolean) => void
   setStatus: (text: string, level?: StatusLevel) => void
   setLeaderActive: (active: boolean) => void
-  setProjects: (root: string, projects: Project[], error: string | null) => void
+  setProjects: (root: string, projects: Project[], error: string | null, additionalRoots: string[]) => void
   setContext: (paneId: string, context: GitContext) => void
 }
 
@@ -45,6 +46,7 @@ export const useHostStore = create<HostState>()((set) => ({
   leaderActive: false,
   projects: [],
   projectsRoot: '',
+  projectsAdditionalRoots: [],
   projectsError: null,
   contexts: {},
   unsaved: false,
@@ -59,7 +61,7 @@ export const useHostStore = create<HostState>()((set) => ({
   setUnsaved: (unsaved) => set({ unsaved }),
   setStatus: (text, level = StatusLevel.Info) => set({ status: { text, level, at: new Date().toISOString() } }),
   setLeaderActive: (leaderActive) => set({ leaderActive }),
-  setProjects: (projectsRoot, projects, projectsError) => set({ projectsRoot, projects, projectsError }),
+  setProjects: (projectsRoot, projects, projectsError, projectsAdditionalRoots) => set({ projectsRoot, projects, projectsError, projectsAdditionalRoots }),
   setContext: (paneId, context) =>
     set((state) => {
       const known = state.contexts[paneId]

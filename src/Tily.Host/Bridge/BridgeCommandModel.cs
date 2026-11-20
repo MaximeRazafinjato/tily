@@ -39,8 +39,10 @@ public sealed class BridgeCommandModel
     public string? Base { get; init; }
     public string? Folder { get; init; }
     public string? Command { get; init; }
+    public string? ClaudePrompt { get; init; }
     public string? Fingerprint { get; init; }
     public string? Content { get; init; }
+    public string? Color { get; init; }
     public string? Version { get; init; }
     public string[]? Panes { get; init; }
     public string[]? Keep { get; init; }
@@ -63,6 +65,7 @@ public sealed class BridgeCommandModel
     public int Chars { get; init; }
     public int Count { get; init; }
     public int FontSize { get; init; }
+    public bool Enabled { get; init; }
     public int Index { get; init; }
     public int Request { get; init; }
     public int Number { get; init; }

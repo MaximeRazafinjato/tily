@@ -1,5 +1,4 @@
 import { GitDiffSource, type GitConflict, type GitFileChange } from '../bridge/gitMessages'
-import { useGitStore } from '../store/gitStore'
 import { openInEditor, showChange } from './gitRequests'
 
 export enum GitRowGroup {
@@ -67,9 +66,4 @@ export const openChangeRow = (row: GitChangeRow): void => {
   } else if (row.change) {
     showChange(row.change, row.group === GitRowGroup.Staged ? GitDiffSource.Staged : GitDiffSource.Unstaged)
   }
-}
-
-export const drawerShowsWorkingFile = (): boolean => {
-  const { file, commit } = useGitStore.getState()
-  return Boolean(file && !commit)
 }

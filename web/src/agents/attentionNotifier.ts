@@ -1,4 +1,5 @@
 import { AgentState, AttentionKind } from '../bridge/messages'
+import { playAgentAlert } from '../ambiance/alerts/agentAlerts'
 import { bridge } from '../bridge/bridge'
 import { agentKey, useAgentStore } from '../store/agentStore'
 import { useSessionStore } from '../store/sessionStore'
@@ -26,4 +27,10 @@ export const startAttentionNotifier = (): (() => void) =>
     const raise = (pane: WaitingPane, kind: AttentionKind) => bridge.send({ type: 'attention.raise', pane: pane.paneId, kind, ...attentionNotice(pane) })
     fresh.forEach((pane) => raise(pane, AttentionKind.Waiting))
     justFinished.forEach((pane) => raise(pane, AttentionKind.Done))
+    if (fresh.length > 0) {
+      playAgentAlert(AttentionKind.Waiting)
+    }
+    if (justFinished.length > 0) {
+      playAgentAlert(AttentionKind.Done)
+    }
   })

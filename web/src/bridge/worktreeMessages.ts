@@ -75,6 +75,7 @@ export type WorktreeWebMessage =
       base?: string
       install: boolean
       claude?: boolean
+      claudePrompt?: string
       database: boolean
       project: string
       remember: boolean

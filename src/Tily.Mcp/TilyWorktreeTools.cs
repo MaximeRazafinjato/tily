@@ -13,8 +13,9 @@ internal static class TilyWorktreeTools
 
     private const string CreateDescription =
         "Crée un worktree comme Tily et comme la fonction wtr : nouvelle branche (mode new, depuis base ou la base réglée), branche locale (local) ou distante (remote) ; "
-        + "ports aléatoires, pnpm install lancé dans son terminal, base de données répliquée. Il s’ouvre dans un nouveau workspace qui vous appartient, "
-        + "affiché quand une installation y démarre. Rend la main à la fin de la création, réplication comprise (jusqu’à 10 minutes).";
+        + "ports aléatoires, pnpm install lancé dans son terminal, base de données répliquée ; sur demande, Claude Code démarre dans ce terminal avec un premier message "
+        + "et pnpm install passe dans un pane en dessous. Il s’ouvre dans un nouveau workspace qui vous appartient, "
+        + "affiché quand une installation ou Claude Code y démarre. Rend la main à la fin de la création, réplication comprise (jusqu’à 10 minutes).";
 
     private const string RemoveDescription =
         "Supprime un worktree avec le dialogue de Tily : l’utilisateur confirme, et choisit de fermer les panes ouverts dedans, de garder la branche et de supprimer la base répliquée. "
@@ -33,7 +34,7 @@ internal static class TilyWorktreeTools
             Destructive = false,
             OpenWorld = false
         }),
-        McpServerTool.Create((Func<string, string, string?, string?, bool, bool, string?, bool, CancellationToken, Task<CallToolResult>>)CreateAsync, new McpServerToolCreateOptions
+        McpServerTool.Create((Func<string, string, string?, string?, bool, bool, string?, bool, bool, string?, CancellationToken, Task<CallToolResult>>)CreateAsync, new McpServerToolCreateOptions
         {
             Name = "tily_create_worktree",
             Title = "Créer un worktree",
@@ -72,6 +73,8 @@ internal static class TilyWorktreeTools
         [Description("Répliquer la base de données du dépôt pour le worktree.")] bool database = true,
         [Description("Dossier parent des worktrees ; par défaut, celui réglé dans Tily pour ce projet.")] string? folder = null,
         [Description("Afficher le nouveau workspace même sans installation.")] bool focus = false,
+        [Description("Lancer Claude Code dans le terminal du worktree.")] bool claude = false,
+        [Description("Premier message de Claude Code, les sauts de ligne devenant des espaces ; le donner lance Claude Code.")] string? prompt = null,
         CancellationToken token = default) =>
         TilyConnection.CallCheckedAsync(McpWorktrees.Create, () => new
         {
@@ -82,7 +85,9 @@ internal static class TilyWorktreeTools
             install,
             database,
             folder = McpFolder.Resolve(folder, Environment.CurrentDirectory),
-            focus
+            focus,
+            claude = claude || !string.IsNullOrWhiteSpace(prompt),
+            prompt
         }, token);
 
     private static Task<CallToolResult> RemoveAsync(

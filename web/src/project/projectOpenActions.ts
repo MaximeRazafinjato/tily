@@ -9,6 +9,7 @@ import { useSessionStore } from '../store/sessionStore'
 import { useUiStore } from '../store/uiStore'
 
 export const PROJECT_REPOSITORY_FIELD = 'project-repository'
+export const PROJECT_FOLDER_FIELD = 'project-folder'
 
 const openFolder = (project: Project, path: string, inActiveWorkspace: boolean): void => {
   const { session, newWorkspace, newTabAt } = useSessionStore.getState()
@@ -84,3 +85,16 @@ export const receiveProjectRepositoryPicked = (path: string): void => {
 
 export const receiveProjectRepositoryRemembered = (project: string, repository: string): void =>
   useHostStore.getState().setStatus(`Dépôt par défaut du projet « ${folderName(project)} » : ${repository}`)
+
+export const browseProjectFolder = (inActiveWorkspace: boolean): void => {
+  useProjectOpenStore.getState().setBrowse({ inActiveWorkspace, remember: false })
+  bridge.send({ type: 'dialog.pick', field: PROJECT_FOLDER_FIELD, target: PickTarget.Folder })
+}
+
+export const receiveProjectFolderPicked = (path: string): void => {
+  const { browse, setBrowse } = useProjectOpenStore.getState()
+  setBrowse(null)
+  if (browse && useUiStore.getState().projectPickerOpen) {
+    selectProject({ name: folderName(path), path, worktree: false }, browse.inActiveWorkspace)
+  }
+}

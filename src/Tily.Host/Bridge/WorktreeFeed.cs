@@ -67,7 +67,7 @@ public sealed class WorktreeFeed
     {
         var settings = _settings();
         var path = command.Project ?? command.Path ?? throw new InvalidOperationException("Dossier manquant.");
-        var sources = WorktreeSources.Resolve(_runner, path, command.Project is not null, settings.ProjectsRoot, settings.Worktrees.FolderFor(settings.ProjectsRoot), _projects.RepositoryOf);
+        var sources = WorktreeSources.Resolve(_runner, path, command.Project is not null, settings.ProjectsRoots(), settings.Worktrees.FolderFor(settings.ProjectsRoot), _projects.RepositoryOf);
         _post(new { type = "worktrees.sourcesFound", request = command.Request, sources });
     }
 
@@ -75,7 +75,7 @@ public sealed class WorktreeFeed
     {
         var settings = _settings();
         var project = command.Project ?? throw new InvalidOperationException("Projet manquant.");
-        var sources = WorktreeSources.Resolve(_runner, project, true, settings.ProjectsRoot, settings.Worktrees.FolderFor(settings.ProjectsRoot), _projects.RepositoryOf);
+        var sources = WorktreeSources.Resolve(_runner, project, true, settings.ProjectsRoots(), settings.Worktrees.FolderFor(settings.ProjectsRoot), _projects.RepositoryOf);
         _post(new { type = "projects.repositoriesFound", request = command.Request, sources });
     }
 
@@ -126,6 +126,7 @@ public sealed class WorktreeFeed
         var request = command.Request;
         Run(CreateOperation, request, () =>
         {
+            var claude = ClaudeLaunchCommand.For(command.Claude, command.ClaudePrompt);
             var creation = WorktreeCreator.Create(_runner, RequestOf(command, settings), settings.Worktrees, settings.ProjectsRoot, message => Progress(CreateOperation, request, message));
             if (command.RememberFolder && command.Project is { } project)
             {
@@ -135,7 +136,6 @@ public sealed class WorktreeFeed
             Progress(CreateOperation, request, "Randomisation des ports…");
             var ports = Ports(creation.Path);
             var install = WorktreeCreator.InstallCommandFor(creation.Path, command.Install);
-            var claude = command.Claude ? WorktreeCreator.ClaudeCommand : null;
             _post(new { type = "worktrees.created", request, path = creation.Path, name = creation.Name, branch = creation.Branch, install, claude });
             _changed();
             List<WorktreeStepModel> steps = [.. creation.Steps, ports];

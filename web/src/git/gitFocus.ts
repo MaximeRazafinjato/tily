@@ -6,6 +6,7 @@ const PANE_SELECTOR = '[data-pane-id]'
 const DIFF_SELECTOR = '[data-git-diff]'
 
 let graphFocusPending = false
+let diffFocusRequest: number | null = null
 
 const gitPanel = (): HTMLElement | null => document.querySelector<HTMLElement>(PANEL_SELECTOR)
 
@@ -23,6 +24,19 @@ export const focusGitDiff = (): void => {
     diff.focus()
   } else {
     focusGitPanel()
+  }
+}
+
+export const diffHasFocus = (): boolean => Boolean(document.activeElement?.closest(DIFF_SELECTOR))
+
+export const requestDiffFocus = (request: number): void => {
+  diffFocusRequest = request
+}
+
+export const restoreDiffFocus = (request: number): void => {
+  if (request === diffFocusRequest) {
+    diffFocusRequest = null
+    requestAnimationFrame(focusGitDiff)
   }
 }
 

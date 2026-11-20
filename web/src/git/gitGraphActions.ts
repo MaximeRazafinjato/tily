@@ -4,7 +4,7 @@ import { useSessionStore } from '../store/sessionStore'
 import { focusGitGraph } from './gitFocus'
 import { shortSha } from './gitLabels'
 import { commitMenu, graphColumnsMenu, labelMenu, stashMenu, workingTreeMenu } from './gitMenus'
-import { switchToBranch, switchToRemote } from './gitRefActions'
+import { activateBranch, activateRemote } from './gitRefActions'
 import { openGitMenu, selectWorkingTree, showCommit } from './gitRequests'
 
 const restoreGraphFocus = (): void => {
@@ -45,12 +45,12 @@ export const openLabelMenu = (label: GitRefLabel, x: number, y: number): void =>
 
 export const activateLabel = (label: GitRefLabel): void => {
   const state = useGitStore.getState().state
-  const branch = label.kind === GitRefKind.Branch && !label.current ? state?.branches.find((candidate) => candidate.name === label.name) : undefined
+  const branch = label.kind === GitRefKind.Branch ? state?.branches.find((candidate) => candidate.name === label.name) : undefined
   const remote = label.kind === GitRefKind.Remote ? state?.remoteBranches.find((candidate) => candidate.name === label.name) : undefined
   if (branch) {
-    switchToBranch(branch)
+    activateBranch(branch)
   } else if (remote) {
-    switchToRemote(remote)
+    activateRemote(remote)
   }
 }
 

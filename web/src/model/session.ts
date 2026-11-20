@@ -35,6 +35,13 @@ export enum SplitSide {
 
 export type SplitPath = SplitSide[]
 
+export enum PaneEdge {
+  Left = 'left',
+  Right = 'right',
+  Top = 'top',
+  Bottom = 'bottom',
+}
+
 export enum RightPanelView {
   Files = 'files',
   Git = 'git',
@@ -50,6 +57,7 @@ export interface Tab {
   explorer?: boolean
   panel?: RightPanelView
   owner?: string
+  color?: string
 }
 
 export interface Workspace {
@@ -59,6 +67,7 @@ export interface Workspace {
   active: string
   expanded?: boolean
   note?: string
+  color?: string
 }
 
 export interface ClosedTab {
@@ -143,6 +152,9 @@ export const notePreview = (note: string | undefined): string => {
 export const distinctWorkspaceName = (workspaces: Workspace[], workspace: Workspace): string =>
   workspaces.some((other) => other !== workspace && other.name === workspace.name) ? `${workspace.name} (workspace ${workspaces.indexOf(workspace) + 1})` : workspace.name
 
+export const distinctTabName = (workspace: Workspace, tab: Tab): string =>
+  workspace.tabs.some((other) => other !== tab && other.name === tab.name) ? `${tab.name} (onglet ${workspace.tabs.indexOf(tab) + 1})` : tab.name
+
 export const mergedNote = (note: string | undefined, movedFrom: string, moved: string): string =>
   (note ? `${note}\n\n${movedFrom} :\n${moved}` : moved).slice(0, NOTE_MAX_CHARS)
 
@@ -217,6 +229,13 @@ export const updatePane = (node: SplitNode, paneId: string, patch: Partial<Pane>
 
 export const splitLeaf = (node: SplitNode, paneId: string, axis: SplitAxis, pane: Pane): SplitNode =>
   replaceNode(node, paneId, (leaf): SplitNode => ({ axis, ratio: SPLIT_RATIO_DEFAULT, a: leaf, b: { pane } }))
+
+export const insertBeside = (node: SplitNode, paneId: string, edge: PaneEdge, inserted: SplitNode): SplitNode =>
+  replaceNode(node, paneId, (leaf): SplitNode => {
+    const axis = edge === PaneEdge.Left || edge === PaneEdge.Right ? SplitAxis.Horizontal : SplitAxis.Vertical
+    const insertedFirst = edge === PaneEdge.Left || edge === PaneEdge.Top
+    return { axis, ratio: SPLIT_RATIO_DEFAULT, a: insertedFirst ? inserted : leaf, b: insertedFirst ? leaf : inserted }
+  })
 
 const swappedLeaf = (leaf: SplitLeaf, first: Pane, second: Pane): SplitLeaf => {
   if (leaf.pane.id === first.id) {

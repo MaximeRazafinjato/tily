@@ -1,8 +1,14 @@
-import { useEffect, useState, type KeyboardEvent, type MouseEvent, type PointerEvent } from 'react'
-import { AttentionKind, PickTarget, type ImportedPreferences, type NotificationSettings, type PersistenceSettings, type PickedPath, type Settings, type SettingsSnapshot, type ShortcutSettings } from '../bridge/messages'
+import { useCallback, useEffect, useState, type KeyboardEvent, type MouseEvent, type PointerEvent } from 'react'
+import { AttentionKind, PickTarget, type AppearanceSettings, type ImportedPreferences, type NotificationSettings, type PersistenceSettings, type PickedPath, type Settings, type SettingsSnapshot, type ShortcutSettings } from '../bridge/messages'
+import { AmbianceSource, type AmbianceSettings } from '../bridge/appearanceMessages'
+import { AMBIANCE_MEDIA_FIELD, AMBIANCE_MEDIA_PICK_FIELD } from '../ambiance/ambianceActions'
 import type { WorktreeProjectFolder, WorktreeSettings } from '../bridge/worktreeMessages'
 import { revealInExplorer } from '../explorer/fileExplorerActions'
+import { sameFolder } from '../worktree/worktreePaths'
 import { useHostStore } from '../store/hostStore'
+import { useUiStore } from '../store/uiStore'
+import { AmbianceSettingsSection } from './AmbianceSettingsSection'
+import { AppearanceSettingsSection } from './AppearanceSettingsSection'
 import { AgentSettingsSection } from './AgentSettingsSection'
 import { Icon } from './Icon'
 import { IconName } from './iconName'
@@ -10,6 +16,7 @@ import { keepTabInside } from './focusTrap'
 import { NotificationSettingsSection } from './NotificationSettingsSection'
 import { NUMBER_FIELDS, numberFieldId, numberTextOf, valueWithin, type NumberField, type NumberTexts } from './persistenceFields'
 import { ProjectSettingsSection } from './ProjectSettingsSection'
+import { ReleaseNotesSettingsSection } from './ReleaseNotesSettingsSection'
 import { SettingsNav } from './SettingsNav'
 import { SETTINGS_SECTION_LABELS, SettingsSection, settingsTabId } from './settingsSections'
 import { SETTINGS_HINT, SETTINGS_ICON_BUTTON, SETTINGS_PRIMARY, SETTINGS_SECONDARY } from './settingsStyles'
@@ -39,6 +46,7 @@ interface FocusRequest {
 const SHELL_FIELD_PREFIX = 'shell:'
 const EDITOR_FIELD = 'editor'
 const PROJECTS_ROOT_FIELD = 'projectsRoot'
+const ADDITIONAL_PROJECTS_ROOT_FIELD = 'additionalProjectsRoot'
 const WORKTREE_FOLDER_FIELD = 'worktreeFolder'
 const SOUND_FIELD = 'notificationSound'
 const DONE_SOUND_FIELD = 'notificationDoneSound'
@@ -60,7 +68,8 @@ export function SettingsDialog({ snapshot, pickedPath, imported, onClose, onSave
   const [importWarnings, setImportWarnings] = useState<string[]>([])
   const [numberTexts, setNumberTexts] = useState<NumberTexts>({})
   const [closeHeld, setCloseHeld] = useState(false)
-  const [section, setSection] = useState(SettingsSection.Shells)
+  const [openedSection] = useState(() => useUiStore.getState().settingsSection)
+  const [section, setSection] = useState(openedSection)
   const [focusRequest, setFocusRequest] = useState<FocusRequest | null>(null)
   if (snapshot !== seenSnapshot) {
     setSeenSnapshot(snapshot)
@@ -93,9 +102,9 @@ export function SettingsDialog({ snapshot, pickedPath, imported, onClose, onSave
   const loaded = draft !== null
   useEffect(() => {
     if (loaded) {
-      document.getElementById(settingsTabId(SettingsSection.Shells))?.focus()
+      document.getElementById(settingsTabId(openedSection))?.focus()
     }
-  }, [loaded])
+  }, [loaded, openedSection])
 
   useEffect(() => {
     if (focusRequest) {
@@ -150,12 +159,17 @@ export function SettingsDialog({ snapshot, pickedPath, imported, onClose, onSave
         updateDraft({ editor: pickedPath.path })
       } else if (pickedPath.field === PROJECTS_ROOT_FIELD) {
         updateDraft({ projectsRoot: pickedPath.path })
+      } else if (pickedPath.field === ADDITIONAL_PROJECTS_ROOT_FIELD) {
+        updateDraft({ additionalProjectsRoots: [...draft.additionalProjectsRoots.filter((root) => !sameFolder(root, pickedPath.path)), pickedPath.path] })
       } else if (pickedPath.field === WORKTREE_FOLDER_FIELD) {
         updateWorktrees({ folder: pickedPath.path })
       } else if (pickedPath.field === SOUND_FIELD) {
         updateDraft({ notifications: { ...draft.notifications, sound: pickedPath.path } })
       } else if (pickedPath.field === DONE_SOUND_FIELD) {
         updateDraft({ notifications: { ...draft.notifications, doneSound: pickedPath.path } })
+      } else if (pickedPath.field === AMBIANCE_MEDIA_FIELD) {
+        const { ambiance } = draft.appearance
+        updateDraft({ appearance: { ...draft.appearance, ambiance: { ...ambiance, background: { ...ambiance.background, source: AmbianceSource.Media, mediaPath: pickedPath.path } } } })
       } else if (pickedPath.field.startsWith(SHELL_FIELD_PREFIX)) {
         updateDraft({ shells: { ...draft.shells, [pickedPath.field.slice(SHELL_FIELD_PREFIX.length)]: pickedPath.path } })
       }
@@ -164,12 +178,15 @@ export function SettingsDialog({ snapshot, pickedPath, imported, onClose, onSave
   const handlePickShell = (id: string) => onPick(`${SHELL_FIELD_PREFIX}${id}`, PickTarget.File)
   const handlePickEditor = () => onPick(EDITOR_FIELD, PickTarget.File)
   const handlePickProjectsRoot = () => onPick(PROJECTS_ROOT_FIELD, PickTarget.Folder)
+  const handlePickAdditionalProjectsRoot = () => onPick(ADDITIONAL_PROJECTS_ROOT_FIELD, PickTarget.Folder)
   const handlePickWorktreeFolder = () => onPick(WORKTREE_FOLDER_FIELD, PickTarget.Folder)
   const handlePickSound = () => onPick(SOUND_FIELD, PickTarget.Sound)
   const handlePickDoneSound = () => onPick(DONE_SOUND_FIELD, PickTarget.Sound)
+  const handlePickAmbianceMedia = () => onPick(AMBIANCE_MEDIA_PICK_FIELD, PickTarget.Media)
   const handleShellsChange = (shells: Record<string, string>) => updateDraft({ shells })
   const handleEditorChange = (editor: string) => updateDraft({ editor })
   const handleProjectsRootChange = (projectsRoot: string) => updateDraft({ projectsRoot })
+  const handleAdditionalProjectsRootsChange = (additionalProjectsRoots: string[]) => updateDraft({ additionalProjectsRoots })
   const handleWorktreeFoldersChange = (worktreeFolders: WorktreeProjectFolder[]) => updateDraft({ worktreeFolders })
   const handleAutoFetchChange = (autoFetch: boolean) => updateDraft({ git: { autoFetch } })
   const handleNumberChange = (field: NumberField, text: string) => {
@@ -187,7 +204,9 @@ export function SettingsDialog({ snapshot, pickedPath, imported, onClose, onSave
   const handleTestNotification = () => testNotification(AttentionKind.Waiting)
   const handleTestDoneNotification = () => testNotification(AttentionKind.Done)
   const handleAutoCheckChange = (autoCheck: boolean) => updateDraft({ updates: { autoCheck } })
-  const handleFontSizeChange = (fontSize: number) => updateDraft({ appearance: { fontSize } })
+  const updateAppearance = useCallback((patch: Partial<AppearanceSettings>) => setDraft((current) => (current ? { ...current, appearance: { ...current.appearance, ...patch } } : current)), [])
+  const handleFontSizeChange = (fontSize: number) => updateAppearance({ fontSize })
+  const handleAmbianceChange = (patch: Partial<AmbianceSettings>) => setDraft((current) => (current ? { ...current, appearance: { ...current.appearance, ambiance: { ...current.appearance.ambiance, ...patch } } } : current))
   const handleShortcutsChange = (shortcuts: ShortcutSettings) => updateDraft({ shortcuts })
   const handleRevealFiles = () => {
     if (snapshot) {
@@ -202,6 +221,10 @@ export function SettingsDialog({ snapshot, pickedPath, imported, onClose, onSave
         return <ShellSettingsSection title={title} shellSettings={current.shellSettings} shells={settings.shells} editor={settings.editor} onShellsChange={handleShellsChange} onEditorChange={handleEditorChange} onPickShell={handlePickShell} onPickEditor={handlePickEditor} />
       case SettingsSection.Terminals:
         return <TerminalSettingsSection title={title} fontSize={settings.appearance.fontSize} numberText={numberText} onFontSizeChange={handleFontSizeChange} onNumberChange={handleNumberChange} />
+      case SettingsSection.Appearance:
+        return <AppearanceSettingsSection title={title} appearance={settings.appearance} onChange={updateAppearance} />
+      case SettingsSection.Ambiance:
+        return <AmbianceSettingsSection title={title} ambiance={settings.appearance.ambiance} onChange={handleAmbianceChange} onPickMedia={handlePickAmbianceMedia} />
       case SettingsSection.Shortcuts:
         return <ShortcutSettingsSection title={title} shortcuts={settings.shortcuts} defaults={current.shortcutDefaults} onChange={handleShortcutsChange} />
       case SettingsSection.Projects:
@@ -209,14 +232,17 @@ export function SettingsDialog({ snapshot, pickedPath, imported, onClose, onSave
           <ProjectSettingsSection
             title={title}
             projectsRoot={settings.projectsRoot}
+            additionalProjectsRoots={settings.additionalProjectsRoots}
             worktrees={settings.worktrees}
             worktreeFolders={settings.worktreeFolders}
             autoFetch={settings.git.autoFetch}
             onProjectsRootChange={handleProjectsRootChange}
+            onAdditionalProjectsRootsChange={handleAdditionalProjectsRootsChange}
             onWorktreesChange={updateWorktrees}
             onWorktreeFoldersChange={handleWorktreeFoldersChange}
             onAutoFetchChange={handleAutoFetchChange}
             onPickProjectsRoot={handlePickProjectsRoot}
+            onPickAdditionalProjectsRoot={handlePickAdditionalProjectsRoot}
             onPickWorktreeFolder={handlePickWorktreeFolder}
           />
         )
@@ -237,6 +263,8 @@ export function SettingsDialog({ snapshot, pickedPath, imported, onClose, onSave
         return <AgentSettingsSection title={title} agents={current.agents} mcp={current.mcp} onInstallHooks={onInstallHooks} onRemoveHooks={onRemoveHooks} />
       case SettingsSection.Updates:
         return <UpdateSettingsSection title={title} autoCheck={settings.updates.autoCheck} onAutoCheckChange={handleAutoCheckChange} />
+      case SettingsSection.ReleaseNotes:
+        return <ReleaseNotesSettingsSection title={title} />
     }
   }
 

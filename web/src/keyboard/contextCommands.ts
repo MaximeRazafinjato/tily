@@ -1,4 +1,6 @@
 import { bridge } from '../bridge/bridge'
+import { openColorDialog } from '../appearance/appearanceActions'
+import { openCloneDialog } from '../clone/cloneActions'
 import { OpenTarget } from '../bridge/messages'
 import { BrowserPlacement, openBrowser } from '../browser/browserActions'
 import { refreshFolders } from '../explorer/fileExplorerActions'
@@ -112,6 +114,9 @@ export const runContextCommand = (command: Command): void => {
     case Command.RemoveWorktree:
       withTab(removePaneWorktree)
       break
+    case Command.CloneRepository:
+      openCloneDialog()
+      break
     case Command.OpenFile:
       withTab(openFilePicker)
       break
@@ -120,6 +125,12 @@ export const runContextCommand = (command: Command): void => {
       break
     case Command.RenameWorkspace:
       withWorkspace((workspace) => useUiStore.getState().startRenamingWorkspace(workspace.id, RenameOrigin.Header))
+      break
+    case Command.WorkspaceColor:
+      withWorkspace((workspace) => openColorDialog({ workspaceId: workspace.id }))
+      break
+    case Command.TabColor:
+      withWorkspace((workspace) => openColorDialog({ workspaceId: workspace.id, tabId: activeTab(workspace).id }))
       break
     case Command.MoveWorkspaceUp:
       withWorkspace((workspace) => useSessionStore.getState().moveWorkspace(workspace.id, -1))

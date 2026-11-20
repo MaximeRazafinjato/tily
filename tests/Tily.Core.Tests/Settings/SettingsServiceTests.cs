@@ -1,4 +1,5 @@
 using Tily.Core.Agents;
+using Tily.Core.Appearance;
 using Tily.Core.Git;
 using Tily.Core.Session;
 using Tily.Core.Settings;
@@ -459,6 +460,18 @@ public sealed class SettingsServiceTests : IDisposable
     }
 
     [Fact]
+    public void SaveAppearance_ThenLoad_KeepsColorsNormalized()
+    {
+        var service = new SettingsService(_directory);
+        var appearance = (AppearanceSettingsModel.Default with { Accent = "#C98FA5" }).WithProjectColor(@"C:\Files\Projects\tily", "#6FB3B0").WithProjectColor(@"C:\Files\Projectsutre", "bleu");
+
+        service.SaveAppearance(appearance);
+
+        var expected = (AppearanceSettingsModel.Default with { Accent = "#c98fa5" }).WithProjectColor(@"C:\Files\Projects\tily", "#6fb3b0");
+        Assert.Equal(expected, service.Load().Appearance);
+    }
+
+    [Fact]
     public void Load_WhenAppearanceFileEmptyObject_ThenDefaultFontSize()
     {
         var service = new SettingsService(_directory);
@@ -480,6 +493,48 @@ public sealed class SettingsServiceTests : IDisposable
         var result = service.Import(exportPath);
 
         Assert.Equal(new AppearanceSettingsModel(18), result.Settings!.Appearance);
+    }
+
+    [Fact]
+    public void SaveAppearance_ThenLoad_KeepsAmbiance()
+    {
+        var service = new SettingsService(_directory);
+        var ambiance = AmbianceSettingsModel.Default with
+        {
+            Enabled = true,
+            Gradient = new AmbianceGradientModel(["#112233", "#445566"], AmbianceGradientType.Plasma, 45, 900, 7.5, true),
+            Background = new AmbianceBackgroundModel(Source: AmbianceSource.Solid, SolidColor: "#abcdef", Opacity: 60),
+            Presets = [new("Soir", new AmbianceGradientModel(["#000000", "#ffffff"]))]
+        };
+
+        service.SaveAppearance(AppearanceSettingsModel.Default with { Ambiance = ambiance });
+
+        Assert.Equal(ambiance, service.Load().Appearance.Ambiance);
+    }
+
+    [Fact]
+    public void Load_WhenAppearanceFileWithoutAmbiance_ThenDefaultAmbianceAndKeptAccent()
+    {
+        var service = new SettingsService(_directory);
+        File.WriteAllText(Path.Combine(_directory, AppearanceSettingsRepository.FileName), """{ "fontSize": 16, "accent": "#c98fa5" }""");
+
+        var appearance = service.Load().Appearance;
+
+        Assert.Equal((16, "#c98fa5", AmbianceSettingsModel.Default), (appearance.FontSize, appearance.Accent, appearance.Ambiance));
+    }
+
+    [Fact]
+    public void Export_ThenImport_KeepsAmbiance()
+    {
+        var service = new SettingsService(_directory);
+        var appearance = AppearanceSettingsModel.Default with { Ambiance = AmbianceSettingsModel.Default with { Enabled = true, InterfaceVeil = 30 } };
+        var settings = new SettingsModel { ProjectsRoot = _directory, Appearance = appearance };
+        var exportPath = Path.Combine(_directory, "prefs.json");
+
+        service.Export(settings, exportPath);
+        var result = service.Import(exportPath);
+
+        Assert.Equal(appearance.Ambiance, result.Settings!.Appearance.Ambiance);
     }
 
     [Fact]

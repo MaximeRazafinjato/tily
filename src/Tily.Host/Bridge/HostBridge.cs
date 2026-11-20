@@ -3,6 +3,7 @@ using System.Reflection;
 using System.Text;
 using System.Text.Json;
 using Tily.Core.Agents;
+using Tily.Core.Appearance;
 using Tily.Core.Context;
 using Tily.Core.Projects;
 using Tily.Core.Session;
@@ -47,10 +48,12 @@ public sealed class HostBridge : IDisposable
     private readonly GitFeed _git;
     private readonly ForgeFeed _forge;
     private readonly WorktreeFeed _worktrees;
+    private readonly CloneFeed _clones;
     private readonly UpdateFeed _updates;
     private readonly StatusLogFeed _statusLog;
     private readonly McpFeed _mcp;
     private readonly BrowserFeed _browsers;
+    private readonly AppearanceFeed _appearance;
     private SettingsModel _settings;
     private ShellPathsModel _shellPaths = ShellPathsModel.Empty;
     private PersistenceSettingsModel _persistence = PersistenceSettingsModel.Default;
@@ -63,7 +66,7 @@ public sealed class HostBridge : IDisposable
     private bool _closing;
     private DispatcherQueueTimer? _closeTimer;
 
-    public HostBridge(DispatcherQueue dispatcher, string dataDirectory, nint windowHandle, Action closeWindow, Action<string> setTitle, Canvas browserLayer, Action focusInterface)
+    public HostBridge(DispatcherQueue dispatcher, string dataDirectory, nint windowHandle, Action closeWindow, Action<string> setTitle, Canvas browserLayer, Action focusInterface, Action<WindowColorsModel> applyWindowColors)
     {
         _dispatcher = dispatcher;
         _windowHandle = windowHandle;
@@ -87,9 +90,12 @@ public sealed class HostBridge : IDisposable
         _git = new GitFeed(Post, () => _settings.Git.AutoFetch, PostBackgroundError);
         _forge = new ForgeFeed(Post, () => _settings.Worktrees.DefaultBase, _git.RefreshSoon, PostBackgroundError);
         _worktrees = new WorktreeFeed(Post, () => _settings, RememberWorktreeFolder, _git.RefreshSoon, PostBackgroundError, dataDirectory);
+        _clones = new CloneFeed(Post, () => _settings, PostBackgroundError);
         _updates = new UpdateFeed(Post, ApplicationVersion, dataDirectory);
         _mcp = new McpFeed(dataDirectory, Post, PostBackgroundError);
         _browsers = new BrowserFeed(browserLayer, () => _core?.Environment, Post, focusInterface, () => ShortcutRules.InterceptedChords(_settings.Shortcuts));
+        _appearance = new AppearanceFeed(() => _settings, _settingsService, Post, colors => _dispatcher.TryEnqueue(() => applyWindowColors(colors)), PostBackgroundError, dataDirectory);
+        applyWindowColors(_appearance.Start());
         ApplySettings(_settings);
         _terminals.OutputReceived += HandleOutput;
         _terminals.CurrentDirectoryChanged += HandleCurrentDirectoryChanged;
@@ -252,6 +258,12 @@ public sealed class HostBridge : IDisposable
             case "appearance.fontSize":
                 SaveFontSize(command);
                 break;
+            case "appearance.ambianceEnabled":
+                SaveAmbianceEnabled(command);
+                break;
+            case var type when type.StartsWith("appearance.", StringComparison.Ordinal):
+                _appearance.Handle(command);
+                break;
             case "attention.raise":
                 RaiseAttention(RequirePane(command), command);
                 break;
@@ -315,7 +327,7 @@ public sealed class HostBridge : IDisposable
                 Post(new { type = "terminal.activityResult", request = command.Request, panes = _terminals.Activity(command.Panes ?? []) });
                 break;
             case "projects.list":
-                ListProjects(_settings.ProjectsRoot, _settings.Worktrees.FolderFor(_settings.ProjectsRoot), _settings.WorktreeFolders);
+                ListProjects(_settings.ProjectsRoot, _settings.Worktrees.FolderFor(_settings.ProjectsRoot), _settings.WorktreeFolders, _settings.AdditionalProjectsRoots);
                 break;
             case "context.query":
                 QueryContext(RequirePane(command), RequirePath(command));
@@ -339,6 +351,9 @@ public sealed class HostBridge : IDisposable
             case "projects.rememberRepository":
             case var type when type.StartsWith("worktrees.", StringComparison.Ordinal):
                 _worktrees.Handle(command);
+                break;
+            case var type when type.StartsWith("clone.", StringComparison.Ordinal):
+                _clones.Handle(command);
                 break;
             case var type when type.StartsWith("update.", StringComparison.Ordinal):
                 _updates.Handle(command);
@@ -406,6 +421,7 @@ public sealed class HostBridge : IDisposable
         _terminals.UpdatePaths(_shellPaths);
         _updates.Configure(settings.Updates.AutoCheck);
         _browsers.UpdateShortcuts();
+        _appearance.Refresh();
     }
 
     private void PostSettings(bool saved)
@@ -430,8 +446,14 @@ public sealed class HostBridge : IDisposable
 
     private void SaveFontSize(BridgeCommandModel command)
     {
-        _settings.Appearance = _settingsService.SaveAppearance(new AppearanceSettingsModel(command.FontSize));
+        _settings.Appearance = _settingsService.SaveAppearance(_settings.Appearance with { FontSize = command.FontSize });
         Post(new { type = "appearance.changed", fontSize = _settings.Appearance.FontSize });
+    }
+
+    private void SaveAmbianceEnabled(BridgeCommandModel command)
+    {
+        _settings.Appearance = _settingsService.SaveAppearance(_settings.Appearance with { Ambiance = _settings.Appearance.Ambiance with { Enabled = command.Enabled } });
+        Post(new { type = "appearance.ambiance", ambiance = _settings.Appearance.Ambiance });
     }
 
     private void SaveSettings(BridgeCommandModel command)
@@ -466,6 +488,7 @@ public sealed class HostBridge : IDisposable
             text = text.Text,
             persistence = _persistence,
             appearance = _settings.Appearance,
+            theme = _appearance.Hello(),
             shortcuts = _settings.Shortcuts,
             statusLog = _statusLog.Entries(),
             recovery = recovery.Length > 0 ? recovery : null
@@ -503,11 +526,11 @@ public sealed class HostBridge : IDisposable
         });
     }
 
-    private void ListProjects(string root, string worktreeFolder, IReadOnlyList<WorktreeProjectFolderModel> projectFolders) =>
+    private void ListProjects(string root, string worktreeFolder, IReadOnlyList<WorktreeProjectFolderModel> projectFolders, IReadOnlyList<string> additionalRoots) =>
         _queries.Enqueue(() =>
         {
-            var projects = ProjectCatalog.List(root, worktreeFolder, projectFolders);
-            Post(new { type = "projects.listed", root = projects.Root, projects = projects.Projects, error = projects.Error });
+            var projects = ProjectCatalog.List(root, worktreeFolder, projectFolders, additionalRoots);
+            Post(new { type = "projects.listed", root = projects.Root, projects = projects.Projects, error = projects.Error, additionalRoots = projects.AdditionalRoots });
         });
 
     private void RememberWorktreeFolder(string project, string folder) =>

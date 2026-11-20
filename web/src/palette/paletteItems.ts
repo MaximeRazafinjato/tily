@@ -3,13 +3,14 @@ import type { GitContext, ShellProfile } from '../bridge/messages'
 import { shortcutText } from '../keyboard/shortcutLabels'
 import { Command, runCommand } from '../keyboard/shortcuts'
 import { DEFAULT_FONT_SIZE, MAX_FONT_SIZE, MIN_FONT_SIZE } from '../model/appearance'
-import { activeTab, activeWorkspace, distinctWorkspaceName, FAVORITES_MAX, folderName, isLeaf, panesOf, type Pane, type Session, type Tab, type Workspace } from '../model/session'
+import { activeTab, activeWorkspace, distinctTabName, distinctWorkspaceName, FAVORITES_MAX, folderName, isLeaf, panesOf, type Pane, type Session } from '../model/session'
 import { canSearchCommits } from '../git/commitSearch'
 import { canEditMergeRequest, createMergeRequestLabel, editMergeRequestLabel, openMergeRequestEditForm, openMergeRequestForm } from '../forge/mergeRequestFormActions'
 import { branchKey, useForgeStore } from '../store/forgeStore'
 import { useAgentStore } from '../store/agentStore'
 import { useHostStore } from '../store/hostStore'
 import { useSessionStore } from '../store/sessionStore'
+import { MergePlacement, mergeTabIntoTab, tabMergeTargets } from '../terminal/tabMerge'
 import { movePaneToTab, restoreClosedTabAt } from '../terminal/tabLifecycle'
 import { joinPane } from '../terminal/terminalActions'
 import { terminalRegistry } from '../terminal/terminalRegistry'
@@ -34,6 +35,8 @@ const FAVORITES_FULL_NOTICE = `Pas plus de ${FAVORITES_MAX} favoris : retirez un
 const ATTENTION_PREFIX = 'attention-'
 const MOVE_TAB_PREFIX = 'move-tab-'
 const JOIN_TAB_PREFIX = 'join-tab-'
+const MERGE_TAB_PREFIX = 'merge-tab-'
+const MERGE_TAB_PREFIXES = Object.values(MergePlacement).map((placement) => `${MERGE_TAB_PREFIX}${placement}-`)
 
 const fontSizeItems = (): PaletteItem[] => {
   const size = terminalRegistry.fontSize()
@@ -54,6 +57,7 @@ const commandItems = (session: Session, shells: ShellProfile[]): PaletteItem[] =
   const tab = workspace ? activeTab(workspace) : undefined
   const items: PaletteItem[] = [
     bound('new-tab', 'Nouvel onglet', Command.NewTab),
+    bound('new-claude-tab', 'Nouvel onglet Claude Code', Command.NewClaudeTab),
     ...shells.map((shell) => command(`new-tab-${shell.id}`, `Nouvel onglet${SEPARATOR}${shell.name}`, () => store.newTab(shell.id))),
     bound('split-x', 'Split côte à côte', Command.SplitSideBySide),
     bound('split-y', 'Split haut / bas', Command.SplitTopBottom),
@@ -67,6 +71,7 @@ const commandItems = (session: Session, shells: ShellProfile[]): PaletteItem[] =
     bound('previous-tab', 'Onglet précédent', Command.PreviousTab),
     bound('new-workspace', 'Nouveau workspace', Command.NewWorkspace),
     bound('projects', 'Ouvrir un projet', Command.Projects),
+    bound('clone-repository', 'Cloner un dépôt…', Command.CloneRepository),
     bound('create-worktree', 'Créer un worktree…', Command.CreateWorktree),
     bound('open-worktree', 'Ouvrir un worktree…', Command.OpenWorktree),
     bound('toggle-explorer', 'Afficher / masquer les fichiers', Command.ToggleExplorer),
@@ -74,6 +79,10 @@ const commandItems = (session: Session, shells: ShellProfile[]): PaletteItem[] =
     bound('toggle-notes', 'Afficher / masquer les notes du workspace', Command.ToggleNotes),
     bound('toggle-status-log', 'Afficher / masquer le journal des messages', Command.ToggleStatusLog),
     bound('settings', 'Paramètres', Command.Settings),
+    bound('appearance-settings', 'Couleur de Tily et palette du terminal…', Command.AppearanceSettings),
+    bound('ambiance-settings', 'Ambiance…', Command.AmbianceSettings),
+    bound('toggle-ambiance', 'Activer ou couper l’ambiance', Command.ToggleAmbiance),
+    bound('release-notes', 'Notes de version…', Command.ReleaseNotes),
     bound('settings-export', 'Exporter les préférences…', Command.SettingsExport),
     bound('settings-import', 'Importer les préférences…', Command.SettingsImport),
     bound('search-terminals', 'Rechercher dans tous les terminaux…', Command.SearchTerminals, 'Alt+Entrée dans la recherche'),
@@ -84,6 +93,7 @@ const commandItems = (session: Session, shells: ShellProfile[]): PaletteItem[] =
   if (workspace) {
     items.push(
       bound('rename-workspace', 'Renommer le workspace', Command.RenameWorkspace),
+      bound('workspace-color', `Couleur du workspace ou du projet…${SEPARATOR}${workspace.name}`, Command.WorkspaceColor),
       bound('move-workspace-up', 'Monter le workspace', Command.MoveWorkspaceUp),
       bound('move-workspace-down', 'Descendre le workspace', Command.MoveWorkspaceDown),
       bound('close-workspace', `Fermer le workspace${SEPARATOR}${workspace.name}`, Command.CloseWorkspace),
@@ -134,6 +144,7 @@ const commandItems = (session: Session, shells: ShellProfile[]): PaletteItem[] =
     items.push(
       bound('rename-tab', 'Renommer l’onglet', Command.RenameTab),
       bound('duplicate-tab', 'Dupliquer l’onglet', Command.DuplicateTab),
+      bound('tab-color', `Couleur de l’onglet…${SEPARATOR}${tab.name}`, Command.TabColor),
       bound('close-tab', 'Fermer l’onglet', Command.CloseTab),
     )
     if (tab.manual) {
@@ -155,6 +166,13 @@ const commandItems = (session: Session, shells: ShellProfile[]): PaletteItem[] =
     }
     for (const target of session.workspaces.filter((candidate) => candidate.id !== workspace?.id)) {
       items.push(command(`${MOVE_TAB_PREFIX}${target.id}`, `Déplacer l’onglet vers${SEPARATOR}${distinctWorkspaceName(session.workspaces, target)}`, () => store.moveTab(tab.id, target.id)))
+    }
+    const mergeTargets = tabMergeTargets(session, tab.id)
+    if (mergeTargets.length > 0) {
+      items.push(bound('merge-tab', 'Fusionner l’onglet actif dans un autre onglet…', Command.MergeTab))
+    }
+    for (const target of mergeTargets) {
+      items.push(command(`${MERGE_TAB_PREFIX}${target.placement}-${target.tab.id}`, `Fusionner l’onglet actif dans l’onglet${SEPARATOR}${target.name}, ${target.placementLabel}`, () => mergeTabIntoTab(tab.id, target.tab.id, target.placement)))
     }
   }
   return items
@@ -189,9 +207,6 @@ const paneHint = (pane: Pane, contexts: Record<string, GitContext>): string => {
   return branch ? `${branch}${SEPARATOR}${pane.path}` : pane.path
 }
 
-const distinctTabName = (workspace: Workspace, tab: Tab): string =>
-  workspace.tabs.some((other) => other !== tab && other.name === tab.name) ? `${tab.name} (onglet ${workspace.tabs.indexOf(tab) + 1})` : tab.name
-
 const navigationItems = (session: Session): PaletteItem[] => {
   const { selectWorkspace, selectTab, selectPane } = useSessionStore.getState()
   const { contexts } = useHostStore.getState()
@@ -222,8 +237,9 @@ const isOrphanFavorite = (session: Session, commandId: string): boolean => {
   if (commandId.startsWith(ATTENTION_PREFIX)) {
     return true
   }
-  if (commandId.startsWith(JOIN_TAB_PREFIX)) {
-    const tabId = commandId.slice(JOIN_TAB_PREFIX.length)
+  const tabPrefix = [JOIN_TAB_PREFIX, ...MERGE_TAB_PREFIXES].find((prefix) => commandId.startsWith(prefix))
+  if (tabPrefix) {
+    const tabId = commandId.slice(tabPrefix.length)
     return !session.workspaces.some((workspace) => workspace.tabs.some((tab) => tab.id === tabId))
   }
   const workspaceId = commandId.startsWith(MOVE_TAB_PREFIX) ? commandId.slice(MOVE_TAB_PREFIX.length) : null

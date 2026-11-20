@@ -11,9 +11,15 @@ public sealed class McpBrowserTests : IDisposable
     [InlineData(McpBrowser.Open, true)]
     [InlineData(McpBrowser.Navigate, true)]
     [InlineData(McpBrowser.Screenshot, true)]
+    [InlineData(McpBrowser.Snapshot, true)]
+    [InlineData(McpBrowser.Click, true)]
+    [InlineData(McpBrowser.Type, true)]
+    [InlineData(McpBrowser.Press, true)]
+    [InlineData(McpBrowser.Scroll, true)]
+    [InlineData(McpBrowser.Evaluate, true)]
     [InlineData(McpBrowser.Console, false)]
     [InlineData(McpBrowser.Network, false)]
-    public void IsLong_WhenTool_ThenOnlyNavigationAndCapture(string tool, bool expected)
+    public void IsLong_WhenTool_ThenOnlyNavigationCaptureAndPageActions(string tool, bool expected)
     {
         var isLong = McpBrowser.IsLong(tool);
 
@@ -116,6 +122,65 @@ public sealed class McpBrowserTests : IDisposable
         var path = McpBrowser.ScreenshotPath(" ", _folder);
 
         Assert.Null(path);
+    }
+
+    [Theory]
+    [InlineData(0, 1)]
+    [InlineData(5, 5)]
+    [InlineData(1_000, McpBrowser.MaxRepeat)]
+    public void Repeat_WhenRequested_ThenBounded(int requested, int expected)
+    {
+        var repeat = McpBrowser.Repeat(requested);
+
+        Assert.Equal(expected, repeat);
+    }
+
+    [Fact]
+    public void Keys_WhenValid_ThenTrimmed()
+    {
+        var keys = McpBrowser.Keys(" Ctrl+A ");
+
+        Assert.Equal("Ctrl+A", keys);
+    }
+
+    [Fact]
+    public void Keys_WhenUnknown_ThenFailsInFrench()
+    {
+        var error = Assert.Throws<InvalidOperationException>(() => McpBrowser.Keys("Ctrl+Truc"));
+
+        Assert.StartsWith("Touche inconnue", error.Message);
+    }
+
+    [Fact]
+    public void TypedText_WhenEmptyWithoutClear_ThenFailsInFrench()
+    {
+        var error = Assert.Throws<InvalidOperationException>(() => McpBrowser.TypedText("", false));
+
+        Assert.StartsWith("Indiquez le texte à saisir", error.Message);
+    }
+
+    [Fact]
+    public void TypedText_WhenEmptyWithClear_ThenEmpty()
+    {
+        var text = McpBrowser.TypedText(null, true);
+
+        Assert.Equal(string.Empty, text);
+    }
+
+    [Fact]
+    public void Amount_WhenNotPositive_ThenFailsInFrench()
+    {
+        var error = Assert.Throws<InvalidOperationException>(() => McpBrowser.Amount(0));
+
+        Assert.StartsWith("La distance de défilement doit être positive", error.Message);
+    }
+
+    [Fact]
+    public void Expression_WhenBlank_ThenFailsInFrench()
+    {
+        var error = Assert.Throws<InvalidOperationException>(() => McpBrowser.Expression(" "));
+
+        Assert.StartsWith("Indiquez l’expression JavaScript", error.Message);
     }
 
     public void Dispose() => Directory.Delete(_folder, true);

@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
+import { openCloneDialog } from '../clone/cloneActions'
 import type { Session } from '../model/session'
 import { useAgentStore } from '../store/agentStore'
 import { useHostStore } from '../store/hostStore'
@@ -27,6 +28,7 @@ const NAME_SEPARATOR = '\n'
 const HEADER_BUTTON = 'flex size-[24px] cursor-pointer items-center justify-center rounded-md text-tily-muted hover:bg-tily-green-hover hover:text-tily-ink'
 
 const handleCreateWorktree = (): void => openWorktreePicker(WorktreePickerKind.Source)
+const handleCloneRepository = (): void => openCloneDialog()
 
 export function WorkspaceTree({ session, renamingWorkspaceId, renamingTabId, actions }: WorkspaceTreeProps) {
   const { draggingTabId, tabDropTarget, springWorkspaceIds, draggingWorkspaceId, workspaceDropTarget } = useUiStore(
@@ -40,6 +42,7 @@ export function WorkspaceTree({ session, renamingWorkspaceId, renamingTabId, act
   )
   const agents = useAgentStore((state) => state.agents)
   const openProjectTip = useShortcutTip('Ouvrir un projet', Command.Projects)
+  const cloneRepositoryTip = useShortcutTip('Cloner un dépôt', Command.CloneRepository)
   const createWorktreeTip = useShortcutTip('Créer un worktree', Command.CreateWorktree)
   const newWorkspaceTip = useShortcutTip('Nouveau workspace', Command.NewWorkspace)
   const [menu, setMenu] = useState<PanelMenuRequest | null>(null)
@@ -57,11 +60,14 @@ export function WorkspaceTree({ session, renamingWorkspaceId, renamingTabId, act
   }, [menu])
 
   return (
-    <aside className="@container flex h-full min-h-0 flex-col bg-tily-paper" style={{ width: session.sidebar }}>
+    <aside data-surface="paper" className="@container flex h-full min-h-0 flex-col bg-tily-paper" style={{ width: session.sidebar }}>
       <div className="flex h-[36px] shrink-0 items-center gap-[2px] pr-[6px] pl-[12px] text-[11px] font-semibold tracking-[0.06em] text-tily-muted uppercase">
         <span className="flex-1">Workspaces</span>
         <button type="button" className={HEADER_BUTTON} aria-label="Ouvrir un projet" data-tip={openProjectTip} onClick={actions.openProjects}>
           <Icon name={IconName.Project} />
+        </button>
+        <button type="button" className={HEADER_BUTTON} aria-label="Cloner un dépôt" data-tip={cloneRepositoryTip} onClick={handleCloneRepository}>
+          <Icon name={IconName.Clone} />
         </button>
         <button type="button" className={HEADER_BUTTON} aria-label="Créer un worktree" data-tip={createWorktreeTip} onClick={handleCreateWorktree}>
           <Icon name={IconName.Worktree} />

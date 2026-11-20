@@ -11,6 +11,13 @@ public static class McpBrowser
     public const string Console = "browserConsole";
     public const string Network = "browserNetwork";
     public const string Screenshot = "browserScreenshot";
+    public const string Snapshot = "browserSnapshot";
+    public const string Click = "browserClick";
+    public const string Type = "browserType";
+    public const string Press = "browserPress";
+    public const string Scroll = "browserScroll";
+    public const string Evaluate = "browserEvaluate";
+    public const int MaxRepeat = 100;
     public const int DefaultLimit = 50;
     public const int MaxLimit = 500;
     public static readonly TimeSpan AnswerTimeout = TimeSpan.FromSeconds(60);
@@ -18,7 +25,24 @@ public static class McpBrowser
     private static readonly string[] Levels = ["debug", "log", "warn", "error"];
     private const string PngExtension = ".png";
 
-    public static bool IsLong(string tool) => tool is Open or Navigate or Reload or Resize or Screenshot;
+    public static bool IsLong(string tool) => tool is Open or Navigate or Reload or Resize or Screenshot or Snapshot or Click or Type or Press or Scroll or Evaluate;
+
+    public static int Repeat(int requested) => Math.Clamp(requested, 1, MaxRepeat);
+
+    public static string Keys(string? keys)
+    {
+        BrowserKeys.Parse(keys);
+        return keys!.Trim();
+    }
+
+    public static string Expression(string? expression) =>
+        string.IsNullOrWhiteSpace(expression) ? throw new InvalidOperationException("Indiquez l’expression JavaScript à évaluer dans la page.") : expression;
+
+    public static double? Amount(double? amount) =>
+        amount is null or > 0 ? amount : throw new InvalidOperationException("La distance de défilement doit être positive, en pixels.");
+
+    public static string TypedText(string? text, bool clear) =>
+        text is { Length: > 0 } || clear ? text ?? string.Empty : throw new InvalidOperationException("Indiquez le texte à saisir, ou clear pour vider le champ.");
 
     public static int Limit(int requested) => Math.Clamp(requested, 1, MaxLimit);
 
