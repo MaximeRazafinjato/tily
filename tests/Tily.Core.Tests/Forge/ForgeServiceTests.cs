@@ -135,6 +135,16 @@ public sealed class ForgeServiceTests
     }
 
     [Fact]
+    public void FormData_WhenTargetRequested_ThenUsesItInsteadOfConfiguredBase()
+    {
+        var service = FormServiceWith(GitHubForm(), new FakeMergeRequestGit());
+
+        var form = service.FormData(_folder, "feat/creation", requestedTarget: " main ");
+
+        Assert.Equal(("main", "main"), (form.DefaultTarget, form.Branch.Target));
+    }
+
+    [Fact]
     public void FormData_WhenEveryForgeReadFails_ThenFailsWithFirstError()
     {
         var service = FormServiceWith(GitHubForm(failing: true), new FakeMergeRequestGit());

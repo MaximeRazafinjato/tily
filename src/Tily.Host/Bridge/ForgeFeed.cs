@@ -92,12 +92,13 @@ public sealed class ForgeFeed
         var path = command.Path ?? throw new InvalidOperationException("Chemin manquant.");
         var request = command.Request;
         var source = command.Branch;
+        var target = command.Target;
         var number = NumberOf(command);
         _forms.Enqueue(() =>
         {
             try
             {
-                _post(new { type = "forge.formLoaded", request, path, form = _service.FormData(path, source, number) });
+                _post(new { type = "forge.formLoaded", request, path, form = _service.FormData(path, source, number, target) });
             }
             catch (Exception exception)
             {

@@ -317,7 +317,7 @@ Les types TypeScript sont dans `web/src/bridge/` : `messages.ts` (application, s
 - Git, historique : `git.commit` (amend et push facultatifs), `git.merge`, `git.rebase`, `git.cherryPick`, `git.revert`, `git.reset`, `git.continue`, `git.abort`, `git.undo`.
 - Git, synchronisation : `git.push`, `git.pushBranch` (branche non courante, entière ou jusqu'à un commit), `git.pull`, `git.fetch`.
 - Git, références et stash : `git.switch`, `git.branchCreate`, `git.branchRename`, `git.branchDelete`, `git.remoteBranchDelete`, `git.refsDelete` (suppression groupée), `git.tagCreate`, `git.tagDelete`, `git.tagPush`, `git.stash`, `git.stashApply`, `git.stashDrop`.
-- MR/PR : `forge.list` (MR/PR du dépôt), `forge.branch` (pastille d'une branche), `forge.form` (formulaire de création ou de modification), `forge.compare` (couple source / cible), `forge.create` (création, push facultatif), `forge.update` (modification ou fermeture).
+- MR/PR : `forge.list` (MR/PR du dépôt), `forge.branch` (pastille d'une branche), `forge.form` (formulaire de création ou de modification, cible facultative), `forge.compare` (couple source / cible), `forge.create` (création, push facultatif), `forge.update` (modification ou fermeture).
 - Worktrees : `worktrees.sources` (dépôts proposés), `worktrees.plan` (plan sans écriture), `worktrees.list` (worktrees du dépôt d'un dossier), `worktrees.create`, `worktrees.remove`.
 - Clonage : `clone.suggest` (texte du presse-papiers à reconnaître), `clone.plan` (plan sans écriture), `clone.start` (clonage).
 - MCP : `mcp.response` (réponse à un `mcp.request`).
