@@ -1,6 +1,6 @@
 import { AgentState, type PaneAgent } from '../bridge/messages'
 import { hexToRgb } from '../ambiance/renderPacing'
-import { findPane, folderName } from '../model/session'
+import { findPane, panesOf } from '../model/session'
 import { useAgentStore } from '../store/agentStore'
 import { projectKey, useAppearanceStore } from '../store/appearanceStore'
 import { useSessionStore } from '../store/sessionStore'
@@ -32,6 +32,16 @@ const hueOfHex = (hex: string): number => {
 const pathOf = (paneId: string): string | undefined => {
   const { session } = useSessionStore.getState()
   return session ? findPane(session, paneId)?.path : undefined
+}
+
+const nameOf = (paneId: string, agents: Record<string, PaneAgent>): string => {
+  const tabs = useSessionStore.getState().session?.workspaces.flatMap((workspace) => workspace.tabs) ?? []
+  const tab = tabs.find((candidate) => panesOf(candidate.tree).some((pane) => pane.id === paneId))
+  if (!tab) {
+    return ''
+  }
+  const agentPanes = panesOf(tab.tree).filter((pane) => agents[pane.id])
+  return agentPanes.length > 1 ? `#${agentPanes.findIndex((pane) => pane.id === paneId) + 1} ${tab.name}` : tab.name
 }
 
 const hueOf = (paneId: string): number => {
@@ -80,7 +90,7 @@ export const syncCompanions = (world: World): void => {
       blob.mood = mood === BlobMood.Done ? BlobMood.Idle : mood
     }
     blob.hue = hueOf(agent.paneId)
-    blob.name = folderName(pathOf(agent.paneId) ?? '')
+    blob.name = nameOf(agent.paneId, agents)
     blob.tool = toolLabel(agent.tool)
     if (blob.reported !== mood) {
       blob.reported = mood
