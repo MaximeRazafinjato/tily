@@ -14,6 +14,7 @@ const LAYER_ID = 'tily-companions'
 const LAYER_Z_INDEX = '2147482000'
 const PERCH_REFRESH_MS = 200
 const MAX_STEP_S = 0.05
+const FLOOR_TOLERANCE = 48
 const MODAL_SELECTOR = '[role="dialog"], [role="alertdialog"], [role="menu"]'
 
 const companionsOf = (ambiance: AmbianceSettings | null) => (ambiance?.enabled && ambiance.companions.enabled ? ambiance.companions : null)
@@ -25,7 +26,9 @@ const readPerches = (world: World): void => {
       const rect = element.getBoundingClientRect()
       return { element, x1: rect.left, x2: rect.right, y: rect.top }
     })
-  world.perches.push({ element: null, x1: 0, x2: world.width, y: world.height })
+  if (!world.perches.some((perch) => perch.y >= world.height - FLOOR_TOLERANCE)) {
+    world.perches.push({ element: null, x1: 0, x2: world.width, y: world.height })
+  }
   placeBasket(world, document.querySelector('[data-basket]'))
   world.basket.color = getComputedStyle(document.documentElement).getPropertyValue('--color-tily-ink').trim() || world.basket.color
 }
@@ -51,14 +54,14 @@ const draw = (context: CanvasRenderingContext2D, world: World): void => {
   drawParticles(context, world)
 }
 
-const mountLayer = (size: number): { world: World; stop: () => void } => {
+const mountLayer = (size: number, speed: number): { world: World; stop: () => void } => {
   const canvas = document.createElement('canvas')
   canvas.id = LAYER_ID
   canvas.setAttribute('aria-hidden', 'true')
   Object.assign(canvas.style, { position: 'fixed', inset: '0', width: '100%', height: '100%', zIndex: LAYER_Z_INDEX, pointerEvents: 'none' })
   document.body.append(canvas)
   const context = canvas.getContext('2d')
-  const world = createWorld(size)
+  const world = createWorld(size, speed)
   if (!context) {
     canvas.remove()
     return { world, stop: () => {} }
@@ -120,8 +123,11 @@ export const startCompanions = (): (() => void) => {
       return
     }
     if (!layer) {
-      layer = mountLayer(companions.size)
-    } else if (layer.world.size !== companions.size) {
+      layer = mountLayer(companions.size, companions.speed / 100)
+      return
+    }
+    layer.world.speed = companions.speed / 100
+    if (layer.world.size !== companions.size) {
       layer.world.size = companions.size
       resize(layer.world)
     }

@@ -118,10 +118,13 @@ export interface AmbiancePerformance {
 export interface AmbianceCompanions {
   enabled: boolean
   size: number
+  speed: number
 }
 
 export const COMPANION_SIZE_MIN = 14
 export const COMPANION_SIZE_MAX = 48
+export const COMPANION_SPEED_MIN = 25
+export const COMPANION_SPEED_MAX = 200
 
 export interface AmbianceSettings {
   enabled: boolean

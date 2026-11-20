@@ -3,6 +3,7 @@ import { BlobMood, clamp, DONE_CELEBRATION_S, GRAVITY, impulse, jump, lerp, Part
 const SPRING_STIFFNESS = 180
 const SPRING_DAMPING = 9
 const LOOK_RANGE = 320
+const ARRIVAL_DISTANCE = 8
 
 const perchOf = (world: World, blob: Blob): Perch | undefined => world.perches.find((perch) => perch.element === blob.perch)
 
@@ -26,19 +27,28 @@ const land = (world: World, blob: Blob, previousY: number): void => {
 }
 
 const walk = (world: World, blob: Blob, dt: number, perch: Perch): void => {
+  const returning = blob.leaving && blob.parent !== null
+  blob.hopTimer -= dt * (returning ? 1 : world.speed)
+  if (blob.hopTimer > 0) {
+    return
+  }
   const min = perch.x1 + blob.radius
   const max = perch.x2 - blob.radius
-  if (blob.leaving && blob.parent) {
+  if (returning && blob.parent) {
     blob.targetX = clamp(blob.parent.x, min, max)
-  } else if (Math.abs(blob.targetX - blob.x) < 8 || blob.targetX < min || blob.targetX > max) {
+  } else if (Math.abs(blob.targetX - blob.x) < ARRIVAL_DISTANCE || blob.targetX < min || blob.targetX > max) {
+    const arrived = Math.abs(blob.targetX - blob.x) < ARRIVAL_DISTANCE
     const around = blob.parent ? blob.parent.x + randomBetween(-140, 140) : randomBetween(min, max)
     blob.targetX = max <= min ? (perch.x1 + perch.x2) / 2 : clamp(around, min, max)
+    if (arrived) {
+      blob.hopTimer = randomBetween(1.5, 4)
+      return
+    }
   }
-  blob.hopTimer -= dt
-  if (blob.hopTimer <= 0 && Math.abs(blob.targetX - blob.x) > 4) {
-    blob.vx = Math.sign(blob.targetX - blob.x) * (blob.leaving ? 320 : randomBetween(110, 190))
-    jump(world, blob, blob.leaving ? 420 : randomBetween(260, 380))
-    blob.hopTimer = randomBetween(0.05, 0.2)
+  if (Math.abs(blob.targetX - blob.x) > 4) {
+    blob.vx = Math.sign(blob.targetX - blob.x) * (returning ? 320 : randomBetween(70, 110) * world.speed)
+    jump(world, blob, returning ? 420 : randomBetween(200, 260))
+    blob.hopTimer = randomBetween(0.25, 0.5)
   }
 }
 
@@ -53,6 +63,12 @@ const fall = (world: World, blob: Blob, dt: number): void => {
     blob.vx *= -0.5
   }
   land(world, blob, previousY)
+  const lowest = world.perches.filter((perch) => blob.x >= perch.x1 && blob.x <= perch.x2).sort((a, b) => b.y - a.y)[0]
+  if (!blob.perch && lowest && blob.y > lowest.y) {
+    blob.y = lowest.y
+    blob.vy = 0
+    blob.perch = lowest.element
+  }
 }
 
 const move = (world: World, blob: Blob, dt: number): void => {
@@ -64,9 +80,6 @@ const move = (world: World, blob: Blob, dt: number): void => {
     blob.y = perch.y
     if (blob.mood === BlobMood.Working || (blob.leaving && blob.parent)) {
       walk(world, blob, dt, perch)
-    }
-    if (blob.mood === BlobMood.Waiting && blob.moodTime % 1.6 < dt) {
-      jump(world, blob, 380)
     }
   }
   if (!blob.perch) {
@@ -148,7 +161,7 @@ export const updateBlob = (world: World, blob: Blob, dt: number): void => {
   }
   if (blob === world.dragged) {
     blob.x = world.pointer.x
-    blob.y = world.pointer.y + blob.radius
+    blob.y = Math.min(world.pointer.y + blob.radius, world.height)
     blob.squash = lerp(blob.squash, -0.14 + 0.04 * Math.sin(blob.clock * 14), 0.3)
   } else {
     move(world, blob, dt)

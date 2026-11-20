@@ -103,10 +103,12 @@ public sealed record AmbiancePerformanceModel(bool ShaderTint = false, int Shade
     public const int MaxFpsLimit = 60;
 }
 
-public sealed record AmbianceCompanionsModel(bool Enabled = false, int Size = 26)
+public sealed record AmbianceCompanionsModel(bool Enabled = false, int Size = 26, int Speed = 100)
 {
     public const int MinSize = 14;
     public const int MaxSize = 48;
+    public const int MinSpeed = 25;
+    public const int MaxSpeed = 200;
 }
 
 public sealed record AmbianceSettingsModel
@@ -160,7 +162,11 @@ public sealed record AmbianceSettingsModel
                 ShaderQuality = Math.Clamp(performance.ShaderQuality, AmbiancePerformanceModel.MinShaderQuality, MaxPercent),
                 FpsLimit = Math.Clamp(performance.FpsLimit, AmbiancePerformanceModel.MinFpsLimit, AmbiancePerformanceModel.MaxFpsLimit)
             },
-            Companions = companions with { Size = Math.Clamp(companions.Size, AmbianceCompanionsModel.MinSize, AmbianceCompanionsModel.MaxSize) },
+            Companions = companions with
+            {
+                Size = Math.Clamp(companions.Size, AmbianceCompanionsModel.MinSize, AmbianceCompanionsModel.MaxSize),
+                Speed = Math.Clamp(companions.Speed, AmbianceCompanionsModel.MinSpeed, AmbianceCompanionsModel.MaxSpeed)
+            },
             Presets = PresetsOf(Presets)
         };
     }

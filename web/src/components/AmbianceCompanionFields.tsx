@@ -1,5 +1,5 @@
 import type { ChangeEvent } from 'react'
-import { COMPANION_SIZE_MAX, COMPANION_SIZE_MIN, type AmbianceCompanions, type AmbianceSettings } from '../bridge/appearanceMessages'
+import { COMPANION_SIZE_MAX, COMPANION_SIZE_MIN, COMPANION_SPEED_MAX, COMPANION_SPEED_MIN, type AmbianceCompanions, type AmbianceSettings } from '../bridge/appearanceMessages'
 import { AmbianceSlider } from './AmbianceSlider'
 import { SettingsField } from './SettingsField'
 import { SETTINGS_CHECKBOX } from './settingsStyles'
@@ -16,13 +16,19 @@ export function AmbianceCompanionFields({ ambiance, onChange }: AmbianceCompanio
   const update = (patch: Partial<AmbianceCompanions>) => onChange({ companions: { ...companions, ...patch } })
   const handleEnabledChange = (event: ChangeEvent<HTMLInputElement>) => update({ enabled: event.target.checked })
   const handleSizeChange = (size: number) => update({ size })
+  const handleSpeedChange = (speed: number) => update({ speed })
   return (
     <SettingsField label="Compagnons d’agents" tip={TIP}>
       <label className={SETTINGS_CHECKBOX}>
         <input type="checkbox" checked={companions.enabled} onChange={handleEnabledChange} />
         Afficher
       </label>
-      {companions.enabled && <AmbianceSlider label="Taille des compagnons" value={companions.size} min={COMPANION_SIZE_MIN} max={COMPANION_SIZE_MAX} unit=" px" onChange={handleSizeChange} />}
+      {companions.enabled && (
+        <>
+          <AmbianceSlider label="Taille des compagnons" value={companions.size} min={COMPANION_SIZE_MIN} max={COMPANION_SIZE_MAX} unit=" px" onChange={handleSizeChange} />
+          <AmbianceSlider label="Vitesse des compagnons" value={companions.speed} min={COMPANION_SPEED_MIN} max={COMPANION_SPEED_MAX} step={5} unit=" %" onChange={handleSpeedChange} />
+        </>
+      )}
     </SettingsField>
   )
 }

@@ -110,11 +110,12 @@ export interface World {
   basket: Basket
   dragged: Blob | null
   size: number
+  speed: number
   width: number
   height: number
 }
 
-export const createWorld = (size: number): World => ({
+export const createWorld = (size: number, speed: number): World => ({
   blobs: [],
   particles: [],
   perches: [],
@@ -122,6 +123,7 @@ export const createWorld = (size: number): World => ({
   basket: { x: 0, y: 0, radius: 9, scale: 1, hover: false, pressed: false, color: '#ffffff' },
   dragged: null,
   size,
+  speed,
   width: innerWidth,
   height: innerHeight,
 })
