@@ -1,4 +1,4 @@
-import { FLOOR_SPLAT_SPEED, splat, WALL_SPLAT_SPEED } from './goreEffects'
+import { FLOOR_HURT_SPEED, FLOOR_SPLAT_SPEED, impact, reform, regenerate, WALL_HURT_SPEED, WALL_SPLAT_SPEED } from './goreEffects'
 import { BlobMood, targetRadius, clamp, DONE_CELEBRATION_S, GRAVITY, impulse, jump, lerp, ParticleKind, randomBetween, removeBlob, setMood, SLEEP_AFTER_S, type Blob, type Perch, type World } from './blobModel'
 
 const SPRING_STIFFNESS = 180
@@ -18,9 +18,7 @@ const land = (world: World, blob: Blob, previousY: number): void => {
   if (!landing) {
     return
   }
-  if (blob.vy > FLOOR_SPLAT_SPEED) {
-    splat(world, blob, blob.x, landing.y, -Math.PI / 2, blob.vy)
-  }
+  impact(world, blob, blob.x, landing.y, -Math.PI / 2, blob.vy, FLOOR_HURT_SPEED, FLOOR_SPLAT_SPEED)
   if (blob.vy > 300) {
     impulse(blob, Math.min(blob.vy / 70, 14))
   }
@@ -64,16 +62,12 @@ const fall = (world: World, blob: Blob, dt: number): void => {
   blob.x += blob.vx * dt
   if (blob.x < blob.radius || blob.x > world.width - blob.radius) {
     const left = blob.x < blob.radius
-    if (Math.abs(blob.vx) > WALL_SPLAT_SPEED) {
-      splat(world, blob, left ? 0 : world.width, blob.y - blob.radius, left ? 0 : Math.PI, Math.abs(blob.vx))
-    }
+    impact(world, blob, left ? 0 : world.width, blob.y - blob.radius, left ? 0 : Math.PI, Math.abs(blob.vx), WALL_HURT_SPEED, WALL_SPLAT_SPEED)
     blob.x = clamp(blob.x, blob.radius, world.width - blob.radius)
     blob.vx *= -0.5
   }
   if (blob.y - blob.radius * 2 < 0 && blob.vy < 0) {
-    if (-blob.vy > WALL_SPLAT_SPEED) {
-      splat(world, blob, blob.x, 0, Math.PI / 2, -blob.vy)
-    }
+    impact(world, blob, blob.x, 0, Math.PI / 2, -blob.vy, WALL_HURT_SPEED, WALL_SPLAT_SPEED)
     blob.y = blob.radius * 2
     blob.vy *= -0.4
   }
@@ -180,10 +174,13 @@ export const updateBlob = (world: World, blob: Blob, dt: number): void => {
     if (blob.exploded === 0) {
       blob.grow = 0
       blob.perch = null
+      reform(blob)
     }
     return
   }
   blob.dizzy = Math.max(0, blob.dizzy - dt)
+  blob.hurt = Math.max(0, blob.hurt - dt)
+  regenerate(blob, dt)
   blob.radius = lerp(blob.radius, targetRadius(world, blob), Math.min(1, dt * 2))
   if (!growOrLeave(world, blob, dt) || blob.stored) {
     return
@@ -200,7 +197,7 @@ export const updateBlob = (world: World, blob: Blob, dt: number): void => {
 
 export const updateParticles = (world: World, dt: number): void => {
   world.particles = world.particles.filter((particle) => {
-    if (particle.kind === ParticleKind.Stain) {
+    if (particle.kind === ParticleKind.Stain || particle.kind === ParticleKind.Hole) {
       particle.life -= dt / (particle.lifetime ?? 1)
       return particle.life > 0
     }

@@ -77,6 +77,9 @@ export interface Blob {
   dizzy: number
   exploded: number
   shakes: number[]
+  health: number
+  hurt: number
+  sinceDamage: number
 }
 
 export enum ParticleKind {
@@ -84,6 +87,7 @@ export enum ParticleKind {
   Snore = 'snore',
   Drop = 'drop',
   Stain = 'stain',
+  Hole = 'hole',
 }
 
 export interface Particle {
@@ -126,6 +130,10 @@ export interface World {
   size: number
   speed: number
   gore: boolean
+  sniper: boolean
+  recoil: number
+  flash: number
+  basketClicks: number[]
   width: number
   height: number
 }
@@ -141,6 +149,10 @@ export const createWorld = (size: number, speed: number, gore: boolean): World =
   size,
   speed,
   gore,
+  sniper: false,
+  recoil: 0,
+  flash: 0,
+  basketClicks: [],
   width: innerWidth,
   height: innerHeight,
 })
@@ -195,6 +207,9 @@ export const createBlob = (world: World, key: string, paneId: string, hue: numbe
     dizzy: 0,
     exploded: 0,
     shakes: [],
+    health: 1,
+    hurt: 0,
+    sinceDamage: 0,
   }
 }
 

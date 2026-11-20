@@ -1,7 +1,7 @@
 import { joinPane } from '../terminal/terminalActions'
 import { clamp, impulse, type Blob, type World } from './blobModel'
 import { insideBasket, releaseStored, storeBlob } from './companionBasket'
-import { registerShake } from './goreEffects'
+import { countBasketClick, registerShake, shoot } from './goreEffects'
 
 const HISTORY_LENGTH = 6
 const CLICK_DISTANCE = 3
@@ -9,7 +9,8 @@ const THROW_LIMIT = 1400
 const POKE_S = 0.8
 const HOVER_CLASS = 'tily-companion-hover'
 const DRAG_CLASS = 'tily-companion-drag'
-const CURSOR_STYLE = `html.${HOVER_CLASS}, html.${HOVER_CLASS} * { cursor: grab !important } html.${DRAG_CLASS}, html.${DRAG_CLASS} * { cursor: grabbing !important }`
+const SNIPER_CLASS = 'tily-companion-sniper'
+const CURSOR_STYLE = `html.${HOVER_CLASS}, html.${HOVER_CLASS} * { cursor: grab !important } html.${DRAG_CLASS}, html.${DRAG_CLASS} * { cursor: grabbing !important } html.${SNIPER_CLASS}, html.${SNIPER_CLASS} * { cursor: none !important }`
 
 const blobAt = (world: World, x: number, y: number): Blob | undefined =>
   [...world.blobs].reverse().find((blob) => !blob.leaving && !blob.stored && blob.exploded === 0 && Math.hypot(x - blob.x, y - (blob.y - blob.radius)) < blob.radius * 1.05)
@@ -55,8 +56,15 @@ export const startCompanionPointer = (world: World): (() => void) => {
     if (event.button !== 0) {
       return
     }
+    const onBasket = insideBasket(world, event.clientX, event.clientY)
+    if (world.sniper && !onBasket) {
+      event.preventDefault()
+      event.stopPropagation()
+      shoot(world, event.clientX, event.clientY)
+      return
+    }
     const hit = blobAt(world, event.clientX, event.clientY)
-    if (!hit && !insideBasket(world, event.clientX, event.clientY)) {
+    if (!hit && !onBasket) {
       return
     }
     event.preventDefault()
@@ -89,7 +97,8 @@ export const startCompanionPointer = (world: World): (() => void) => {
     }
     world.hovered = world.dragged ? null : (blobAt(world, pointer.x, pointer.y) ?? null)
     const hovering = !world.dragged && (world.hovered !== null || insideBasket(world, pointer.x, pointer.y))
-    document.documentElement.classList.toggle(HOVER_CLASS, hovering)
+    document.documentElement.classList.toggle(HOVER_CLASS, hovering && !world.sniper)
+    document.documentElement.classList.toggle(SNIPER_CLASS, world.sniper)
   }
 
   const handlePointerUp = (event: PointerEvent) => {
@@ -97,6 +106,8 @@ export const startCompanionPointer = (world: World): (() => void) => {
     if (world.basket.pressed) {
       world.basket.pressed = false
       if (insideBasket(world, event.clientX, event.clientY)) {
+        countBasketClick(world, performance.now())
+        document.documentElement.classList.toggle(SNIPER_CLASS, world.sniper)
         releaseStored(world)
       }
       return
@@ -106,16 +117,27 @@ export const startCompanionPointer = (world: World): (() => void) => {
     }
   }
 
+  const handleKeyDown = (event: KeyboardEvent) => {
+    if (world.sniper && event.key === 'Escape') {
+      event.preventDefault()
+      event.stopPropagation()
+      world.sniper = false
+      document.documentElement.classList.remove(SNIPER_CLASS)
+    }
+  }
+
   document.addEventListener('pointerdown', handlePointerDown, true)
+  document.addEventListener('keydown', handleKeyDown, true)
   addEventListener('pointermove', handlePointerMove)
   addEventListener('pointerup', handlePointerUp)
   addEventListener('pointercancel', handlePointerUp)
   return () => {
     document.removeEventListener('pointerdown', handlePointerDown, true)
+    document.removeEventListener('keydown', handleKeyDown, true)
     removeEventListener('pointermove', handlePointerMove)
     removeEventListener('pointerup', handlePointerUp)
     removeEventListener('pointercancel', handlePointerUp)
-    document.documentElement.classList.remove(HOVER_CLASS, DRAG_CLASS)
+    document.documentElement.classList.remove(HOVER_CLASS, DRAG_CLASS, SNIPER_CLASS)
     style.remove()
   }
 }

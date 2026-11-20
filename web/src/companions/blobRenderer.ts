@@ -1,3 +1,4 @@
+import { HURT_S, SAD_HEALTH } from './goreEffects'
 import { BlobMood, lerp, ParticleKind, SHAPES, SLEEP_AFTER_S, type Blob, type World } from './blobModel'
 
 const INK = '#1a1530'
@@ -52,9 +53,17 @@ const outline = (context: CanvasRenderingContext2D, world: World, blob: Blob, ra
   context.closePath()
 }
 
-const drawEye = (context: CanvasRenderingContext2D, world: World, blob: Blob, radius: number, x: number, y: number): void => {
+const RETICLE_COLOR = '#ff2a3a'
+
+const painedOf = (blob: Blob): boolean => blob.hurt > HURT_S - 0.5
+
+const sadOf = (world: World, blob: Blob): boolean => world.gore && (blob.hurt > 0 || blob.health < SAD_HEALTH)
+
+const drawEye = (context: CanvasRenderingContext2D, world: World, blob: Blob, radius: number, x: number, y: number, side: number): void => {
   const surprised = blob === world.dragged
-  const happy = !surprised && (blob.mood === BlobMood.Done || blob.poke > 0)
+  const size = radius * 0.1
+  const sad = !surprised && sadOf(world, blob)
+  const happy = !surprised && !sad && (blob.mood === BlobMood.Done || blob.poke > 0)
   const sleeping = !surprised && blob.mood === BlobMood.Idle && blob.idleTime > SLEEP_AFTER_S
   context.beginPath()
   if (blob.dizzy > 0 && !surprised) {
@@ -64,8 +73,27 @@ const drawEye = (context: CanvasRenderingContext2D, world: World, blob: Blob, ra
       context.lineTo(x + Math.cos(angle) * distance, y + Math.sin(angle) * distance)
     }
     context.stroke()
+  } else if (!surprised && painedOf(blob)) {
+    context.moveTo(x + side * size, y - size)
+    context.lineTo(x - side * size, y)
+    context.lineTo(x + side * size, y + size)
+    context.stroke()
+  } else if (sad) {
+    context.moveTo(x + side * size * 1.1, y - size * 1.2)
+    context.lineTo(x - side * size * 1.1, y - size * 2)
+    context.stroke()
+    context.beginPath()
+    context.ellipse(x, y + size * 0.3, radius * 0.07, radius * 0.08, 0, 0, Math.PI * 2)
+    context.fill()
+    if (side < 0) {
+      const fall = (blob.clock % 1.4) / 1.4
+      context.fillStyle = '#5ab4ff'
+      context.beginPath()
+      context.ellipse(x, y + size * (1.6 + fall * 3), size * 0.35, size * 0.5, 0, 0, Math.PI * 2)
+      context.fill()
+      context.fillStyle = INK
+    }
   } else if (blob.mood === BlobMood.Error && !surprised) {
-    const size = radius * 0.1
     context.moveTo(x - size, y - size)
     context.lineTo(x + size, y + size)
     context.moveTo(x + size, y - size)
@@ -92,9 +120,19 @@ const drawFace = (context: CanvasRenderingContext2D, world: World, blob: Blob, r
   context.strokeStyle = INK
   context.fillStyle = INK
   context.lineWidth = radius * 0.07
-  drawEye(context, world, blob, radius, -radius * 0.33 + offsetX, offsetY)
-  drawEye(context, world, blob, radius, radius * 0.33 + offsetX, offsetY)
+  drawEye(context, world, blob, radius, -radius * 0.33 + offsetX, offsetY, -1)
+  drawEye(context, world, blob, radius, radius * 0.33 + offsetX, offsetY, 1)
   context.beginPath()
+  if (blob !== world.dragged && sadOf(world, blob)) {
+    if (painedOf(blob)) {
+      context.ellipse(offsetX, offsetY + radius * 0.34, radius * 0.07, radius * 0.06, 0, 0, Math.PI * 2)
+      context.fill()
+    } else {
+      context.arc(offsetX, offsetY + radius * 0.46, radius * 0.13, Math.PI * 1.2, Math.PI * 1.8)
+      context.stroke()
+    }
+    return
+  }
   if (blob === world.dragged) {
     context.ellipse(offsetX, offsetY + radius * 0.32, radius * 0.08, radius * 0.1, 0, 0, Math.PI * 2)
   } else if (blob.mood === BlobMood.Done || blob.poke > 0) {
@@ -124,6 +162,19 @@ const drawBubble = (context: CanvasRenderingContext2D, text: string, x: number, 
   context.restore()
 }
 
+const drawHealthBar = (context: CanvasRenderingContext2D, blob: Blob, radius: number, top: number): void => {
+  const width = Math.max(28, radius * 1.6)
+  const x = blob.x - width / 2
+  context.fillStyle = INK
+  context.beginPath()
+  context.roundRect(x - 1.5, top - 4.5, width + 3, 8, 4)
+  context.fill()
+  context.fillStyle = `hsl(${Math.round(120 * blob.health)}, 80%, 50%)`
+  context.beginPath()
+  context.roundRect(x, top - 3, width * blob.health, 5, 2.5)
+  context.fill()
+}
+
 export const drawBlob = (context: CanvasRenderingContext2D, world: World, blob: Blob): void => {
   const radius = blob.radius * (blob.leaving ? Math.max(blob.grow, 0) : easeOutBack(blob.grow))
   if (radius <= 0.5 || blob.exploded > 0) {
@@ -146,16 +197,22 @@ export const drawBlob = (context: CanvasRenderingContext2D, world: World, blob: 
     return
   }
   const waiting = blob.mood === BlobMood.Waiting
-  const label = labelOf(blob, world.hovered === blob, waiting)
+  const hovered = world.hovered === blob
+  const top = blob.y - radius * 2 * (1 - blob.squash) - 8
+  const barShown = world.gore && (blob.health < 1 || hovered)
+  if (barShown) {
+    drawHealthBar(context, blob, radius, top)
+  }
+  const label = labelOf(blob, hovered, waiting)
   if (label) {
-    drawBubble(context, label, blob.x, blob.y - radius * 2 * (1 - blob.squash) - 8, waiting ? 0.08 * Math.sin(blob.moodTime * 6) : 0)
+    drawBubble(context, label, blob.x, barShown ? top - 10 : top, waiting ? 0.08 * Math.sin(blob.moodTime * 6) : 0)
   }
 }
 
 export const drawParticles = (context: CanvasRenderingContext2D, world: World): void => {
   world.particles.forEach((particle) => {
     context.globalAlpha = Math.max(0, particle.life)
-    if (particle.kind === ParticleKind.Stain) {
+    if (particle.kind === ParticleKind.Stain || particle.kind === ParticleKind.Hole) {
       return
     }
     if (particle.kind === ParticleKind.Drop) {
@@ -179,8 +236,16 @@ export const drawParticles = (context: CanvasRenderingContext2D, world: World): 
 
 export const drawStains = (context: CanvasRenderingContext2D, world: World): void => {
   world.particles
-    .filter((particle) => particle.kind === ParticleKind.Stain)
+    .filter((particle) => particle.kind === ParticleKind.Stain || particle.kind === ParticleKind.Hole)
     .forEach((particle) => {
+      if (particle.kind === ParticleKind.Hole) {
+        context.globalAlpha = Math.min(1, particle.life * 1.5)
+        context.fillStyle = INK
+        context.beginPath()
+        context.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2)
+        context.fill()
+        return
+      }
       context.globalAlpha = Math.min(1, particle.life * 1.5) * 0.85
       context.fillStyle = `hsl(${particle.hue}, 80%, 30%)`
       context.beginPath()
@@ -192,6 +257,40 @@ export const drawStains = (context: CanvasRenderingContext2D, world: World): voi
       context.fill()
     })
   context.globalAlpha = 1
+}
+
+export const drawReticle = (context: CanvasRenderingContext2D, world: World): void => {
+  if (!world.sniper) {
+    return
+  }
+  const { x, y } = world.pointer
+  const radius = 14 + world.recoil * 8
+  if (world.flash > 0) {
+    context.globalAlpha = world.flash
+    context.fillStyle = '#ffe58a'
+    context.beginPath()
+    for (let index = 0; index < 8; index++) {
+      const angle = (index / 8) * Math.PI * 2
+      const reach = (index % 2 ? 10 : 26) * (0.6 + world.flash * 0.4)
+      context.lineTo(x + Math.cos(angle) * reach, y + Math.sin(angle) * reach)
+    }
+    context.closePath()
+    context.fill()
+    context.globalAlpha = 1
+  }
+  context.strokeStyle = RETICLE_COLOR
+  context.lineWidth = 2
+  context.beginPath()
+  context.arc(x, y - world.recoil * 6, radius, 0, Math.PI * 2)
+  for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+    context.moveTo(x + dx * (radius - 6), y - world.recoil * 6 + dy * (radius - 6))
+    context.lineTo(x + dx * (radius + 6), y - world.recoil * 6 + dy * (radius + 6))
+  }
+  context.stroke()
+  context.fillStyle = RETICLE_COLOR
+  context.beginPath()
+  context.arc(x, y - world.recoil * 6, 1.5, 0, Math.PI * 2)
+  context.fill()
 }
 
 export const drawBasket = (context: CanvasRenderingContext2D, world: World): void => {

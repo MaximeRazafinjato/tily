@@ -5,7 +5,7 @@ import { useAppearanceStore } from '../store/appearanceStore'
 import { useSessionStore } from '../store/sessionStore'
 import { createWorld, resize, type World } from './blobModel'
 import { updateBlob, updateParticles } from './blobPhysics'
-import { drawBasket, drawBlob, drawParticles, drawStains } from './blobRenderer'
+import { drawBasket, drawBlob, drawParticles, drawReticle, drawStains } from './blobRenderer'
 import { placeBasket, updateBasket } from './companionBasket'
 import { startCompanionPointer } from './companionPointer'
 import { clearCompanions, syncCompanions } from './companionSync'
@@ -15,6 +15,7 @@ const LAYER_Z_INDEX = '2147482000'
 const PERCH_REFRESH_MS = 200
 const MAX_STEP_S = 0.05
 const FLOOR_TOLERANCE = 48
+const SNIPER_CLASS = 'tily-companion-sniper'
 const MODAL_SELECTOR = '[role="dialog"], [role="alertdialog"], [role="menu"]'
 
 const companionsOf = (ambiance: AmbianceSettings | null) => (ambiance?.enabled && ambiance.companions.enabled ? ambiance.companions : null)
@@ -44,6 +45,8 @@ const fitLayer = (canvas: HTMLCanvasElement, context: CanvasRenderingContext2D, 
 const draw = (context: CanvasRenderingContext2D, world: World): void => {
   context.clearRect(0, 0, world.width, world.height)
   if (document.querySelector(MODAL_SELECTOR)) {
+    world.sniper = false
+    document.documentElement.classList.remove(SNIPER_CLASS)
     return
   }
   drawStains(context, world)
@@ -53,6 +56,7 @@ const draw = (context: CanvasRenderingContext2D, world: World): void => {
     .sort((a, b) => Number(a === world.dragged) - Number(b === world.dragged) || b.radius - a.radius)
     .forEach((blob) => drawBlob(context, world, blob))
   drawParticles(context, world)
+  drawReticle(context, world)
 }
 
 const mountLayer = (size: number, speed: number, gore: boolean): { world: World; stop: () => void } => {
@@ -89,6 +93,8 @@ const mountLayer = (size: number, speed: number, gore: boolean): { world: World;
     updateBasket(world)
     ;[...world.blobs].forEach((blob) => updateBlob(world, blob, dt))
     updateParticles(world, dt)
+    world.recoil = Math.max(0, world.recoil - dt * 6)
+    world.flash = Math.max(0, world.flash - dt * 12)
     draw(context, world)
   }
   frame = requestAnimationFrame(tick)
@@ -129,6 +135,7 @@ export const startCompanions = (): (() => void) => {
     }
     layer.world.speed = companions.speed / 100
     layer.world.gore = companions.gore
+    layer.world.sniper &&= companions.gore
     if (layer.world.size !== companions.size) {
       layer.world.size = companions.size
       resize(layer.world)
