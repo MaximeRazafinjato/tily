@@ -60,7 +60,7 @@ export function WorkspaceTree({ session, renamingWorkspaceId, renamingTabId, act
   }, [menu])
 
   return (
-    <aside data-surface="paper" className="@container flex h-full min-h-0 flex-col bg-tily-paper" style={{ width: session.sidebar }}>
+    <aside data-surface="paper" data-perch="" data-basket="" className="@container flex h-full min-h-0 flex-col bg-tily-paper" style={{ width: session.sidebar }}>
       <div className="flex h-[36px] shrink-0 items-center gap-[2px] pr-[6px] pl-[12px] text-[11px] font-semibold tracking-[0.06em] text-tily-muted uppercase">
         <span className="flex-1">Workspaces</span>
         <button type="button" className={HEADER_BUTTON} aria-label="Ouvrir un projet" data-tip={openProjectTip} onClick={actions.openProjects}>

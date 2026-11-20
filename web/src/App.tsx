@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { clearSeenCommandNotices } from './terminal/commandNotices'
 import { startAttentionNotifier } from './agents/attentionNotifier'
+import { startCompanions } from './companions/companionLayer'
 import { AMBIANCE_MEDIA_FIELD, AMBIANCE_MEDIA_PICK_FIELD, importAmbianceMedia, receiveAmbiance, startAmbiance } from './ambiance/ambianceActions'
 import { receiveAppearance, receiveAppearanceCatalog, receiveProjects, startAppearanceProjects } from './appearance/appearanceActions'
 import { bridge } from './bridge/bridge'
@@ -70,6 +71,7 @@ export default function App() {
     const stopBrowserLayer = startBrowserLayer()
     const stopAppearanceProjects = startAppearanceProjects()
     const stopAmbiance = startAmbiance()
+    const stopCompanions = startCompanions()
     const { markFailed, markExited, markPathMissing, markAlive } = usePaneStore.getState()
     const subscriptions = [
       bridge.on('app.hello', (message) => {
@@ -247,6 +249,7 @@ export default function App() {
       stopBrowserLayer()
       stopAppearanceProjects()
       stopAmbiance()
+      stopCompanions()
       stopAutosave?.()
       subscriptions.forEach((unsubscribe) => unsubscribe())
     }
