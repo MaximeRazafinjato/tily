@@ -72,7 +72,7 @@ export function GitChangesView({ state, busy, footer }: GitChangesViewProps) {
       select: (row, mode) => {
         setFocusKey(row.key)
         applySelection(rows, row, mode)
-        if (mode === GitSelectMode.Replace && !row.conflict) {
+        if (mode === GitSelectMode.Replace) {
           openChangeRow(row)
         }
       },
@@ -92,7 +92,7 @@ export function GitChangesView({ state, busy, footer }: GitChangesViewProps) {
     setFocusKey(row.key)
     focusGitRow(row.key)
     applySelection(rows, row, extend ? GitSelectMode.Range : GitSelectMode.Replace)
-    if (!extend && !row.conflict) {
+    if (!extend) {
       openChangeRow(row)
     }
   }

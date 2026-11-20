@@ -10,7 +10,7 @@ public sealed class GitOperationRunner
     private readonly Action<object> _post;
     private readonly Action<GitChangeScope> _completed;
     private readonly BackgroundQueue _queue;
-    private static readonly HashSet<string> WorkingTreeOperations = ["git.stage", "git.unstage", "git.discard", "git.stageLines", "git.unstageLines", "git.discardLines", "git.ignore", "git.resolve"];
+    private static readonly HashSet<string> WorkingTreeOperations = ["git.stage", "git.unstage", "git.discard", "git.stageLines", "git.unstageLines", "git.discardLines", "git.ignore", "git.resolve", "git.resolveText", "git.takeSide"];
 
     private readonly ConcurrentDictionary<string, byte> _forceAllowed = new(StringComparer.OrdinalIgnoreCase);
     private readonly GitAutoFetchSchedule _autoFetches = new();
@@ -62,6 +62,8 @@ public sealed class GitOperationRunner
             "git.stashApply" => repository => GitStashTagCommands.ApplyStash(repository, command.Index, command.Commit, command.Pop),
             "git.stashDrop" => repository => GitStashTagCommands.DropStash(repository, command.Index, command.Commit, command.Confirmed),
             "git.resolve" => repository => GitChangeCommands.Resolve(repository, files, command.Confirmed),
+            "git.resolveText" => repository => GitConflictCommands.Write(repository, command.File, command.Content, command.Version, command.Confirmed),
+            "git.takeSide" => repository => GitConflictCommands.Take(repository, command.File, command.Mode, command.Confirmed),
             "git.continue" => repository => GitChangeCommands.Continue(repository, Journal.Get(repository.Root)),
             "git.abort" => repository => GitChangeCommands.Abort(repository, command.Confirmed),
             "git.undo" => repository => GitUndo.Apply(repository, Journal.Get(repository.Root)),

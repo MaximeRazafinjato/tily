@@ -63,7 +63,7 @@ public static class TextFileWriter
         }
     }
 
-    private static (Encoding? Encoding, string Text) Detect(byte[] bytes)
+    public static (Encoding? Encoding, string Text) Detect(byte[] bytes)
     {
         if (bytes.AsSpan().StartsWith(Utf8WithBom.Preamble))
         {
@@ -95,10 +95,10 @@ public static class TextFileWriter
         }
     }
 
-    private static string WithLineEndings(string content, string newLine) =>
+    public static string WithLineEndings(string content, string newLine) =>
         content.Replace(Crlf, Lf, StringComparison.Ordinal).Replace(Cr, Lf, StringComparison.Ordinal).Replace(Lf, newLine, StringComparison.Ordinal);
 
-    private static string? FirstOutsideLatin1(string text)
+    public static string? FirstOutsideLatin1(string text)
     {
         var index = text.AsSpan().IndexOfAnyExceptInRange(char.MinValue, LastLatin1Char);
         return index < 0 ? null : char.IsHighSurrogate(text[index]) && index + 1 < text.Length ? text.Substring(index, 2) : text[index].ToString();
