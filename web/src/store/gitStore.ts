@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { GitHistoryScope, type GitCommitDetails, type GitDiff, type GitDiffSource, type GitHistory, type GitRefKind, type GitState } from '../bridge/gitMessages'
+import { GitHistoryScope, type GitCommitDetails, type GitConflictFile, type GitDiff, type GitDiffSource, type GitHistory, type GitRefKind, type GitState } from '../bridge/gitMessages'
 import type { ActionMenuItem } from '../components/ActionMenu'
 
 export enum GitPromptKind {
@@ -99,6 +99,10 @@ interface GitViewState {
   diff: GitDiff | null
   diffError: string | null
   diffSelection: GitDiffSelection
+  conflictPath: string | null
+  conflictRequest: number
+  conflictFile: GitConflictFile | null
+  conflictError: string | null
   detailsRequest: number
   details: GitCommitDetails | null
   detailsError: string | null
@@ -128,6 +132,8 @@ interface GitViewState {
   clearSelection: () => void
   closeDrawer: () => void
   receiveDiff: (request: number, diff: GitDiff | null, error: string | null) => void
+  showConflict: (path: string, request: number) => void
+  receiveConflict: (request: number, file: GitConflictFile | null, error: string | null) => void
   receiveDetails: (request: number, details: GitCommitDetails | null, error: string | null) => void
   setBusy: (busy: string | null, busyRefs?: string[]) => void
   setFailure: (failure: GitFailure | null) => void
@@ -146,7 +152,8 @@ interface GitViewState {
 }
 
 const emptyDiffSelection: GitDiffSelection = { rows: new Set(), anchor: null, cursor: null }
-const closedDrawer = { file: null, diff: null, diffError: null, diffSelection: emptyDiffSelection }
+const closedConflict = { conflictPath: null, conflictFile: null, conflictError: null }
+const closedDrawer = { file: null, diff: null, diffError: null, diffSelection: emptyDiffSelection, ...closedConflict }
 const noSelection = { ...closedDrawer, commit: null, details: null, detailsError: null }
 const emptySelection: GitSelection = { keys: new Set(), anchor: null }
 
@@ -169,6 +176,7 @@ export const useGitStore = create<GitViewState>()((set) => ({
   reveal: null,
   ...noSelection,
   diffRequest: 0,
+  conflictRequest: 0,
   detailsRequest: 0,
   busy: null,
   busyRefs: [],
@@ -206,8 +214,11 @@ export const useGitStore = create<GitViewState>()((set) => ({
   showFile: (file, diffRequest) =>
     set((current) => {
       const same = current.file?.path === file.path && current.file.source === file.source && current.file.commit === file.commit
-      return { file, diffRequest, diff: same ? current.diff : null, diffError: null, diffSelection: same ? current.diffSelection : emptyDiffSelection, commit: file.commit ? current.commit : null }
+      return { file, diffRequest, diff: same ? current.diff : null, diffError: null, diffSelection: same ? current.diffSelection : emptyDiffSelection, commit: file.commit ? current.commit : null, ...closedConflict }
     }),
+  showConflict: (conflictPath, conflictRequest) =>
+    set((current) => ({ ...closedDrawer, conflictPath, conflictRequest, conflictFile: current.conflictPath === conflictPath ? current.conflictFile : null, commit: null, details: null, detailsError: null })),
+  receiveConflict: (request, conflictFile, conflictError) => set((current) => (current.conflictRequest === request ? { conflictFile, conflictError } : current)),
   showCommit: (commit, detailsRequest) => set({ ...noSelection, commit, detailsRequest }),
   selectWorkingTree: () => set((current) => (current.commit === null ? current : noSelection)),
   clearSelection: () => set(noSelection),

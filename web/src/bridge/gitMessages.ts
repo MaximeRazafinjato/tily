@@ -61,6 +61,28 @@ export enum GitDiffSource {
 export enum GitFailureCode {
   NotMerged = 'notMerged',
   ConflictMarkers = 'conflictMarkers',
+  FileChanged = 'fileChanged',
+}
+
+export enum GitMergeChunkKind {
+  Common = 'common',
+  Ours = 'ours',
+  Theirs = 'theirs',
+  Both = 'both',
+  Conflict = 'conflict',
+}
+
+export enum GitConflictView {
+  Text = 'text',
+  Binary = 'binary',
+  TooLarge = 'tooLarge',
+  Presence = 'presence',
+}
+
+export enum GitConflictResolution {
+  Ours = 'ours',
+  Theirs = 'theirs',
+  Delete = 'delete',
 }
 
 export enum GitResetMode {
@@ -237,6 +259,31 @@ export interface GitDiff {
   patch?: string | null
 }
 
+export interface GitMergeChunk {
+  kind: GitMergeChunkKind
+  ours: string[]
+  theirs: string[]
+  result?: string[] | null
+}
+
+export interface GitConflictSides {
+  ours: string
+  theirs?: string | null
+}
+
+export interface GitConflictFile {
+  path: string
+  kind: GitConflictKind
+  view: GitConflictView
+  sides: GitConflictSides
+  oursExists: boolean
+  theirsExists: boolean
+  chunks: GitMergeChunk[]
+  finalNewline: boolean
+  language?: string | null
+  version?: string | null
+}
+
 export interface GitSettings {
   autoFetch: boolean
 }
@@ -247,6 +294,7 @@ export type GitHostMessage =
   | { type: 'git.history'; history: GitHistory; error?: string }
   | { type: 'git.diff'; request: number; result?: GitDiff; error?: string }
   | { type: 'git.details'; request: number; result?: GitCommitDetails; error?: string }
+  | { type: 'git.conflict'; request: number; result?: GitConflictFile; error?: string }
   | { type: 'git.done'; operation: string; message: string; warning: boolean; output?: string }
   | { type: 'git.failed'; operation: string; message: string; output?: string; code?: GitFailureCode }
   | { type: 'git.pushRejected'; operation: string; branch: string; message: string; output: string }
@@ -260,6 +308,9 @@ export type GitWebMessage =
   | { type: 'git.history'; scope: GitHistoryScope; count: number }
   | { type: 'git.diff'; path: string; request: number; source: GitDiffSource; file: string; oldFile?: string; commit?: string; untracked: boolean }
   | { type: 'git.details'; path: string; request: number; commit: string }
+  | { type: 'git.conflict'; path: string; request: number; file: string }
+  | { type: 'git.resolveText'; path: string; file: string; content: string; version: string | null; confirmed: boolean }
+  | { type: 'git.takeSide'; path: string; file: string; mode: GitConflictResolution; confirmed: boolean }
   | { type: 'git.stage' | 'git.unstage' | 'git.ignore'; path: string; files: string[] }
   | { type: 'git.discard'; path: string; files: string[]; confirmed: boolean }
   | { type: 'git.stageLines' | 'git.unstageLines' | 'git.discardLines'; path: string; file: string; untracked: boolean; fingerprint: string; selection: GitHunkSelection[]; confirmed: boolean }

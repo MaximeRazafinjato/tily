@@ -46,6 +46,7 @@ import { GitConfirmDialog } from './GitConfirmDialog'
 import { GitContextMenu } from './GitContextMenu'
 import { LazyFilePreview } from './LazyFilePreview'
 import { UnsavedPreviewDialog } from './UnsavedPreviewDialog'
+import { GitConflictDrawer } from './GitConflictDrawer'
 import { GitDiffDrawer } from './GitDiffDrawer'
 import { GitGraphView } from './GitGraphView'
 import { Header } from './Header'
@@ -356,6 +357,7 @@ export function AppShell({ session }: AppShellProps) {
           <SplitView key={currentTab.id} node={zoomedPane ? { pane: zoomedPane } : currentTab.tree} zoomed={zoomedPane !== undefined} onToggleZoom={togglePaneZoom} activePaneId={currentTab.active} onFocus={selectPane} onClose={closePaneKeepingText} onSplit={handleSplit} onResize={handleResize} shells={availableShells} onRestart={restartPane} onRestartIn={restartPaneIn} onChangeShell={changePaneShell} onDismissState={dismissPaneState} />
           {graphShown && <GitGraphView layout={session.gitGraph} />}
           {gitShown && <GitDiffDrawer />}
+          {gitShown && <GitConflictDrawer />}
           {filesShown && <LazyFilePreview />}
           {gitShown && <GitContextMenu />}
         </div>

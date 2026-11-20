@@ -217,6 +217,9 @@ public static class GitChangeCommands
             return false;
         }
 
-        return File.ReadLines(path).Any(line => ConflictMarkers.Any(marker => line.StartsWith(marker, StringComparison.Ordinal) && (line.Length == marker.Length || line[marker.Length] == ' ')));
+        return ContainsConflictMarkers(File.ReadLines(path));
     }
+
+    public static bool ContainsConflictMarkers(IEnumerable<string> lines) =>
+        lines.Any(line => ConflictMarkers.Any(marker => line.StartsWith(marker, StringComparison.Ordinal) && (line.Length == marker.Length || line[marker.Length] == ' ')));
 }
