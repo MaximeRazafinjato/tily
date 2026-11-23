@@ -152,9 +152,9 @@ Le tiroir du journal porte une bascule « Avertissements et erreurs » qui n’a
 | WS-07 | Mémoriser les états déplié/replié, la largeur et la visibilité du panneau. |
 | WS-08 | Permettre de masquer entièrement le panneau et de le réafficher via le bouton toujours accessible dans l’en-tête ou la palette. |
 | WS-09 | Redimensionner le panneau en faisant glisser son séparateur ; conserver sa largeur après masquage. |
-| WS-10 | Afficher au bas du panneau un encart « Activité », replié par défaut : processeur et mémoire de Tily et de chaque onglet, détaillés par catégorie (Claude, commandes de Claude, serveurs MCP, terminal) et par processus. |
+| WS-10 | Afficher au bas du panneau un encart « Activité », replié par défaut : processeur et mémoire de Tily et de chaque onglet, détaillés par catégorie (Claude, commandes de Claude, serveurs MCP, terminal). |
 
-L’encart « Activité » ne mesure que déplié (toutes les 2 secondes). Un onglet se déplie pour montrer sa répartition par catégorie et l’arbre de ses processus ; la barre sous chaque ligne indique sa part de la mémoire totale. Le processeur est une part de la machine entière, la mémoire l’espace de travail de chaque processus.
+L’encart « Activité » ne mesure que déplié (toutes les 2 secondes). Un onglet se déplie pour montrer sa répartition par catégorie ; la barre sous chaque ligne indique sa part de la mémoire totale. Le processeur est une part de la machine entière, la mémoire l’espace de travail de chaque processus.
 
 Quand le panneau est masqué, l’en-tête montre à sa place la bande des workspaces : un bouton par workspace, avec ses états d’agents et l’indication de fin de commande ; un clic l’active, un double-clic ou F2 le renomme, et ceux qui débordent passent dans le menu « Autres workspaces ».
 

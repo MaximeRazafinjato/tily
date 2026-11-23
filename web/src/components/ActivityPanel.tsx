@@ -13,14 +13,10 @@ interface ActivityPanelProps {
   session: Session
 }
 
-const PROCESS_INDENT = 10
-
-function UsageLine({ label, value, indent = 0 }: { label: string; value: string; indent?: number }) {
+function UsageLine({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-baseline gap-[6px]">
-      <span className="min-w-0 flex-1 truncate" style={{ paddingLeft: indent }}>
-        {label}
-      </span>
+      <span className="min-w-0 flex-1 truncate">{label}</span>
       <span className="shrink-0 text-tily-muted tabular-nums">{value}</span>
     </div>
   )
@@ -66,30 +62,23 @@ export function ActivityPanel({ session }: ActivityPanelProps) {
               <CategoryLines processes={host} categories={HOST_CATEGORIES} />
             </ActivityRow>
           )}
-          {tabs.map((tab) => {
-            const minimumDepth = Math.min(...tab.processes.map((process) => process.depth))
-            return (
-              <ActivityRow
-                key={tab.id}
-                label={
-                  <>
-                    <span aria-hidden="true" className="size-[7px] shrink-0 rounded-full bg-tily-muted" style={tab.color ? { backgroundColor: tab.color } : undefined} />
-                    <span className="truncate">{tab.label}</span>
-                  </>
-                }
-                usage={tab.usage}
-                share={ramShare(tab.usage, total)}
-                open={open.includes(tab.id)}
-                onToggle={() => toggleOpen(tab.id)}
-              >
-                <CategoryLines processes={tab.processes} categories={PANE_CATEGORIES} />
-                <div className="mt-[4px] text-[10px] font-semibold tracking-[0.06em] text-tily-muted uppercase">Processus</div>
-                {tab.processes.map((process) => (
-                  <UsageLine key={process.id} label={process.name} value={formatUsage(process)} indent={(process.depth - minimumDepth) * PROCESS_INDENT} />
-                ))}
-              </ActivityRow>
-            )
-          })}
+          {tabs.map((tab) => (
+            <ActivityRow
+              key={tab.id}
+              label={
+                <>
+                  <span aria-hidden="true" className="size-[7px] shrink-0 rounded-full bg-tily-muted" style={tab.color ? { backgroundColor: tab.color } : undefined} />
+                  <span className="truncate">{tab.label}</span>
+                </>
+              }
+              usage={tab.usage}
+              share={ramShare(tab.usage, total)}
+              open={open.includes(tab.id)}
+              onToggle={() => toggleOpen(tab.id)}
+            >
+              <CategoryLines processes={tab.processes} categories={PANE_CATEGORIES} />
+            </ActivityRow>
+          ))}
         </div>
       )}
     </section>
