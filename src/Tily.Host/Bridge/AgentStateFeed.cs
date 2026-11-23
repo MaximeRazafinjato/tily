@@ -12,7 +12,7 @@ public sealed class AgentStateFeed : IDisposable
     private static readonly TimeSpan ChangeDelay = TimeSpan.FromMilliseconds(150);
 
     private readonly TerminalManager _terminals;
-    private readonly Action<object> _post;
+    private readonly Action<IReadOnlyList<PaneAgentModel>> _publish;
     private readonly AgentStateRepository _states;
     private readonly AgentMonitor _monitor;
     private readonly FileSystemWatcher _watcher;
@@ -22,10 +22,10 @@ public sealed class AgentStateFeed : IDisposable
     private bool _disposed;
     private string _lastPosted = string.Empty;
 
-    public AgentStateFeed(string dataDirectory, TerminalManager terminals, Action<object> post)
+    public AgentStateFeed(string dataDirectory, TerminalManager terminals, Action<IReadOnlyList<PaneAgentModel>> publish)
     {
         _terminals = terminals;
-        _post = post;
+        _publish = publish;
         _states = new AgentStateRepository(dataDirectory);
         _states.Clear();
         Directory.CreateDirectory(_states.Directory);
@@ -99,7 +99,7 @@ public sealed class AgentStateFeed : IDisposable
             }
 
             _lastPosted = json;
-            _post(new { type = "agent.states", panes = agents });
+            _publish(agents);
         }
         catch (Exception exception) when (exception is Win32Exception or IOException or UnauthorizedAccessException or InvalidOperationException)
         {

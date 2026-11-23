@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
-import { useSessionStore } from '../store/sessionStore'
 import type { GitConflictFile } from '../bridge/gitMessages'
 import { resultContent, ConflictSide, sideTitle } from '../git/conflictLayout'
-import { createConflictMerge, type ConflictMergeController } from '../git/conflictMerge'
+import { createConflictMerge, type ConflictMergeController, type SideChecks } from '../git/conflictMerge'
+import { PickCheck } from '../git/conflictPicks'
 import { markConflictDirty, saveConflictResult } from '../git/gitConflictActions'
 import { plural } from '../git/gitLabels'
+import { GitConflictSideTitle } from './GitConflictSideTitle'
 import { GitToolButton } from './GitToolButton'
 import { IconName } from './iconName'
 import { GIT_PRIMARY } from './rightPanelStyles'
@@ -13,14 +14,9 @@ interface GitConflictMergeProps {
   file: GitConflictFile
 }
 
-const PANE = 'flex min-h-0 min-w-0 flex-col border-tily-line'
-const PANE_TITLE = 'shrink-0 truncate border-b border-tily-line bg-tily-paper px-[12px] py-[4px] text-[11px] font-semibold text-tily-muted'
+const PANE = 'flex min-h-0 min-w-0 flex-1 flex-col border-tily-line'
 const EDITOR = 'min-h-0 flex-1 overflow-hidden'
-
-const handleToggleRows = () => {
-  const { session, setGitGraphLayout } = useSessionStore.getState()
-  setGitGraphLayout({ conflictRows: !session?.gitGraph.conflictRows })
-}
+const NO_CHECKS: SideChecks = { [ConflictSide.Ours]: PickCheck.Unchecked, [ConflictSide.Theirs]: PickCheck.Unchecked }
 
 const saveFrom = (controller: ConflictMergeController | null, finalNewline: boolean): void => {
   if (controller) {
@@ -35,7 +31,7 @@ export function GitConflictMerge({ file }: GitConflictMergeProps) {
   const controllerRef = useRef<ConflictMergeController | null>(null)
   const [unresolved, setUnresolved] = useState(0)
   const [total, setTotal] = useState(0)
-  const rows = useSessionStore((store) => store.session?.gitGraph.conflictRows ?? false)
+  const [checks, setChecks] = useState<SideChecks>(NO_CHECKS)
 
   useEffect(() => {
     const [ours, result, theirs] = [oursRef.current, resultRef.current, theirsRef.current]
@@ -43,7 +39,7 @@ export function GitConflictMerge({ file }: GitConflictMergeProps) {
       return
     }
     const save = () => saveFrom(controllerRef.current, file.finalNewline)
-    const controller = createConflictMerge({ ours, result, theirs }, file, { onStatus: setUnresolved, onChange: markConflictDirty, onSave: save })
+    const controller = createConflictMerge({ ours, result, theirs }, file, { onStatus: setUnresolved, onSides: setChecks, onChange: markConflictDirty, onSave: save })
     controllerRef.current = controller
     setTotal(controller.total)
     return () => {
@@ -55,38 +51,33 @@ export function GitConflictMerge({ file }: GitConflictMergeProps) {
   const handlePrevious = () => controllerRef.current?.previous()
   const handleNext = () => controllerRef.current?.next()
   const handleSave = () => saveFrom(controllerRef.current, file.finalNewline)
-  const separator = rows ? 'border-t' : 'border-l'
+  const handleToggleSide = (side: ConflictSide) => controllerRef.current?.toggleSide(side)
   const status = unresolved > 0 ? `${plural(unresolved, 'conflit', 'conflits')} sur ${total} à résoudre` : total > 0 ? 'Tous les conflits sont résolus' : 'Aucun bloc en conflit'
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div className="flex h-[36px] shrink-0 items-center gap-[4px] border-b border-tily-line px-[8px]">
-        <GitToolButton icon={IconName.Chevron} iconClassName="-rotate-90" tip="Conflit précédent (Maj+F7)" disabled={total === 0} onClick={handlePrevious} />
-        <GitToolButton icon={IconName.Chevron} iconClassName="rotate-90" tip="Conflit suivant (F7)" disabled={total === 0} onClick={handleNext} />
-        <span className={`min-w-0 flex-1 truncate pl-[4px] text-[12px] ${unresolved > 0 ? 'text-tily-warning' : 'text-tily-green-deep'}`}>{status}</span>
-        <GitToolButton icon={IconName.Columns} iconClassName={rows ? 'rotate-90' : undefined} tip={rows ? 'Afficher en colonnes' : 'Afficher en lignes'} onClick={handleToggleRows} />
-        <button type="button" className={GIT_PRIMARY} aria-disabled={unresolved > 0} data-tip={unresolved > 0 ? 'Résolvez d’abord tous les conflits' : 'Enregistrer le résultat et marquer le fichier résolu (Ctrl+S)'} onClick={handleSave}>
-          Enregistrer et marquer résolu
-        </button>
-      </div>
-      <div className={`grid min-h-0 flex-1 ${rows ? 'grid-rows-3' : 'grid-cols-3'}`}>
+      <div className="flex min-h-0 flex-1">
         <section className={PANE}>
-          <span className={PANE_TITLE} data-tip={sideTitle(ConflictSide.Ours, file.sides)}>
-            {sideTitle(ConflictSide.Ours, file.sides)}
-          </span>
+          <GitConflictSideTitle side={ConflictSide.Ours} title={sideTitle(ConflictSide.Ours, file.sides)} check={checks[ConflictSide.Ours]} disabled={total === 0} onToggle={handleToggleSide} />
           <div ref={oursRef} className={EDITOR} />
         </section>
-        <section className={`${PANE} ${separator}`}>
-          <span className={`${PANE_TITLE} text-tily-ink`}>Résultat</span>
-          <div ref={resultRef} className={EDITOR} />
-        </section>
-        <section className={`${PANE} ${separator}`}>
-          <span className={PANE_TITLE} data-tip={sideTitle(ConflictSide.Theirs, file.sides)}>
-            {sideTitle(ConflictSide.Theirs, file.sides)}
-          </span>
+        <section className={`${PANE} border-l`}>
+          <GitConflictSideTitle side={ConflictSide.Theirs} title={sideTitle(ConflictSide.Theirs, file.sides)} check={checks[ConflictSide.Theirs]} disabled={total === 0} onToggle={handleToggleSide} />
           <div ref={theirsRef} className={EDITOR} />
         </section>
       </div>
+      <section className={`${PANE} border-t`}>
+        <div className="flex h-[36px] shrink-0 items-center gap-[4px] border-b border-tily-line bg-tily-paper px-[8px]">
+          <span className="shrink-0 pl-[4px] text-[12px] font-semibold text-tily-ink">Résultat</span>
+          <span className={`min-w-0 flex-1 truncate pl-[8px] text-[12px] ${unresolved > 0 ? 'text-tily-warning' : 'text-tily-green-deep'}`}>{status}</span>
+          <GitToolButton icon={IconName.Chevron} iconClassName="-rotate-90" tip="Conflit précédent (Maj+F7)" disabled={total === 0} onClick={handlePrevious} />
+          <GitToolButton icon={IconName.Chevron} iconClassName="rotate-90" tip="Conflit suivant (F7)" disabled={total === 0} onClick={handleNext} />
+          <button type="button" className={`${GIT_PRIMARY} ml-[4px]`} aria-disabled={unresolved > 0} data-tip={unresolved > 0 ? 'Résolvez d’abord tous les conflits' : 'Enregistrer le résultat et marquer le fichier résolu (Ctrl+S)'} onClick={handleSave}>
+            Enregistrer et marquer résolu
+          </button>
+        </div>
+        <div ref={resultRef} className={EDITOR} />
+      </section>
     </div>
   )
 }

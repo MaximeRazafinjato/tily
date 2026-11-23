@@ -31,6 +31,7 @@ export interface PaneActivityView {
 export interface CloseConfirmation {
   title: string
   panes: PaneActivityView[]
+  detachedTabs: string[]
   confirmLabel?: string
 }
 
@@ -40,6 +41,7 @@ interface UiState {
   renamingTabId: string | null
   tabRenameOrigin: RenameOrigin
   draggingTabId: string | null
+  draggingPaneId: string | null
   tabDropTarget: TabDropTarget | null
   paneDropTarget: PaneDropTarget | null
   springWorkspaceIds: string[]
@@ -67,6 +69,8 @@ interface UiState {
   setPaneDropTarget: (target: PaneDropTarget | null) => void
   openSpringWorkspace: (workspaceId: string) => void
   stopDraggingTab: () => void
+  startDraggingPane: (paneId: string) => void
+  stopDraggingPane: () => void
   startDraggingWorkspace: (workspaceId: string) => void
   setWorkspaceDropTarget: (target: WorkspaceDropTarget | null) => void
   stopDraggingWorkspace: () => void
@@ -81,6 +85,7 @@ export const useUiStore = create<UiState>()((set) => ({
   renamingTabId: null,
   tabRenameOrigin: RenameOrigin.TabBar,
   draggingTabId: null,
+  draggingPaneId: null,
   tabDropTarget: null,
   paneDropTarget: null,
   springWorkspaceIds: [],
@@ -109,6 +114,8 @@ export const useUiStore = create<UiState>()((set) => ({
   openSpringWorkspace: (workspaceId) =>
     set((state) => (state.springWorkspaceIds.includes(workspaceId) ? state : { springWorkspaceIds: [...state.springWorkspaceIds, workspaceId] })),
   stopDraggingTab: () => set({ draggingTabId: null, tabDropTarget: null, paneDropTarget: null, springWorkspaceIds: [] }),
+  startDraggingPane: (draggingPaneId) => set({ draggingPaneId, tabDropTarget: null, paneDropTarget: null, springWorkspaceIds: [] }),
+  stopDraggingPane: () => set({ draggingPaneId: null, tabDropTarget: null, paneDropTarget: null, springWorkspaceIds: [] }),
   startDraggingWorkspace: (draggingWorkspaceId) => set({ draggingWorkspaceId, workspaceDropTarget: null }),
   setWorkspaceDropTarget: (workspaceDropTarget) => set({ workspaceDropTarget }),
   stopDraggingWorkspace: () => set({ draggingWorkspaceId: null, workspaceDropTarget: null }),

@@ -23,7 +23,7 @@ const EXTRA_LANGUAGES = new Map([
   ['psd1', 'powershell'],
 ])
 
-const MAX_HIGHLIGHTED_CHARS = 256 * 1024
+export const MAX_HIGHLIGHTED_CHARS = 256 * 1024
 const PLAIN_TEXT = 'plaintext'
 const OLD_SIDE = new Set([GitDiffLineKind.Context, GitDiffLineKind.Removed])
 const NEW_SIDE = new Set([GitDiffLineKind.Context, GitDiffLineKind.Added])
@@ -47,7 +47,7 @@ export const loadDiffHighlighter = (): Promise<Highlighter> => {
   return loading
 }
 
-const languageOf = ({ hljs }: Highlighter, path: string): string | null => {
+export const highlightLanguageOf = ({ hljs }: Highlighter, path: string): string | null => {
   const name = path.slice(Math.max(path.lastIndexOf('/'), path.lastIndexOf('\\')) + 1).toLowerCase()
   const extension = name.slice(name.lastIndexOf('.') + 1)
   const language = EXTRA_LANGUAGES.get(extension) ?? extension
@@ -93,7 +93,7 @@ const hunkLines = (rows: DiffRow[]): number[][] => {
 }
 
 export const highlightDiffRows = (highlighter: Highlighter, path: string, rows: DiffRow[]): (string | undefined)[] | null => {
-  const language = languageOf(highlighter, path)
+  const language = highlightLanguageOf(highlighter, path)
   if (!language || rows.reduce((size, row) => size + row.text.length + 1, 0) > MAX_HIGHLIGHTED_CHARS) {
     return null
   }

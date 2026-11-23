@@ -11,7 +11,7 @@ public sealed class McpFeed : IDisposable
     private const string Starting = "Tily démarre encore : réessayez dans un instant.";
 
     private readonly string _pipeName;
-    private readonly Action<object> _post;
+    private readonly Action<string?, object> _postToPane;
     private readonly Action<Exception> _fail;
     private readonly ConcurrentDictionary<string, TaskCompletionSource<McpPipeResponseModel>> _pending = new();
     private readonly object _serverLock = new();
@@ -20,10 +20,10 @@ public sealed class McpFeed : IDisposable
     private string? _error;
     private volatile bool _ready;
 
-    public McpFeed(string dataDirectory, Action<object> post, Action<Exception> fail)
+    public McpFeed(string dataDirectory, Action<string?, object> postToPane, Action<Exception> fail)
     {
         _pipeName = McpEndpoint.PipeName(dataDirectory);
-        _post = post;
+        _postToPane = postToPane;
         _fail = fail;
         Installer = new ClaudeMcpInstaller(Path.Combine(AppContext.BaseDirectory, ClaudeMcpInstaller.ExecutableName));
     }
@@ -115,7 +115,7 @@ public sealed class McpFeed : IDisposable
         McpPipeResponseModel response;
         try
         {
-            _post(new { type = "mcp.request", id, tool = request.Tool, pane = request.Pane, arguments = request.Arguments });
+            _postToPane(request.Pane, new { type = "mcp.request", id, tool = request.Tool, pane = request.Pane, arguments = request.Arguments });
             response = await answer.Task.WaitAsync(AnswerTimeoutOf(request), token);
         }
         catch (TimeoutException)

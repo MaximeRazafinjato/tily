@@ -1,6 +1,7 @@
 import { bridge } from '../bridge/bridge'
 import { allPanes, panesOf, type Pane, type Session } from '../model/session'
 import { useSessionStore } from '../store/sessionStore'
+import { isDetachedWindow } from '../store/windowStore'
 import { RestoreKind, terminalRegistry } from './terminalRegistry'
 
 const IDLE_TIMEOUT_MS = 1000
@@ -23,7 +24,7 @@ const collectSnapshot = (paneId: string): void => {
 
 const sendTextSave = (): void => {
   const { session } = useSessionStore.getState()
-  if (!session) {
+  if (!session || isDetachedWindow()) {
     return
   }
   const keep = [...allPanes(session), ...closedPanes(session)].map((pane) => pane.id)
@@ -109,7 +110,7 @@ export const startTextAutosave = (intervalSeconds: number): (() => void) => {
 
 export const closeApplication = (): void => {
   const { session } = useSessionStore.getState()
-  if (session) {
+  if (session && !isDetachedWindow()) {
     bridge.send({ type: 'session.save', session })
   }
   saveTextNow()

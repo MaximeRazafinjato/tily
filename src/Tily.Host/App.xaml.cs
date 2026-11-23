@@ -1,6 +1,8 @@
 using Tily.Core.Agents;
 using Tily.Core.Mcp;
 using Tily.Core.Updates;
+using Tily.Host.Bridge;
+using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using Microsoft.Win32;
 
@@ -12,6 +14,7 @@ public partial class App : Application
 
     public static string DataDirectory { get; } = ResolveDataDirectory();
 
+    private HostServices? _services;
     private Window? _window;
 
     public App()
@@ -29,8 +32,18 @@ public partial class App : Application
             return;
         }
 
-        _window = new MainWindow();
+        var services = new HostServices(DispatcherQueue.GetForCurrentThread(), DataDirectory);
+        services.OpenDetached = placement => OpenDetachedWindow(services, placement);
+        _services = services;
+        _window = new TilyWindow(services, WindowRole.Main, null);
         _window.Activate();
+    }
+
+    private static HostBridge OpenDetachedWindow(HostServices services, DetachedPlacementModel placement)
+    {
+        var window = new TilyWindow(services, WindowRole.Detached, placement);
+        window.Activate();
+        return window.Bridge;
     }
 
     private static bool IsOtherChannelInstalled()

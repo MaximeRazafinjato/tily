@@ -55,5 +55,11 @@ public sealed class PaneOutputBuffer
         }
     }
 
+    public void ResetFlow()
+    {
+        Interlocked.Exchange(ref _unackedChars, 0);
+        _flowGate.Set();
+    }
+
     public void Release() => _flowGate.Set();
 }

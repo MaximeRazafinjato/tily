@@ -11,13 +11,17 @@ import { disposeMissingBrowsers, startBrowserLayer } from './browser/browserLaye
 import { dispatchReply } from './bridge/requestListeners'
 import { AppShell } from './components/AppShell'
 import { receiveMcpRequest } from './mcp/mcpRequests'
-import { allPanes, restoredSessionLabel } from './model/session'
+import { allPanes, emptySession, restoredSessionLabel } from './model/session'
 import { forgetMissingNoteHistories } from './notes/noteHistory'
 import { useAgentStore } from './store/agentStore'
 import { StatusLevel, useHostStore } from './store/hostStore'
 import { usePaneStore } from './store/paneStore'
 import { useSessionStore } from './store/sessionStore'
 import { useUiStore } from './store/uiStore'
+import { isDetachedWindow, useWindowStore } from './store/windowStore'
+import { applyPendingTransfers, receiveTransfer } from './window/windowReceive'
+import { receiveDragLeave, receiveDragOver } from './window/windowDrag'
+import { showWorkspaceNote, startLinkedNoteSync, startWindowSync } from './window/windowSync'
 import { receiveActivity, receiveApplicationClosing } from './terminal/closeGuard'
 import { receiveQueriedActivity } from './terminal/paneActivity'
 import { queryContext, receiveContext } from './terminal/contextActions'
@@ -55,6 +59,7 @@ import { useStatusLogStore } from './store/statusLogStore'
 import { forgetRemovedText, markTextSaveFailed, primeSessionText, startTextAutosave } from './terminal/textPersistence'
 
 const SAVE_DEBOUNCE_MS = 500
+const DETACHED_STATUS = 'Fenêtre détachée : rien n’y est enregistré, les Paramètres restent dans la fenêtre principale.'
 
 export default function App() {
   const session = useSessionStore((state) => state.session)
@@ -73,9 +78,13 @@ export default function App() {
     const stopAppearanceProjects = startAppearanceProjects()
     const stopAmbiance = startAmbiance()
     const stopCompanions = startCompanions()
+    const stopWindowSync = startWindowSync()
+    const stopLinkedNoteSync = startLinkedNoteSync()
     const { markFailed, markExited, markPathMissing, markAlive } = usePaneStore.getState()
     const subscriptions = [
       bridge.on('app.hello', (message) => {
+        useWindowStore.getState().setWindow(message.window)
+        const session = message.session ?? emptySession()
         setHello(message.version, message.name, message.shells, message.home, message.persistence)
         receiveAppearanceCatalog(message.theme)
         useShortcutStore.getState().setShortcuts(message.shortcuts)
@@ -83,15 +92,20 @@ export default function App() {
         terminalRegistry.configure(message.persistence.linesPerPane)
         terminalRegistry.setFontSize(message.appearance.fontSize)
         receiveAmbiance(message.appearance.ambiance)
-        primeSessionText(message.session, message.text)
+        primeSessionText(session, message.text)
         void document.fonts.load('14px "Symbols Nerd Font Mono"').then(() => {
-          load(message.session)
+          load(session)
+          applyPendingTransfers()
+          if (message.window.detached) {
+            setStatus(DETACHED_STATUS)
+            return
+          }
           stopAutosave?.()
           stopAutosave = startTextAutosave(message.persistence.textIntervalSeconds)
           if (message.recovery) {
             setStatus(message.recovery, StatusLevel.Warning)
           } else {
-            setStatus(`Session restaurée${restoredSessionLabel(message.session)} : nouveaux shells, aucune commande rejouée.`)
+            setStatus(`Session restaurée${restoredSessionLabel(session)} : nouveaux shells, aucune commande rejouée.`)
           }
         })
       }),
@@ -115,6 +129,10 @@ export default function App() {
         terminalRegistry.configure(message.persistence.linesPerPane)
         terminalRegistry.setFontSize(message.settings.appearance.fontSize)
         receiveAmbiance(message.settings.appearance.ambiance)
+        if (isDetachedWindow()) {
+          setStatus('Réglages de la fenêtre principale appliqués.')
+          return
+        }
         stopAutosave?.()
         stopAutosave = startTextAutosave(message.persistence.textIntervalSeconds)
         useUiStore.getState().closeSettings()
@@ -143,7 +161,15 @@ export default function App() {
         setImportedPreferences({ settings: message.settings, path: message.path, warnings: message.warnings })
         setStatus(`Préférences lues depuis ${message.path} : Enregistrer remplace la configuration actuelle.`)
       }),
-      bridge.on('app.closing', (message) => receiveApplicationClosing(message.activity)),
+      bridge.on('app.closing', (message) => receiveApplicationClosing(message.activity, message.detached)),
+      bridge.on('window.receive', receiveTransfer),
+      bridge.on('window.transferred', (message) => dispatchReply(message.type, message.request, message)),
+      bridge.on('terminal.held', (message) => dispatchReply(message.type, message.request, message)),
+      bridge.on('window.detached', (message) => useWindowStore.getState().setDetachedTabs(message.tabs)),
+      bridge.on('window.mainWorkspaces', (message) => useWindowStore.getState().setMainWorkspaces(message.workspaces)),
+      bridge.on('window.showNote', (message) => showWorkspaceNote(message.workspace)),
+      bridge.on('window.dragOver', (message) => receiveDragOver(message.x, message.y, message.single)),
+      bridge.on('window.dragLeave', receiveDragLeave),
       bridge.on('terminal.activityResult', (message) => {
         if (!receiveQueriedActivity(message.request, message.panes)) {
           receiveActivity(message.panes)
@@ -253,6 +279,8 @@ export default function App() {
       stopAppearanceProjects()
       stopAmbiance()
       stopCompanions()
+      stopWindowSync()
+      stopLinkedNoteSync()
       stopAutosave?.()
       subscriptions.forEach((unsubscribe) => unsubscribe())
     }
@@ -270,6 +298,9 @@ export default function App() {
       forgetMissingNoteHistories(new Set(state.session.workspaces.map((workspace) => workspace.id)))
       clearSeenCommandNotices()
       clearTimeout(timer)
+      if (isDetachedWindow()) {
+        return
+      }
       timer = setTimeout(() => {
         bridge.send({ type: 'session.save', session: state.session! })
         if (removed) {

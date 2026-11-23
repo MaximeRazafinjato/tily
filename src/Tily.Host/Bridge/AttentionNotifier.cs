@@ -22,8 +22,11 @@ public sealed class AttentionNotifier : IDisposable
     private ToastNotifier? _toastNotifier;
     private string? _registrationError;
 
-    public AttentionNotifier(DispatcherQueue dispatcher, nint windowHandle, Action<string> join)
+    private readonly bool _ownsHistory;
+
+    public AttentionNotifier(DispatcherQueue dispatcher, nint windowHandle, Action<string> join, bool ownsHistory)
     {
+        _ownsHistory = ownsHistory;
         _dispatcher = dispatcher;
         _windowHandle = windowHandle;
         _join = join;
@@ -155,7 +158,17 @@ public sealed class AttentionNotifier : IDisposable
 
         try
         {
-            ToastNotificationManager.History.RemoveGroup(ToastGroup, ApplicationUserModelId);
+            if (_ownsHistory)
+            {
+                ToastNotificationManager.History.RemoveGroup(ToastGroup, ApplicationUserModelId);
+            }
+            else
+            {
+                foreach (var paneId in _shown.Keys)
+                {
+                    ToastNotificationManager.History.Remove(ToastTag(paneId), ToastGroup, ApplicationUserModelId);
+                }
+            }
         }
         catch (Exception exception) when (exception is System.Runtime.InteropServices.COMException or UnauthorizedAccessException)
         {
