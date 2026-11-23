@@ -35,6 +35,7 @@ public sealed class HostServices : IDisposable
         PreviewRequests = new PreviewRequestFeed(dataDirectory, PostToPane);
         Updates = new UpdateFeed(message => Main?.Post(message), ApplicationVersion, dataDirectory);
         Mcp = new McpFeed(dataDirectory, PostToPane, exception => Main?.PostError(exception));
+        Activity = new ActivityFeed(Terminals, message => Main?.Post(message));
         ApplySharedSettings(Settings);
     }
 
@@ -55,6 +56,8 @@ public sealed class HostServices : IDisposable
     public AgentStateFeed Agents { get; }
 
     public PreviewRequestFeed PreviewRequests { get; }
+
+    public ActivityFeed Activity { get; }
 
     public UpdateFeed Updates { get; }
 
@@ -236,6 +239,7 @@ public sealed class HostServices : IDisposable
         Agents.Dispose();
         PreviewRequests.Dispose();
         Mcp.Dispose();
+        Activity.Dispose();
         Panes.ReleaseAll();
         Terminals.Dispose();
         Updates.LaunchPendingInstaller();

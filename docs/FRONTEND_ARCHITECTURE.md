@@ -267,6 +267,10 @@ Outils du serveur MCP calculés côté interface (section 11 de la spec), un mod
 - Toute date rendue passe par `localIsoTime` (`mcpTime.ts`), y compris le `at` des journaux navigateur horodatés par l’hôte : ISO 8601 à l’heure locale avec décalage, à la milliseconde.
 - Outils navigateur : sans pane indiqué, le dernier navigateur ouvert ou désigné par l'agent, sinon son dernier navigateur, sinon le seul de son onglet ou de Tily ; un navigateur jamais affiché est refusé. Les actions dans la page (`mcpBrowserInput.ts`) relaient l'élément visé et leurs options à l'hôte, qui les exécute.
 
+### `src/activity/`
+
+`activityView.ts` (spec WS-10) : regroupe les mesures par onglet d'après la session (panes de l'onglet), somme le processeur et la mémoire, formate les valeurs et classe par catégorie. `ActivityPanel` (bas de `WorkspaceTree`) s'abonne par `activity.subscribe` tant qu'il est déplié et se désabonne en se repliant ; `activityStore` garde l'état déplié, les lignes ouvertes et la dernière mesure, sans persistance : l'encart est replié à chaque lancement.
+
 ### `src/statusLog/`
 
 `statusLogActions.ts` (section 3 de la spec) : `startStatusLog` observe `hostStore.status` et envoie `statusLog.append` pour chaque nouveau message, sans toucher aux appelants de `setStatus` ; l'hôte horodate et renvoie l'entrée. Le journal garde 500 entrées, comme l'hôte.

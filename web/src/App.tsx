@@ -54,6 +54,7 @@ import { terminalRegistry } from './terminal/terminalRegistry'
 import { receiveReleaseHistory, receiveUpdateRestart, receiveUpdateState } from './update/updateActions'
 import { receiveStatusLogCleared, receiveStatusLogEntry, startStatusLog } from './statusLog/statusLogActions'
 import { useShortcutStore } from './store/shortcutStore'
+import { useActivityStore } from './store/activityStore'
 import { useStatusLogStore } from './store/statusLogStore'
 import { forgetRemovedText, markTextSaveFailed, primeSessionText, startTextAutosave } from './terminal/textPersistence'
 
@@ -245,6 +246,7 @@ export default function App() {
       bridge.on('update.history', (message) => receiveReleaseHistory(message)),
       bridge.on('statusLog.added', (message) => receiveStatusLogEntry(message.entry)),
       bridge.on('statusLog.cleared', receiveStatusLogCleared),
+      bridge.on('activity.state', (message) => useActivityStore.getState().setUsage(message.panes, message.host)),
       bridge.on('mcp.request', (message) => void receiveMcpRequest(message)),
       bridge.on('browser.state', (message) => receiveBrowserState(message.state)),
       bridge.on('browser.newPane', (message) => receiveNewBrowserPane(message.pane, message.url)),

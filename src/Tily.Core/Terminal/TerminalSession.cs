@@ -54,6 +54,8 @@ public sealed class TerminalSession : IDisposable
 
     public IReadOnlyList<int> JobProcessIds() => _job.ProcessIds();
 
+    public IReadOnlyList<int> LiveProcessIds() => HasExited || Volatile.Read(ref _closed) == 1 ? Array.Empty<int>() : _job.ProcessIds();
+
     public IReadOnlyList<string> ActiveProcessNames() => NamesOf(ActiveProcesses());
 
     public static IReadOnlyList<string> NamesOf(IEnumerable<ActiveProcessModel> processes) =>
