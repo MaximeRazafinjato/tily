@@ -18,17 +18,19 @@ export interface TabUsage {
 export const HOST_ROW_ID = 'host'
 export const CATEGORY_LABELS: Record<ProcessCategory, string> = {
   [ProcessCategory.Claude]: 'Claude',
-  [ProcessCategory.Commands]: 'Commandes de Claude',
+  [ProcessCategory.Commands]: 'Claude',
   [ProcessCategory.Mcp]: 'Serveurs MCP',
   [ProcessCategory.Terminal]: 'Terminal',
   [ProcessCategory.App]: 'Application',
   [ProcessCategory.WebView]: 'Navigateur intégré',
   [ProcessCategory.Other]: 'Autres',
 }
-export const PANE_CATEGORIES = [ProcessCategory.Claude, ProcessCategory.Commands, ProcessCategory.Mcp, ProcessCategory.Terminal]
+export const PANE_CATEGORIES = [ProcessCategory.Claude, ProcessCategory.Mcp, ProcessCategory.Terminal]
 export const HOST_CATEGORIES = [ProcessCategory.App, ProcessCategory.WebView, ProcessCategory.Other]
 
 const MEGABYTES_PER_GIGABYTE = 1024
+
+const displayedCategory = (category: ProcessCategory): ProcessCategory => (category === ProcessCategory.Commands ? ProcessCategory.Claude : category)
 
 export const usageOf = (processes: ProcessUsage[]): Usage => ({
   cpu: processes.reduce((sum, process) => sum + process.cpu, 0),
@@ -54,6 +56,6 @@ export const tabUsages = (session: Session, panes: PaneUsage[]): TabUsage[] => {
 
 export const byCategory = (processes: ProcessUsage[], categories: ProcessCategory[]): { category: ProcessCategory; usage: Usage }[] =>
   categories.flatMap((category) => {
-    const usage = usageOf(processes.filter((process) => process.category === category))
+    const usage = usageOf(processes.filter((process) => displayedCategory(process.category) === category))
     return usage.count > 0 ? [{ category, usage }] : []
   })
