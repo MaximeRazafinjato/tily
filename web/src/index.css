@@ -31,6 +31,9 @@
   --color-tily-status-done: #7ee2b8;
   --color-tily-status-error: #f07a70;
   --color-tily-status-unknown: #9aa3a0;
+  --color-tily-tier-common: #a7afbd;
+  --color-tily-tier-rare: #62b6ff;
+  --color-tily-tier-legendary: #ffcf4a;
   --color-tily-diff-added: #1d3025;
   --color-tily-diff-added-ink: #a8d8b3;
   --color-tily-diff-removed: #3a2427;
@@ -350,4 +353,54 @@ html[data-git-dragging] * {
 
 .hljs-deletion {
   color: var(--color-tily-diff-removed-ink);
+}
+
+.tily-wardrobe {
+  animation: tily-wardrobe-in 0.47s cubic-bezier(0.16, 1, 0.3, 1.06) 0.19s both;
+}
+
+@keyframes tily-wardrobe-in {
+  from {
+    opacity: 0;
+    transform: translateX(var(--tily-wardrobe-from)) scale(0.96);
+  }
+}
+
+.tily-wardrobe-tile {
+  animation: tily-wardrobe-pop 0.3s cubic-bezier(0.2, 0.9, 0.3, 1.25) both;
+  animation-delay: calc(var(--tily-wardrobe-index) * 21ms + var(--tily-wardrobe-delay));
+}
+
+@keyframes tily-wardrobe-pop {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.86);
+  }
+}
+
+.tily-wardrobe-tile[data-tier='legendary'] > span:first-child::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(105deg, transparent 42%, color-mix(in srgb, var(--color-tily-tier-legendary) 22%, transparent) 50%, transparent 58%);
+  background-size: 260% 100%;
+  animation: tily-wardrobe-shine 3.4s linear infinite;
+}
+
+@keyframes tily-wardrobe-shine {
+  from {
+    background-position: 160% 0;
+  }
+  to {
+    background-position: -100% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tily-wardrobe,
+  .tily-wardrobe-tile,
+  .tily-wardrobe-tile[data-tier='legendary'] > span:first-child::after {
+    animation: none;
+  }
 }

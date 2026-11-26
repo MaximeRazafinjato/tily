@@ -4,6 +4,8 @@ import { ballAt, grabBall, releaseBall, spawnBall, vanishBall } from './companio
 import { insideBasket, releaseStored, storeBlob } from './companionBasket'
 import { countBasketClick, registerShake, shoot } from './goreEffects'
 import { petBlob } from './companionSocial'
+import { isFocused } from './wardrobeFocus'
+import { openWardrobeFor } from './wardrobeLink'
 
 const HISTORY_LENGTH = 6
 const CLICK_DISTANCE = 3
@@ -80,6 +82,9 @@ export const startCompanionPointer = (world: World): (() => void) => {
     }
     event.preventDefault()
     event.stopPropagation()
+    if (hit && isFocused(world, hit.parent ?? hit)) {
+      return
+    }
     world.pointer.history = []
     document.documentElement.setPointerCapture(event.pointerId)
     if (!hit) {
@@ -150,6 +155,13 @@ export const startCompanionPointer = (world: World): (() => void) => {
       event.preventDefault()
       event.stopPropagation()
       spawnBall(world)
+      return
+    }
+    const hit = world.sniper ? undefined : blobAt(world, event.clientX, event.clientY)
+    if (hit) {
+      event.preventDefault()
+      event.stopPropagation()
+      openWardrobeFor(world, hit)
     }
   }
 

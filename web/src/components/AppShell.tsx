@@ -44,6 +44,7 @@ import { DeleteConfirmDialog } from './DeleteConfirmDialog'
 import { EmptyState } from './EmptyState'
 import { GitConfirmDialog } from './GitConfirmDialog'
 import { GitContextMenu } from './GitContextMenu'
+import { LazyCompanionWardrobe } from './LazyCompanionWardrobe'
 import { LazyFilePreview } from './LazyFilePreview'
 import { UnsavedPreviewDialog } from './UnsavedPreviewDialog'
 import { GitConflictDrawer } from './GitConflictDrawer'
@@ -423,6 +424,7 @@ export function AppShell({ session }: AppShellProps) {
       {closeConfirmation && <CloseConfirmDialog confirmation={closeConfirmation} onConfirm={confirmClose} onCancel={handleCancelClose} />}
       <PasteConfirmDialog />
       <ColorDialog />
+      <LazyCompanionWardrobe />
       {unsavedPreview && <UnsavedPreviewDialog />}
       <McpConsentDialog />
       <PaneDropIndicator />
