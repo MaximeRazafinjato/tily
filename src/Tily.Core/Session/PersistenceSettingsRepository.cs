@@ -12,7 +12,7 @@ public sealed record PersistenceSettingsModel(int TextIntervalSeconds, int Lines
     public const int MinTextMebibytes = 16;
     public const int MaxTextMebibytesLimit = 2048;
 
-    public static readonly PersistenceSettingsModel Default = new(30, 10_000, 256);
+    public static readonly PersistenceSettingsModel Default = new(30, 3_000, 256);
 
     [JsonIgnore]
     public long MaxTextBytes => (long)MaxTextMebibytes * 1024 * 1024;
