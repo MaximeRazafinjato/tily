@@ -48,7 +48,7 @@ export function ActivityPanel({ session }: ActivityPanelProps) {
   const hostUsage = useMemo(() => usageOf(host), [host])
 
   return (
-    <section className="shrink-0 border-t border-tily-line px-[8px] pb-[8px]" aria-label="Activité">
+    <section className={`shrink-0 border-t border-tily-line px-[8px] ${expanded ? 'pb-[8px]' : ''}`} aria-label="Activité">
       <button type="button" aria-expanded={expanded} className="flex h-[32px] w-full cursor-pointer items-center gap-[6px] px-[4px] text-[11px] font-semibold tracking-[0.06em] text-tily-muted uppercase hover:text-tily-ink" onClick={toggleExpanded}>
         <Icon name={IconName.Chevron} size={10} className={`transition-transform duration-[120ms] ease-out ${expanded ? 'rotate-90' : ''}`} />
         <span>Activité</span>
