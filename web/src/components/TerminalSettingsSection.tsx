@@ -3,14 +3,16 @@ import { DEFAULT_FONT_SIZE, MAX_FONT_SIZE, MIN_FONT_SIZE } from '../model/appear
 import { NUMBER_FIELDS, numberFieldId, valueWithin, type NumberField } from './persistenceFields'
 import { SettingsField } from './SettingsField'
 import { SettingsPanel } from './SettingsPanel'
-import { SETTINGS_INPUT, SETTINGS_INPUT_BASE } from './settingsStyles'
+import { SETTINGS_CHECKBOX, SETTINGS_INPUT, SETTINGS_INPUT_BASE } from './settingsStyles'
 
 interface TerminalSettingsSectionProps {
   title: string
   fontSize: number
   numberText: (field: NumberField) => string
+  transientBuildServers: boolean
   onFontSizeChange: (fontSize: number) => void
   onNumberChange: (field: NumberField, text: string) => void
+  onTransientBuildServersChange: (transientBuildServers: boolean) => void
 }
 
 const FONT_SIZES = Array.from({ length: MAX_FONT_SIZE - MIN_FONT_SIZE + 1 }, (_, index) => MIN_FONT_SIZE + index)
@@ -19,8 +21,9 @@ const FONT_SIZE_ID = 'settings-font-size'
 const NUMBER_BOX = 'w-[110px] shrink-0'
 const INVALID_INPUT = `${SETTINGS_INPUT_BASE} border-tily-error focus:border-tily-error`
 
-export function TerminalSettingsSection({ title, fontSize, numberText, onFontSizeChange, onNumberChange }: TerminalSettingsSectionProps) {
+export function TerminalSettingsSection({ title, fontSize, numberText, transientBuildServers, onFontSizeChange, onNumberChange, onTransientBuildServersChange }: TerminalSettingsSectionProps) {
   const handleFontSizeChange = (event: ChangeEvent<HTMLSelectElement>) => onFontSizeChange(Number(event.target.value))
+  const handleTransientBuildServersChange = (event: ChangeEvent<HTMLInputElement>) => onTransientBuildServersChange(event.target.checked)
 
   return (
     <SettingsPanel title={title}>
@@ -58,6 +61,12 @@ export function TerminalSettingsSection({ title, fontSize, numberText, onFontSiz
           </SettingsField>
         )
       })}
+      <SettingsField label="Serveurs de build .NET" tip="Arrête les nœuds MSBuild et le compilateur C# (VBCSCompiler) à la fin de chaque build lancé dans un terminal, au lieu de les garder en mémoire une dizaine de minutes. Les builds successifs sont plus lents. S’applique aux terminaux lancés après l’enregistrement.">
+        <label className={SETTINGS_CHECKBOX}>
+          <input type="checkbox" checked={transientBuildServers} onChange={handleTransientBuildServersChange} />
+          Non persistants
+        </label>
+      </SettingsField>
     </SettingsPanel>
   )
 }

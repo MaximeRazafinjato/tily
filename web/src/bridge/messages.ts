@@ -84,6 +84,7 @@ export interface PersistenceSettings {
   textIntervalSeconds: number
   linesPerPane: number
   maxTextMebibytes: number
+  transientBuildServers: boolean
 }
 
 export enum NotificationSound {

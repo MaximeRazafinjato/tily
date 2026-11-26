@@ -10,6 +10,7 @@ public sealed class TerminalManager : IDisposable
 {
     private readonly ConcurrentDictionary<string, TerminalSession> _sessions = new();
     private ShellPathsModel _paths;
+    private IReadOnlyDictionary<string, string> _extraEnvironment = new Dictionary<string, string>();
 
     public TerminalManager(ShellPathsModel? paths = null)
     {
@@ -17,6 +18,8 @@ public sealed class TerminalManager : IDisposable
     }
 
     public void UpdatePaths(ShellPathsModel paths) => _paths = paths;
+
+    public void UpdateEnvironment(IReadOnlyDictionary<string, string> extraEnvironment) => _extraEnvironment = extraEnvironment;
 
     public event Action<string, ReadOnlyMemory<byte>>? OutputReceived;
     public event Action<string, string>? CurrentDirectoryChanged;
@@ -33,7 +36,8 @@ public sealed class TerminalManager : IDisposable
             CommandLine = ShellCatalog.CommandLine(profile),
             WorkingDirectory = directory,
             Columns = Math.Max(columns, 20),
-            Rows = Math.Max(rows, 5)
+            Rows = Math.Max(rows, 5),
+            ExtraEnvironment = _extraEnvironment
         });
         session.OutputReceived += data => OutputReceived?.Invoke(paneId, data);
         session.CurrentDirectoryChanged += path => CurrentDirectoryChanged?.Invoke(paneId, path);
