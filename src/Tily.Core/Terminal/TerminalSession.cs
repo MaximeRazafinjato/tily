@@ -16,6 +16,7 @@ public sealed class TerminalSession : IDisposable
     private readonly Thread _readerThread;
     private readonly object _writeLock = new();
     private int _closed;
+    private int _consoleHostProcessId;
 
     public string PaneId { get; }
     public DateTime StartedAtUtc { get; } = DateTime.UtcNow;
@@ -54,7 +55,17 @@ public sealed class TerminalSession : IDisposable
 
     public IReadOnlyList<int> JobProcessIds() => _job.ProcessIds();
 
-    public IReadOnlyList<int> LiveProcessIds() => HasExited || Volatile.Read(ref _closed) == 1 ? Array.Empty<int>() : _job.ProcessIds();
+    public IReadOnlyList<int> LiveProcessIds()
+    {
+        if (HasExited || Volatile.Read(ref _closed) == 1)
+        {
+            return Array.Empty<int>();
+        }
+
+        var processIds = _job.ProcessIds();
+        var consoleHostProcessId = ConsoleHostProcessId();
+        return consoleHostProcessId == 0 || processIds.Contains(consoleHostProcessId) ? processIds : [.. processIds, consoleHostProcessId];
+    }
 
     public IReadOnlyList<string> ActiveProcessNames() => NamesOf(ActiveProcesses());
 
@@ -142,6 +153,16 @@ public sealed class TerminalSession : IDisposable
         HasExited = true;
         Close();
         Exited?.Invoke(ExitCode);
+    }
+
+    private int ConsoleHostProcessId()
+    {
+        if (_consoleHostProcessId == 0 && ProcessUsageApi.NtQueryInformationProcess(_process.Handle, ProcessUsageApi.ProcessConsoleHostProcess, out var consoleHost, IntPtr.Size, out _) == 0)
+        {
+            _consoleHostProcessId = (int)(consoleHost.ToInt64() & ~ProcessUsageApi.ConsoleHostProcessIdFlags);
+        }
+
+        return _consoleHostProcessId;
     }
 
     private static string? ProcessNameOf(int processId)

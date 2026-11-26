@@ -201,7 +201,7 @@ Mises à jour par les releases GitHub (spec, §13).
 
 ### Activity/
 
-`ProcessUsageSampler` mesure le processeur et la mémoire des processus de chaque pane (ceux de son Job Object, `TerminalManager.ProcessIds`) et de Tily (`Tily.exe` et ses descendants hors des panes : WebView2, consoles). Il lit les compteurs par `IProcessProbe` (`WindowsProcessProbe` : instantané Toolhelp et `GetProcessTimes` / `GetProcessMemoryInfo`) ; le processeur est le temps consommé depuis la mesure précédente, ramené à la machine entière, nul à la première mesure d'un processus. `ProcessClassifier` range chaque processus : sous `claude.exe`, un shell (`bash`, `sh`, `powershell`, `pwsh`) et ses descendants sont des commandes, tout autre processus un serveur MCP, `conhost.exe` reste à Claude ; hors de Claude, c'est le terminal.
+`ProcessUsageSampler` mesure le processeur et la mémoire des processus de chaque pane (ceux de son Job Object et la console ConPTY de son shell, lue par `NtQueryInformationProcess` : `TerminalManager.ProcessIds`) et de Tily (`Tily.exe` et ses descendants hors des panes : WebView2, autres consoles). Il lit les compteurs par `IProcessProbe` (`WindowsProcessProbe` : instantané Toolhelp et `GetProcessTimes` / `GetProcessMemoryInfo`) ; le processeur est le temps consommé depuis la mesure précédente, ramené à la machine entière, nul à la première mesure d'un processus. `ProcessClassifier` range chaque processus : sous `claude.exe`, un shell (`bash`, `sh`, `powershell`, `pwsh`) et ses descendants sont des commandes, tout autre processus un serveur MCP, `conhost.exe` reste à Claude ; hors de Claude, c'est le terminal.
 
 ### StatusLog/
 

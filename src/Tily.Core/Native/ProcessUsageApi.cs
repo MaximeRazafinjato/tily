@@ -37,7 +37,12 @@ public static class ProcessUsageApi
 {
     public const uint ProcessQueryLimitedInformation = 0x1000;
     public const uint SnapshotProcess = 0x2;
+    public const int ProcessConsoleHostProcess = 49;
+    public const long ConsoleHostProcessIdFlags = 3;
     public static readonly IntPtr InvalidHandle = new(-1);
+
+    [DllImport("ntdll.dll")]
+    public static extern int NtQueryInformationProcess(IntPtr hProcess, int processInformationClass, out IntPtr processInformation, int processInformationLength, out int returnLength);
 
     [DllImport("kernel32.dll", SetLastError = true)]
     public static extern IntPtr CreateToolhelp32Snapshot(uint dwFlags, uint th32ProcessID);
