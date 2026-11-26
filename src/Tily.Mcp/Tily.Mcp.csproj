@@ -11,7 +11,7 @@
     <ApplicationIcon>..\Tily.Host\Assets\Tily.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="ModelContextProtocol.Core" Version="2.3.0" />
+    <PackageReference Include="ModelContextProtocol.Core" Version="2.4.0" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Tily.Core\Tily.Core.csproj" />
