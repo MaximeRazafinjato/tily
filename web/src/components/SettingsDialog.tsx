@@ -224,7 +224,7 @@ export function SettingsDialog({ snapshot, pickedPath, imported, onClose, onSave
       case SettingsSection.Appearance:
         return <AppearanceSettingsSection title={title} appearance={settings.appearance} onChange={updateAppearance} />
       case SettingsSection.Ambiance:
-        return <AmbianceSettingsSection title={title} ambiance={settings.appearance.ambiance} onChange={handleAmbianceChange} onPickMedia={handlePickAmbianceMedia} />
+        return <AmbianceSettingsSection title={title} ambiance={settings.appearance.ambiance} shinyEncounters={current.shinyEncounters} onChange={handleAmbianceChange} onPickMedia={handlePickAmbianceMedia} />
       case SettingsSection.Shortcuts:
         return <ShortcutSettingsSection title={title} shortcuts={settings.shortcuts} defaults={current.shortcutDefaults} onChange={handleShortcutsChange} />
       case SettingsSection.Projects:

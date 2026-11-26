@@ -1,4 +1,5 @@
 import { FLOOR_HURT_SPEED, FLOOR_SPLAT_SPEED, impact, reform, regenerate, WALL_HURT_SPEED, WALL_SPLAT_SPEED } from './goreEffects'
+import { slowTwinkle, updateShiny } from './shinyEffects'
 import { BlobMood, targetRadius, clamp, DONE_CELEBRATION_S, GRAVITY, impulse, jump, lerp, ParticleKind, PETTED, randomBetween, removeBlob, setMood, type Blob, type Perch, type World } from './blobModel'
 
 const PET_DECAY = 0.5
@@ -195,6 +196,7 @@ export const updateBlob = (world: World, blob: Blob, dt: number): void => {
     }
     return
   }
+  updateShiny(world, blob, dt)
   if (blob.tomb) {
     blob.tomb.alpha -= dt / TOMB_FADE_S
     blob.tomb = blob.tomb.alpha > 0 ? blob.tomb : null
@@ -222,10 +224,11 @@ export const updateParticles = (world: World, dt: number): void => {
       particle.life -= dt / (particle.lifetime ?? 1)
       return particle.life > 0
     }
-    particle.life -= dt * (particle.kind === ParticleKind.Snore ? 0.5 : particle.kind === ParticleKind.Drop ? 0.7 : 1)
+    particle.life -= particle.lifetime ? dt / particle.lifetime : dt * (particle.kind === ParticleKind.Snore ? 0.5 : particle.kind === ParticleKind.Drop ? 0.7 : 1)
     if (particle.kind === ParticleKind.Spark || particle.kind === ParticleKind.Drop) {
       particle.vy += GRAVITY * 0.5 * dt
     }
+    slowTwinkle(particle, dt)
     particle.x += particle.vx * dt
     particle.y += particle.vy * dt
     return particle.life > 0 && particle.y < world.height + 20

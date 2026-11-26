@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { clearSeenCommandNotices } from './terminal/commandNotices'
 import { startAttentionNotifier } from './agents/attentionNotifier'
 import { startCompanions } from './companions/companionLoader'
+import { announceShinyCompanions } from './companions/shinyAnnouncement'
 import { AMBIANCE_MEDIA_FIELD, AMBIANCE_MEDIA_PICK_FIELD, importAmbianceMedia, receiveAmbiance, startAmbiance } from './ambiance/ambianceActions'
 import { receiveAppearance, receiveAppearanceCatalog, receiveProjects, startAppearanceProjects } from './appearance/appearanceActions'
 import { bridge } from './bridge/bridge'
@@ -122,7 +123,7 @@ export default function App() {
       bridge.on('appearance.theme', (message) => receiveAppearance(message.state)),
       bridge.on('appearance.projectsResolved', (message) => receiveProjects(message.projects)),
       bridge.on('settings.result', (message) => {
-        applySettings({ settings: message.settings, shellSettings: message.shellSettings, files: message.files, warnings: message.warnings, agents: message.agents, mcp: message.mcp, notifications: message.notifications, shortcutDefaults: message.shortcutDefaults }, message.shells, message.persistence)
+        applySettings({ settings: message.settings, shellSettings: message.shellSettings, files: message.files, warnings: message.warnings, agents: message.agents, shinyEncounters: message.shinyEncounters, mcp: message.mcp, notifications: message.notifications, shortcutDefaults: message.shortcutDefaults }, message.shells, message.persistence)
         useShortcutStore.getState().setShortcuts(message.settings.shortcuts)
         if (!message.saved) {
           return
@@ -178,6 +179,7 @@ export default function App() {
       }),
       bridge.on('agent.states', (message) => useAgentStore.getState().setAgents(message.panes)),
       bridge.on('agent.join', (message) => joinPane(message.pane)),
+      bridge.on('companions.shiny', (message) => announceShinyCompanions(message.encounters, message.total)),
       bridge.on('session.saved', () => setUnsaved(false)),
       bridge.on('session.saveFailed', (message) => {
         setUnsaved(true)

@@ -2,6 +2,7 @@ import { HURT_S, SAD_HEALTH } from './goreEffects'
 import { BlobMood, lerp, ParticleKind, PETTED, SHAPES, type Blob, type World } from './blobModel'
 import { drawProps, faceOffset } from './blobProps'
 import { formatTokens } from './companionSocial'
+import { drawShimmer, drawShinyParticle, hueOf } from './shinyEffects'
 
 const INK = '#1a1530'
 const ERROR_HUE = 8
@@ -21,14 +22,15 @@ const labelOf = (blob: Blob, hovered: boolean, waiting: boolean): string => {
     return waiting ? '?' : ''
   }
   const activity = waiting ? '?' : blob.mood === BlobMood.Working ? blob.tool : ''
-  return [blob.name, activity, formatTokens(blob.context)].filter(Boolean).join(' · ')
+  return [blob.shiny ? `✦ ${blob.name}` : blob.name, activity, formatTokens(blob.context)].filter(Boolean).join(' · ')
 }
 
 const easeOutBack = (progress: number): number => 1 + 2.7 * (progress - 1) ** 3 + 1.7 * (progress - 1) ** 2
 
 const colorOf = (blob: Blob): string => {
-  const errorHue = ERROR_HUE + (blob.hue > 180 ? 360 : 0)
-  return `hsl(${lerp(blob.hue, errorHue, blob.errorMix)}, 85%, ${lerp(64, 52, blob.errorMix)}%)`
+  const hue = hueOf(blob)
+  const errorHue = ERROR_HUE + (hue > 180 ? 360 : 0)
+  return `hsl(${lerp(hue, errorHue, blob.errorMix)}, ${blob.shiny ? 95 : 85}%, ${lerp(blob.shiny ? 68 : 64, 52, blob.errorMix)}%)`
 }
 
 type Point = [number, number]
@@ -249,6 +251,7 @@ export const drawBlob = (context: CanvasRenderingContext2D, world: World, blob: 
   context.lineJoin = 'round'
   outline(context, points)
   context.fill()
+  drawShimmer(context, blob, radius)
   context.stroke()
   drawFace(context, world, blob, radius)
   if (blob !== world.dragged) {
@@ -297,6 +300,9 @@ export const drawParticles = (context: CanvasRenderingContext2D, world: World): 
     } else if (particle.kind === ParticleKind.Heart) {
       paint(`hsl(${particle.hue}, 90%, 70%)`)
       drawHeart(context, particle.x, particle.y, particle.size * (0.7 + 0.3 * particle.life))
+    } else if (particle.kind === ParticleKind.Twinkle || particle.kind === ParticleKind.Nova) {
+      drawShinyParticle(context, particle)
+      style = ''
     } else {
       paint('#c9cfe0')
       context.font = `700 ${particle.size}px system-ui, sans-serif`

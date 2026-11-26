@@ -13,6 +13,8 @@ public sealed class AgentStateFeed : IDisposable
 
     private readonly TerminalManager _terminals;
     private readonly Action<IReadOnlyList<PaneAgentModel>> _publish;
+    private readonly Func<bool> _companionsShown;
+    private readonly Action<IReadOnlyList<ShinyEncounterModel>> _encountered;
     private readonly AgentStateRepository _states;
     private readonly AgentMonitor _monitor;
     private readonly FileSystemWatcher _watcher;
@@ -22,10 +24,13 @@ public sealed class AgentStateFeed : IDisposable
     private bool _disposed;
     private string _lastPosted = string.Empty;
 
-    public AgentStateFeed(string dataDirectory, TerminalManager terminals, Action<IReadOnlyList<PaneAgentModel>> publish)
+    public AgentStateFeed(string dataDirectory, TerminalManager terminals, Action<IReadOnlyList<PaneAgentModel>> publish, Func<bool> companionsShown, Action<IReadOnlyList<ShinyEncounterModel>> encountered)
     {
         _terminals = terminals;
         _publish = publish;
+        _companionsShown = companionsShown;
+        _encountered = encountered;
+        ShinyEncounters = new ShinyEncounterRepository(dataDirectory);
         _states = new AgentStateRepository(dataDirectory);
         _states.Clear();
         Directory.CreateDirectory(_states.Directory);
@@ -43,6 +48,8 @@ public sealed class AgentStateFeed : IDisposable
     public string StateDirectory => _states.Directory;
 
     public ClaudeHooksInstaller Hooks { get; }
+
+    public ShinyEncounterRepository ShinyEncounters { get; }
 
     public object Describe()
     {
@@ -92,6 +99,12 @@ public sealed class AgentStateFeed : IDisposable
             }
 
             var agents = _monitor.Resolve(_terminals.Probes());
+            var encounters = _companionsShown() ? ShinyEncounters.Record(agents) : [];
+            if (encounters.Count > 0)
+            {
+                _encountered(encounters);
+            }
+
             var json = JsonSerializer.Serialize(agents, SessionRepository.JsonOptions);
             if (json == _lastPosted)
             {

@@ -155,6 +155,7 @@ export interface SettingsSnapshot {
   files: Record<string, string>
   warnings: string[]
   agents: AgentHooksInfo
+  shinyEncounters: number
   mcp: McpServerInfo
   notifications: NotificationAvailability
   shortcutDefaults: ShortcutSettings
@@ -194,12 +195,19 @@ export interface PaneAgent {
   tool?: string
   subagents?: Subagent[]
   contextTokens?: number
+  shiny?: boolean
 }
 
 export interface Subagent {
   id: string
   type: string
   tool?: string
+  shiny?: boolean
+}
+
+export interface ShinyEncounter {
+  pane: string
+  subagent: string | null
 }
 
 export type HostToWebMessage =
@@ -220,6 +228,7 @@ export type HostToWebMessage =
   | { type: 'terminal.activityResult'; request?: number; panes: PaneActivity[] }
   | { type: 'agent.states'; panes: PaneAgent[] }
   | { type: 'agent.join'; pane: string }
+  | { type: 'companions.shiny'; encounters: ShinyEncounter[]; total: number }
   | { type: 'projects.listed'; root: string; projects: Project[]; error?: string; additionalRoots: string[] }
   | { type: 'projects.repositoriesFound'; request: number; sources: WorktreeSources }
   | { type: 'projects.repositoryRemembered'; project: string; repository: string }
