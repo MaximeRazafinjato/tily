@@ -1,3 +1,6 @@
+import type { CompanionOutfit } from '../bridge/appearanceMessages'
+import { createEffectState, type EffectState, type TracePoint, type TrailParticle, type WardrobeFocus } from './cosmetics/cosmeticState'
+
 export enum BlobMood {
   Idle = 'idle',
   Working = 'working',
@@ -93,6 +96,10 @@ export interface Blob {
   highFiveWith: Blob | null
   highFiveTimer: number
   tomb: Tomb | null
+  outfit: CompanionOutfit
+  project: string | null
+  trace: TracePoint[]
+  effect: EffectState
 }
 
 export interface Tomb {
@@ -181,6 +188,8 @@ export interface World {
   basketClicks: number[]
   width: number
   height: number
+  trails: TrailParticle[]
+  focus: WardrobeFocus | null
 }
 
 export const createWorld = (size: number, speed: number, gore: boolean): World => ({
@@ -204,6 +213,8 @@ export const createWorld = (size: number, speed: number, gore: boolean): World =
   basketClicks: [],
   width: innerWidth,
   height: innerHeight,
+  trails: [],
+  focus: null,
 })
 
 export const randomBetween = (min: number, max: number): number => min + Math.random() * (max - min)
@@ -270,6 +281,10 @@ export const createBlob = (world: World, key: string, paneId: string, hue: numbe
     highFiveWith: null,
     highFiveTimer: 0,
     tomb: null,
+    outfit: parent?.outfit ?? {},
+    project: parent?.project ?? null,
+    trace: [],
+    effect: createEffectState(),
   }
 }
 
