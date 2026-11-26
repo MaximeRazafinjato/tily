@@ -247,6 +247,7 @@ public sealed class HostServices : IDisposable
         Settings = settings;
         ShellPaths = SettingsService.ShellPaths(settings);
         Terminals.UpdatePaths(ShellPaths);
+        Terminals.UpdateEnvironment(BuildServerEnvironment.Of(settings.Persistence.TransientBuildServers));
         Updates.Configure(settings.Updates.AutoCheck);
     }
 

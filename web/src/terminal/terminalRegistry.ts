@@ -16,10 +16,11 @@ import { registerFileLinks } from './fileLinks'
 
 const ACK_THRESHOLD = 256 * 1024
 const MAX_WEBGL_CONTEXTS = 14
+const HIDDEN_WEBGL_CONTEXTS = 4
 const STABLE_CHUNK_LINES = 1000
 const CHUNK_SEPARATOR = '\x1b[0m\r\n'
 const SNAPSHOT_SCROLLBACK_LINES = 2000
-const DEFAULT_SCROLLBACK_LINES = 10000
+const DEFAULT_SCROLLBACK_LINES = 3000
 const NEWLINE = String.fromCharCode(13, 10)
 const ERASE_SCROLLBACK = '\x1b[3J'
 
@@ -103,14 +104,10 @@ const loadWebgl = (handle: TerminalHandle): void => {
 
 const releaseLeastRecentlyShownWebgl = (): void => {
   const withWebgl = [...handles.values()].filter((handle) => handle.renderer === Renderer.WebGl)
-  const excess = withWebgl.length - MAX_WEBGL_CONTEXTS
-  if (excess > 0) {
-    withWebgl
-      .filter((handle) => !isShown(handle))
-      .sort((left, right) => left.shownAt - right.shownAt)
-      .slice(0, excess)
-      .forEach(releaseRenderer)
-  }
+  const hidden = withWebgl.filter((handle) => !isShown(handle)).sort((left, right) => right.shownAt - left.shownAt)
+  const shownCount = withWebgl.length - hidden.length
+  const keptHidden = Math.max(0, Math.min(HIDDEN_WEBGL_CONTEXTS, MAX_WEBGL_CONTEXTS - shownCount))
+  hidden.slice(keptHidden).forEach(releaseRenderer)
 }
 
 const showWithGpu = (handle: TerminalHandle): void => {

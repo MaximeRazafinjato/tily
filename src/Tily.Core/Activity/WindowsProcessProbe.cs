@@ -40,13 +40,13 @@ public sealed class WindowsProcessProbe : IProcessProbe
 
         try
         {
-            var memory = new ProcessMemoryCounters { cb = (uint)Marshal.SizeOf<ProcessMemoryCounters>() };
-            if (!ProcessUsageApi.GetProcessTimes(handle, out _, out _, out var kernel, out var user) || !ProcessUsageApi.GetProcessMemoryInfo(handle, ref memory, memory.cb))
+            if (!ProcessUsageApi.GetProcessTimes(handle, out _, out _, out var kernel, out var user)
+                || ProcessUsageApi.NtQueryVmCounters(handle, ProcessUsageApi.ProcessVmCounters, out VmCountersEx2 memory, Marshal.SizeOf<VmCountersEx2>(), out _) != 0)
             {
                 return null;
             }
 
-            return new ProcessCountersModel(TimeSpan.FromTicks(kernel + user), (long)memory.WorkingSetSize);
+            return new ProcessCountersModel(TimeSpan.FromTicks(kernel + user), (long)memory.PrivateWorkingSetSize);
         }
         finally
         {

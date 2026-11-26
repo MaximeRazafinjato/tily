@@ -1,5 +1,4 @@
 using System.Collections;
-using System.Diagnostics;
 using Tily.Core.Native;
 using Tily.Core.Shell;
 
@@ -67,12 +66,12 @@ public sealed class TerminalSession : IDisposable
         return consoleHostProcessId == 0 || processIds.Contains(consoleHostProcessId) ? processIds : [.. processIds, consoleHostProcessId];
     }
 
-    public IReadOnlyList<string> ActiveProcessNames() => NamesOf(ActiveProcesses());
+    public IReadOnlyList<string> ActiveProcessNames(IReadOnlyDictionary<int, string> processNames) => NamesOf(ActiveProcesses(processNames));
 
     public static IReadOnlyList<string> NamesOf(IEnumerable<ActiveProcessModel> processes) =>
         new SortedSet<string>(processes.Select(process => process.Name), StringComparer.OrdinalIgnoreCase).ToList();
 
-    public IReadOnlyList<ActiveProcessModel> ActiveProcesses()
+    public IReadOnlyList<ActiveProcessModel> ActiveProcesses(IReadOnlyDictionary<int, string> processNames)
     {
         if (HasExited || Volatile.Read(ref _closed) == 1)
         {
@@ -82,8 +81,7 @@ public sealed class TerminalSession : IDisposable
         var processes = new List<ActiveProcessModel>();
         foreach (var processId in _job.ProcessIds())
         {
-            var name = processId == ProcessId ? null : ProcessNameOf(processId);
-            if (name is not null)
+            if (processId != ProcessId && processNames.TryGetValue(processId, out var name))
             {
                 processes.Add(new ActiveProcessModel(processId, name));
             }
@@ -163,19 +161,6 @@ public sealed class TerminalSession : IDisposable
         }
 
         return _consoleHostProcessId;
-    }
-
-    private static string? ProcessNameOf(int processId)
-    {
-        try
-        {
-            using var process = Process.GetProcessById(processId);
-            return process.ProcessName;
-        }
-        catch (Exception exception) when (exception is ArgumentException or InvalidOperationException)
-        {
-            return null;
-        }
     }
 
     private void HandleCurrentDirectoryChanged(string directory)

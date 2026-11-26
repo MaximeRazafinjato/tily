@@ -25,7 +25,9 @@ public sealed class GitWatcher : IDisposable
     private const string WorktreesEntry = "worktrees";
     private const string IndexEntry = "index";
     private static readonly HashSet<string> WorktreeEntries = new(StringComparer.OrdinalIgnoreCase) { "HEAD", "locked", "gitdir" };
+    private static readonly HashSet<string> GeneratedEntries = new(StringComparer.OrdinalIgnoreCase) { "bin", "obj", "node_modules", ".vs", "dist" };
 
+    private readonly string _root;
     private readonly string[] _gitDirectories;
     private readonly List<FileSystemWatcher> _watchers = [];
     private readonly Action<GitChangeModel> _changed;
@@ -38,6 +40,7 @@ public sealed class GitWatcher : IDisposable
     public GitWatcher(GitLocationModel location, Action<GitChangeModel> changed)
     {
         _changed = changed;
+        _root = location.Root;
         _gitDirectories = [location.GitDirectory, location.CommonDirectory];
         _timer = new Timer(_ => Fire());
         foreach (var directory in new[] { location.Root, location.GitDirectory, location.CommonDirectory }.Distinct(StringComparer.OrdinalIgnoreCase))
@@ -114,7 +117,7 @@ public sealed class GitWatcher : IDisposable
         var gitDirectory = _gitDirectories.FirstOrDefault(directory => IsWithin(path, directory));
         if (gitDirectory is null)
         {
-            return GitChangeScope.WorkingTree;
+            return IsGenerated(path) ? GitChangeScope.None : GitChangeScope.WorkingTree;
         }
 
         var relative = Path.GetRelativePath(gitDirectory, path);
@@ -134,6 +137,8 @@ public sealed class GitWatcher : IDisposable
 
         return string.Equals(parts[0], IndexEntry, StringComparison.OrdinalIgnoreCase) ? GitChangeScope.WorkingTree : GitChangeScope.Repository;
     }
+
+    private bool IsGenerated(string path) => Path.GetRelativePath(_root, path).Split(Path.DirectorySeparatorChar).Any(GeneratedEntries.Contains);
 
     private static bool IsWithin(string path, string directory) =>
         path.StartsWith(directory.TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)

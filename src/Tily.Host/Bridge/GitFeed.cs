@@ -155,7 +155,7 @@ public sealed class GitFeed : IDisposable
 
             if (GitRepository.Locate(_runner, path) is null)
             {
-                GitRepository.Require(_runner.Run(path, ["init"]), $"Initialisation d’un dépôt Git impossible dans {path}.");
+                GitRepository.Require(_runner.Run(path, new[] { "init" }), $"Initialisation d’un dépôt Git impossible dans {path}.");
             }
         }
         catch (GitCommandException exception)
@@ -254,7 +254,7 @@ public sealed class GitFeed : IDisposable
             return;
         }
 
-        var json = JsonSerializer.Serialize(state, SessionRepository.JsonOptions);
+        var json = JsonSerializer.Serialize(state, HostBridge.JsonOptions);
         var signature = $"{GitStateReader.Signature(state)}\n{scope}\n{count}";
         bool postState;
         bool postHistory;

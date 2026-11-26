@@ -30,7 +30,7 @@ public static class McpPipeClient
                 return McpPipeResponseModel.Failure(McpPipe.NoAnswer);
             }
 
-            return McpPipe.Parse<McpPipeResponseModel>(line) ?? McpPipeResponseModel.Failure(McpPipe.UnreadableAnswer);
+            return McpPipe.ParseResponse(line) ?? McpPipeResponseModel.Failure(McpPipe.UnreadableAnswer);
         }
         catch (IOException)
         {

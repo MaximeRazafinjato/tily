@@ -46,7 +46,7 @@ Invariants :
 
 - Une requête numérotée garde son numéro dans son store ; une réponse dépassée est ignorée. `hostStore.setContext` et `forgeStore` ignorent un résultat inchangé, pour ne rien redessiner.
 - `paneStore` : `markAlive`, appelé à chaque `terminal.cwd`, efface un échec ou une fin du shell mais garde un dossier disparu jusqu'au choix de l'utilisateur, car à la restauration le shell démarré dans le dossier personnel signale aussitôt ce dossier. Un dossier disparu ignoré reste ignoré pour ce pane.
-- `agentStore` : états remplacés à chaque `agent.states` ; un acquittement masque la carte d'attention jusqu'au prochain changement d'état du pane.
+- `agentStore` : états remplacés à chaque `agent.states`, mais un état inchangé garde son objet et une liste inchangée laisse le store intact, pour que seul le `PaneView` dont l'agent change se redessine ; un acquittement masque la carte d'attention jusqu'au prochain changement d'état du pane.
 - Toute fenêtre modale tenue par un store est comptée par `AppShell` (voir `components/`).
 
 ### `src/terminal/`
@@ -58,7 +58,7 @@ Terminaux et cycle de vie des panes (section 7 de la spec).
 - Le terminal naît au premier attachement de son `TerminalPane`, qui envoie `terminal.create` : un pane jamais affiché n'a ni instance ni processus. `restart` renvoie `terminal.create` sur la même instance. Un pane déplacé vers un autre onglet garde son terminal sous le même identifiant.
 - L'effet d'attachement de `TerminalPane` dépend de l'identifiant du pane, pas de l'objet, pour qu'une mutation de session ne relance ni attachement ni `fit()`.
 - `terminal.output` s'écrit directement dans l'instance, sans React ; des acquittements (`terminal.ack`) régulent le flux.
-- Rendu WebGL, repli DOM (xterm.js 6 n'a pas de rendu canvas). Au plus 14 contextes WebGL, Chromium retirant le plus ancien au-delà de 16 : le terminal caché affiché le moins récemment rend le sien et le retrouve à son prochain affichage, jamais un terminal visible. Après une perte de contexte, le terminal passe en DOM et WebGL est retenté à son prochain affichage.
+- Rendu WebGL, repli DOM (xterm.js 6 n'a pas de rendu canvas). Au plus 14 contextes WebGL, Chromium retirant le plus ancien au-delà de 16, dont 4 pour des terminaux cachés : à chaque affichage d'un terminal, les terminaux cachés au-delà des 4 affichés le plus récemment rendent le leur (atlas de glyphes et textures du processus GPU) et le retrouvent à leur prochain affichage, jamais un terminal visible. Après une perte de contexte, le terminal passe en DOM et WebGL est retenté à son prochain affichage.
 - `exportTerminal` attend la fin des écritures en cours puis sérialise tout le terminal (historique, écran alternatif, modes) avec sa taille ; `adopt` crée dans la fenêtre qui reçoit l'instance déjà démarrée, à la taille d'origine, y écrit ce texte et n'enverra jamais `terminal.create` ; `release` libère une instance sans `terminal.close`.
 - `runAtStart` retient une commande envoyée une seule fois avec le premier `terminal.create` du pane : `claude` et l'installation d'un worktree créé, commande de démarrage d'un outil MCP.
 - URL, hyperliens OSC 8 et chemins de fichiers (`fileLinks.ts`) ne s'ouvrent qu'au Ctrl + clic, le clic simple restant à la sélection. Tous les schémas passent à l'hôte, qui les valide et signale un refus.
@@ -226,7 +226,7 @@ Clonage d'un dépôt (section 9 de la spec, « Cloner un dépôt »). L'hôte va
 
 Panes navigateur (section 6 de la spec). Un `Pane` de type `PaneKind.Browser` garde `url` et `viewport` en plus du dossier et du shell du pane d'où il a été ouvert. Sa page vit dans une WebView2 posée par l'hôte ; le web ne rend que l'en-tête et un corps vide (`BrowserPaneView`, à la place de `PaneView`, corps `[data-browser-body]`).
 
-- `browserLayer.ts` : une boucle `requestAnimationFrame` envoie `browser.attach` à la première apparition d'un corps, `browser.bounds` quand son rectangle change, `visible: false` quand il quitte le DOM. Un pane navigateur compte comme démarré dès qu'il a été affiché ; `disposeMissingBrowsers` ferme la vue des panes sortis de la session.
+- `browserLayer.ts` : tant que la session contient un pane navigateur, une boucle envoie `browser.attach` à la première apparition d'un corps, `browser.bounds` quand son rectangle change, `visible: false` quand il quitte le DOM. Elle tourne à chaque image (`requestAnimationFrame`) tant qu'un corps est affiché, sinon toutes les 250 ms, et tout changement de `sessionStore` ou d'`uiStore` la relance aussitôt ; sans pane navigateur, rien ne tourne. Un pane navigateur compte comme démarré dès qu'il a été affiché ; `disposeMissingBrowsers` ferme la vue des panes sortis de la session.
 - La WebView2 de la page n'est pas transparente : rien de l'interface ne peut s'afficher par-dessus. Quand un `role` `menu`, `dialog` ou `alertdialog` est ouvert, qu'un onglet ou un workspace est glissé (`uiStore.draggingTabId`, `draggingWorkspaceId`, pour que le pane reçoive le pointeur, l'indicateur de dépôt et l'étiquette du glisser), qu'une infobulle (`role="tooltip"`) chevauche le pane ou qu'un élément recouvre l'un des 16 points échantillonnés, la page est figée : capture `browser.snapshot` affichée dans le corps, vue masquée une fois l'image chargée, puis réaffichée à la fin. Un élément flottant nouveau doit porter l'un de ces rôles ou couvrir un point échantillonné.
 - `restoreBrowserFocus` rend le focus à la page du pane actif après un raccourci renvoyé par la page ou la fin du Leader, si rien d'autre ne l'a pris. `browser.key` passe par `handleForwardedKey` (`browserKeys.ts`).
 - `requestBrowser` (`browserRequests.ts`) numérote une commande `browser.*` et attend son `browser.reply`, avec un délai.
@@ -285,7 +285,7 @@ Outils du serveur MCP calculés côté interface (section 11 de la spec), un mod
 
 ### `src/activity/`
 
-`activityView.ts` (spec WS-10) : regroupe les mesures par onglet d'après la session de la fenêtre (panes de l'onglet ; ceux d'une autre fenêtre sont ignorés, y compris dans le total), somme le processeur et la mémoire, formate les valeurs et classe par catégorie. `ActivityPanel` (bas de `WorkspaceTree`) s'abonne par `activity.subscribe` tant qu'il est déplié et se désabonne en se repliant ; `activityStore` garde l'état déplié, les lignes ouvertes et la dernière mesure, sans persistance : l'encart est replié à chaque lancement.
+`activityView.ts` (spec WS-10) : regroupe les mesures par onglet d'après la session de la fenêtre (panes de l'onglet ; ceux d'une autre fenêtre sont ignorés, y compris dans le total), somme le processeur et la mémoire, formate les valeurs et classe par catégorie. `byCategory` détaille aussi chaque catégorie de plusieurs programmes par nom de processus (cinq au plus, par mémoire décroissante). `ActivityPanel` (bas de `WorkspaceTree`) s'abonne par `activity.subscribe` tant qu'il est déplié et que la page est visible (`usePageVisible` : fenêtre non réduite), et se désabonne sinon ; `activityStore` garde l'état déplié, les lignes ouvertes et la dernière mesure, sans persistance : l'encart est replié à chaque lancement.
 
 ### `src/statusLog/`
 

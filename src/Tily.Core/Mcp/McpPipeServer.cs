@@ -83,7 +83,7 @@ public sealed class McpPipeServer : IDisposable
             {
                 using var reader = new StreamReader(stream, McpPipe.Utf8, false, ReadBufferSize, true);
                 var line = await reader.ReadLineAsync(token);
-                var response = await RespondAsync(McpPipe.Parse<McpPipeRequestModel>(line), token);
+                var response = await RespondAsync(McpPipe.ParseRequest(line), token);
                 await stream.WriteAsync(McpPipe.Line(response), token);
                 await stream.FlushAsync(token);
                 stream.WaitForPipeDrain();

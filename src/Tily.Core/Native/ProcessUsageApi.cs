@@ -19,9 +19,10 @@ public struct ProcessEntry32
 }
 
 [StructLayout(LayoutKind.Sequential)]
-public struct ProcessMemoryCounters
+public struct VmCountersEx2
 {
-    public uint cb;
+    public UIntPtr PeakVirtualSize;
+    public UIntPtr VirtualSize;
     public uint PageFaultCount;
     public UIntPtr PeakWorkingSetSize;
     public UIntPtr WorkingSetSize;
@@ -31,6 +32,9 @@ public struct ProcessMemoryCounters
     public UIntPtr QuotaNonPagedPoolUsage;
     public UIntPtr PagefileUsage;
     public UIntPtr PeakPagefileUsage;
+    public UIntPtr PrivateUsage;
+    public UIntPtr PrivateWorkingSetSize;
+    public UIntPtr SharedCommitUsage;
 }
 
 public static class ProcessUsageApi
@@ -38,11 +42,15 @@ public static class ProcessUsageApi
     public const uint ProcessQueryLimitedInformation = 0x1000;
     public const uint SnapshotProcess = 0x2;
     public const int ProcessConsoleHostProcess = 49;
+    public const int ProcessVmCounters = 3;
     public const long ConsoleHostProcessIdFlags = 3;
     public static readonly IntPtr InvalidHandle = new(-1);
 
     [DllImport("ntdll.dll")]
     public static extern int NtQueryInformationProcess(IntPtr hProcess, int processInformationClass, out IntPtr processInformation, int processInformationLength, out int returnLength);
+
+    [DllImport("ntdll.dll", EntryPoint = "NtQueryInformationProcess")]
+    public static extern int NtQueryVmCounters(IntPtr hProcess, int processInformationClass, out VmCountersEx2 processInformation, int processInformationLength, out int returnLength);
 
     [DllImport("kernel32.dll", SetLastError = true)]
     public static extern IntPtr CreateToolhelp32Snapshot(uint dwFlags, uint th32ProcessID);
@@ -58,7 +66,4 @@ public static class ProcessUsageApi
 
     [DllImport("kernel32.dll", SetLastError = true)]
     public static extern bool GetProcessTimes(IntPtr hProcess, out long lpCreationTime, out long lpExitTime, out long lpKernelTime, out long lpUserTime);
-
-    [DllImport("kernel32.dll", EntryPoint = "K32GetProcessMemoryInfo", SetLastError = true)]
-    public static extern bool GetProcessMemoryInfo(IntPtr hProcess, ref ProcessMemoryCounters counters, uint cb);
 }

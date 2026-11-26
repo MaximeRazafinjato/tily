@@ -30,7 +30,7 @@ public sealed class HostBridge : IDisposable
     private const string MainWindowOnly = "Les paramètres et les mises à jour se gèrent dans la fenêtre principale de Tily.";
     private static readonly HashSet<string> MainWindowCommands = ["settings.save", "settings.export", "settings.import", "appearance.fontSize", "appearance.ambianceEnabled", "appearance.projectColor", "appearance.importMedia", "agents.installHooks", "agents.removeHooks", "mcp.install", "mcp.remove"];
     private static readonly TimeSpan WriteDrainTimeout = TimeSpan.FromSeconds(10);
-    private static readonly JsonSerializerOptions JsonOptions = SessionRepository.JsonOptions;
+    internal static readonly JsonSerializerOptions JsonOptions = new(SessionRepository.JsonOptions) { WriteIndented = false };
 
     private readonly HostServices _services;
     private readonly DispatcherQueue _dispatcher;
@@ -107,6 +107,8 @@ public sealed class HostBridge : IDisposable
 
     private SettingsModel Settings => _services.Settings;
 
+    public CoreWebView2Environment? WebViewEnvironment => _core?.Environment;
+
     public void Attach(CoreWebView2 core)
     {
         _core = core;
@@ -158,7 +160,7 @@ public sealed class HostBridge : IDisposable
         {
             if (File.Exists(path) || Directory.Exists(path))
             {
-                Post(new { type = "terminal.dropped", pane = paneId, text = DroppedPaths.Format([path], shellId) });
+                Post(new { type = "terminal.dropped", pane = paneId, text = DroppedPaths.Format(new[] { path }, shellId) });
             }
             else
             {
@@ -534,7 +536,7 @@ public sealed class HostBridge : IDisposable
             return;
         }
 
-        Notify(paneId, [command.Title ?? "Tily", command.Body], done ? settings.DoneSound : settings.Sound, settings, done);
+        Notify(paneId, new[] { command.Title ?? "Tily", command.Body }, done ? settings.DoneSound : settings.Sound, settings, done);
     }
 
     private void TestAttention(string paneId, BridgeCommandModel command)

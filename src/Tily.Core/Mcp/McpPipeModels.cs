@@ -2,6 +2,7 @@ using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Text.Json.Serialization.Metadata;
 
 namespace Tily.Core.Mcp;
 
@@ -32,9 +33,19 @@ public static class McpPipe
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
     };
 
-    public static byte[] Line<T>(T value) => Utf8.GetBytes(JsonSerializer.Serialize(value, JsonOptions) + "\n");
+    private static readonly McpPipeJsonContext PipeContext = new(new JsonSerializerOptions(JsonOptions));
 
-    public static T? Parse<T>(string? line) where T : class
+    public static byte[] Line(McpPipeRequestModel request) => Line(request, PipeContext.McpPipeRequestModel);
+
+    public static byte[] Line(McpPipeResponseModel response) => Line(response, PipeContext.McpPipeResponseModel);
+
+    public static McpPipeRequestModel? ParseRequest(string? line) => Parse(line, PipeContext.McpPipeRequestModel);
+
+    public static McpPipeResponseModel? ParseResponse(string? line) => Parse(line, PipeContext.McpPipeResponseModel);
+
+    private static byte[] Line<T>(T value, JsonTypeInfo<T> typeInfo) => Utf8.GetBytes(JsonSerializer.Serialize(value, typeInfo) + "\n");
+
+    private static T? Parse<T>(string? line, JsonTypeInfo<T> typeInfo) where T : class
     {
         if (string.IsNullOrWhiteSpace(line))
         {
@@ -43,7 +54,7 @@ public static class McpPipe
 
         try
         {
-            return JsonSerializer.Deserialize<T>(line, JsonOptions);
+            return JsonSerializer.Deserialize(line, typeInfo);
         }
         catch (JsonException)
         {
@@ -51,3 +62,7 @@ public static class McpPipe
         }
     }
 }
+
+[JsonSerializable(typeof(McpPipeRequestModel))]
+[JsonSerializable(typeof(McpPipeResponseModel))]
+internal sealed partial class McpPipeJsonContext : JsonSerializerContext;

@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Text.Json.Nodes;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 using Tily.Core.Mcp;
@@ -83,14 +84,14 @@ internal static class TilyTools
         [Description("Lire la sortie complète de la dernière commande terminée au lieu des dernières lignes.")] bool lastCommand = false,
         [Description("Identifiant d’une commande rendu par tily_commands : lire sa sortie complète.")] int? commandId = null,
         CancellationToken token = default) =>
-        TilyConnection.CallAsync(McpReadPane.Tool, new { pane, lines = McpReadPane.Lines(lines), lastCommand, commandId }, token);
+        TilyConnection.CallAsync(McpReadPane.Tool, new JsonObject { ["pane"] = pane, ["lines"] = McpReadPane.Lines(lines), ["lastCommand"] = lastCommand, ["commandId"] = commandId }, token);
 
     private static Task<CallToolResult> CommandsAsync(
         [Description("Identifiant du pane, donné par tily_layout ; absent : tous les panes démarrés.")] string? pane = null,
         [Description("Ne garder que les commandes en échec.")] bool failedOnly = false,
         [Description("Nombre maximal de commandes rendues, de 1 à 100.")] int limit = McpCommands.DefaultLimit,
         CancellationToken token = default) =>
-        TilyConnection.CallAsync(McpCommands.Tool, new { pane, failedOnly, limit = McpCommands.Limit(limit) }, token);
+        TilyConnection.CallAsync(McpCommands.Tool, new JsonObject { ["pane"] = pane, ["failedOnly"] = failedOnly, ["limit"] = McpCommands.Limit(limit) }, token);
 
     private static Task<CallToolResult> WaitForAsync(
         [Description(PaneDescription)] string pane,
@@ -98,7 +99,7 @@ internal static class TilyTools
         [Description("Interpréter pattern comme une expression régulière JavaScript.")] bool regex = false,
         [Description("Délai maximal d’attente en secondes, de 1 à 300.")] int timeoutSeconds = McpWaitFor.DefaultTimeoutSeconds,
         CancellationToken token = default) =>
-        TilyConnection.CallAsync(McpWaitFor.Tool, new { pane, pattern, regex, timeoutSeconds = McpWaitFor.TimeoutSeconds(timeoutSeconds) }, token);
+        TilyConnection.CallAsync(McpWaitFor.Tool, new JsonObject { ["pane"] = pane, ["pattern"] = pattern, ["regex"] = regex, ["timeoutSeconds"] = McpWaitFor.TimeoutSeconds(timeoutSeconds) }, token);
 
     private static string? HostVersion()
     {

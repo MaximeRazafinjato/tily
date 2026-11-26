@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 
 namespace Tily.Core.Session;
 
-public sealed record PersistenceSettingsModel(int TextIntervalSeconds, int LinesPerPane, int MaxTextMebibytes)
+public sealed record PersistenceSettingsModel(int TextIntervalSeconds, int LinesPerPane, int MaxTextMebibytes, bool TransientBuildServers = false)
 {
     public const int MinTextIntervalSeconds = 5;
     public const int MaxTextIntervalSeconds = 600;
@@ -12,7 +12,7 @@ public sealed record PersistenceSettingsModel(int TextIntervalSeconds, int Lines
     public const int MinTextMebibytes = 16;
     public const int MaxTextMebibytesLimit = 2048;
 
-    public static readonly PersistenceSettingsModel Default = new(30, 10_000, 256);
+    public static readonly PersistenceSettingsModel Default = new(30, 3_000, 256);
 
     [JsonIgnore]
     public long MaxTextBytes => (long)MaxTextMebibytes * 1024 * 1024;
@@ -20,7 +20,8 @@ public sealed record PersistenceSettingsModel(int TextIntervalSeconds, int Lines
     public PersistenceSettingsModel Clamped() => new(
         Math.Clamp(TextIntervalSeconds, MinTextIntervalSeconds, MaxTextIntervalSeconds),
         Math.Clamp(LinesPerPane, MinLinesPerPane, MaxLinesPerPane),
-        Math.Clamp(MaxTextMebibytes, MinTextMebibytes, MaxTextMebibytesLimit));
+        Math.Clamp(MaxTextMebibytes, MinTextMebibytes, MaxTextMebibytesLimit),
+        TransientBuildServers);
 
     public IReadOnlyList<string> OutOfRangeWarnings() =>
         new[]
