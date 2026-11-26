@@ -582,6 +582,7 @@ public sealed class HostBridge : IDisposable
             shells = ShellCatalog.Profiles(_services.ShellPaths),
             persistence = Settings.Persistence,
             agents = _services.Agents.Describe(),
+            shinyEncounters = _services.Agents.ShinyEncounters.Count,
             mcp = _services.Mcp.Describe(),
             notifications = _notifier.Describe(),
             shortcutDefaults = ShortcutSettingsModel.Default,

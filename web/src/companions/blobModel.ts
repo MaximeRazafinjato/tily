@@ -93,6 +93,9 @@ export interface Blob {
   highFiveWith: Blob | null
   highFiveTimer: number
   tomb: Tomb | null
+  shiny: boolean
+  twinkle: number
+  demo: number
 }
 
 export interface Tomb {
@@ -109,6 +112,8 @@ export enum ParticleKind {
   Drop = 'drop',
   Stain = 'stain',
   Hole = 'hole',
+  Twinkle = 'twinkle',
+  Nova = 'nova',
 }
 
 export interface Particle {
@@ -270,6 +275,9 @@ export const createBlob = (world: World, key: string, paneId: string, hue: numbe
     highFiveWith: null,
     highFiveTimer: 0,
     tomb: null,
+    shiny: false,
+    twinkle: 0,
+    demo: 0,
   }
 }
 

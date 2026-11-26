@@ -11,6 +11,8 @@ import { placeBasket, updateBasket } from './companionBasket'
 import { startCompanionPointer } from './companionPointer'
 import { updateSocial } from './companionSocial'
 import { clearCompanions, syncCompanions } from './companionSync'
+import { shinyDemoRequested, takeShinyDemo } from './shinyDemo'
+import { spawnShinyDemo } from './shinyEffects'
 
 const LAYER_ID = 'tily-companions'
 const LAYER_Z_INDEX = '2147482000'
@@ -144,6 +146,9 @@ const mountLayer = (size: number, speed: number, gore: boolean): { world: World;
     if (syncPending) {
       syncPending = false
       syncCompanions(world)
+    }
+    if (shinyDemoRequested() && !document.querySelector(MODAL_SELECTOR) && takeShinyDemo()) {
+      spawnShinyDemo(world)
     }
     updateBasket(world)
     updateSocial(world, dt)
