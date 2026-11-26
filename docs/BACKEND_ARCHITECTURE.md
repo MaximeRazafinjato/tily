@@ -199,6 +199,10 @@ Mises à jour par les releases GitHub (spec, §13).
 - Historique des notes de version : `UpdateClient.HistoryAsync` lit jusqu'à 100 releases ; `ReleaseParser.ParseHistory` écarte les brouillons, les tags illisibles et, sur le canal stable, les pré-releases, sans exiger d'installeur ; `ReleaseNotes.Sections` découpe chaque corps par titre, introduction comprise, sans la section « Installation ». `UpdateFeed` garde la liste pour la session après la première lecture réussie.
 - Copie installée reconnue à `unins000.exe` ; installation pour tous les utilisateurs si elle est sous `Program Files`.
 
+### Activity/
+
+`ProcessUsageSampler` mesure le processeur et la mémoire des processus de chaque pane (ceux de son Job Object et la console ConPTY de son shell, lue par `NtQueryInformationProcess` : `TerminalManager.ProcessIds`) et de Tily (`Tily.exe` et ses descendants hors des panes : WebView2, autres consoles). Il lit les compteurs par `IProcessProbe` (`WindowsProcessProbe` : instantané Toolhelp et `GetProcessTimes` / `GetProcessMemoryInfo`) ; le processeur est le temps consommé depuis la mesure précédente, ramené à la machine entière, nul à la première mesure d'un processus. `ProcessClassifier` range chaque processus : sous `claude.exe`, un shell (`bash`, `sh`, `powershell`, `pwsh`) et ses descendants sont des commandes, tout autre processus un serveur MCP, `conhost.exe` reste à Claude ; hors de Claude, c'est le terminal.
+
 ### StatusLog/
 
 `StatusLogRepository` (`status-log.json`, entrées plafonnées, fichier illisible mis en quarantaine) et `UserErrorMessage.Of`, par lequel passe toute remontée d'erreur générique : le message d'une exception de Tily, déjà en français, ou, pour une exception d'entrée / sortie du framework, une phrase française suivie du détail système.
@@ -297,6 +301,10 @@ Mises à jour par les releases GitHub (spec, §13).
 - Rien n'est téléchargé sans `update.install`, refusé pour une copie non installée ; l'installeur va dans `updates\`, vidé au démarrage. `update.apply` exige que l'installeur vérifié existe encore ; il n'est lancé qu'à la fin de `HostBridge.Dispose`, terminaux arrêtés, attend la fin de Tily puis relance `Tily.exe` avec les droits de l'utilisateur d'origine.
 - `StatusLogFeed` écrit par la file de la session ; un échec d'écriture n'est signalé qu'une fois jusqu'à la prochaine réussite, car ce message, lui-même journalisé, relancerait une boucle d'échecs.
 - `PathPicker` : sélecteurs natifs ; une annulation n'envoie rien.
+
+### Activité (`ActivityFeed`)
+
+- Partagé par les fenêtres (`HostServices.Activity`), il ne mesure que tant que l'interface y est abonnée : `activity.subscribe` lance une mesure immédiate puis une toutes les 2 secondes, `activity.unsubscribe` l'arrête ; les abonnements sont comptés par fenêtre et une fenêtre fermée se désabonne. Chaque mesure est envoyée à chaque fenêtre abonnée en `activity.state`, qui n'en affiche que ses onglets (processus par pane, puis processus de Tily). Une erreur système sur un processus qui disparaît n'interrompt pas la boucle.
 
 ## Règles
 

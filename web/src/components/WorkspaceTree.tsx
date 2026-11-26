@@ -8,6 +8,7 @@ import { WorktreePickerKind } from '../store/worktreeStore'
 import { openWorktreePicker } from '../worktree/worktreeActions'
 import { worktreesOfTabs } from '../worktree/worktreePaths'
 import { useUiStore } from '../store/uiStore'
+import { ActivityPanel } from './ActivityPanel'
 import { Icon } from './Icon'
 import { IconName } from './iconName'
 import { WorkspaceContextMenu } from './WorkspaceContextMenu'
@@ -101,6 +102,7 @@ export function WorkspaceTree({ session, renamingWorkspaceId, renamingTabId, act
           </div>
         )}
       </nav>
+      <ActivityPanel session={session} />
       {menu && (
         <WorkspaceContextMenu
           request={menu}
