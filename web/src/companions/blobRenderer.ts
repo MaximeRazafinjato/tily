@@ -31,12 +31,16 @@ const colorOf = (blob: Blob): string => {
   return `hsl(${lerp(blob.hue, errorHue, blob.errorMix)}, 85%, ${lerp(64, 52, blob.errorMix)}%)`
 }
 
-const outline = (context: CanvasRenderingContext2D, world: World, blob: Blob, radius: number): void => {
+type Point = [number, number]
+
+const middle = (a: Point, b: Point): Point => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2]
+
+const outlinePoints = (world: World, blob: Blob, radius: number): Point[] => {
   const { sides, rotation } = SHAPES[blob.shape]
   const { energy, speed } = blob === world.dragged ? DRAGGED_WOBBLE : WOBBLE[blob.mood]
   const time = blob.clock * speed
   const sector = (Math.PI * 2) / sides
-  const points: [number, number][] = []
+  const points: Point[] = []
   for (let index = 0; index < OUTLINE_POINTS; index++) {
     const angle = (index / OUTLINE_POINTS) * Math.PI * 2
     const local = (((angle - rotation) % sector) + sector) % sector - sector / 2
@@ -44,7 +48,13 @@ const outline = (context: CanvasRenderingContext2D, world: World, blob: Blob, ra
     const distance = radius * lerp(polygon, 1, CORNER_ROUNDING) * (1 + energy * Math.sin(time + angle * 3) + energy * 0.6 * Math.sin(time * 1.37 + angle * 5))
     points.push([Math.cos(angle) * distance, Math.sin(angle) * distance])
   }
-  const middle = (a: [number, number], b: [number, number]): [number, number] => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2]
+  return points
+}
+
+const lowestOf = (points: Point[]): number =>
+  Math.max(...points.map((point, index) => (middle(points[(index + OUTLINE_POINTS - 1) % OUTLINE_POINTS], point)[1] + 2 * point[1] + middle(point, points[(index + 1) % OUTLINE_POINTS])[1]) / 4))
+
+const outline = (context: CanvasRenderingContext2D, points: Point[]): void => {
   const start = middle(points[OUTLINE_POINTS - 1], points[0])
   context.beginPath()
   context.moveTo(start[0], start[1])
@@ -224,12 +234,14 @@ export const drawBlob = (context: CanvasRenderingContext2D, world: World, blob: 
   context.save()
   context.translate(blob.x + blob.shake * Math.sin(blob.clock * 60) * 6, blob.y)
   context.scale(1 + blob.squash, 1 - blob.squash)
-  context.translate(0, -radius)
+  const points = outlinePoints(world, blob, radius)
+  const lineWidth = Math.max(2.5, radius * 0.08)
+  context.translate(0, -(lowestOf(points) + lineWidth / 2))
   context.fillStyle = colorOf(blob)
   context.strokeStyle = INK
-  context.lineWidth = Math.max(2.5, radius * 0.08)
+  context.lineWidth = lineWidth
   context.lineJoin = 'round'
-  outline(context, world, blob, radius)
+  outline(context, points)
   context.fill()
   context.stroke()
   drawFace(context, world, blob, radius)
