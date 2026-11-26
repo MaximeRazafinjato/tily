@@ -269,7 +269,7 @@ Outils du serveur MCP calculés côté interface (section 11 de la spec), un mod
 
 ### `src/activity/`
 
-`activityView.ts` (spec WS-10) : regroupe les mesures par onglet d'après la session (panes de l'onglet), somme le processeur et la mémoire, formate les valeurs et classe par catégorie. `ActivityPanel` (bas de `WorkspaceTree`) s'abonne par `activity.subscribe` tant qu'il est déplié et se désabonne en se repliant ; `activityStore` garde l'état déplié, les lignes ouvertes et la dernière mesure, sans persistance : l'encart est replié à chaque lancement.
+`activityView.ts` (spec WS-10) : regroupe les mesures par onglet d'après la session de la fenêtre (panes de l'onglet ; ceux d'une autre fenêtre sont ignorés, y compris dans le total), somme le processeur et la mémoire, formate les valeurs et classe par catégorie. `ActivityPanel` (bas de `WorkspaceTree`) s'abonne par `activity.subscribe` tant qu'il est déplié et se désabonne en se repliant ; `activityStore` garde l'état déplié, les lignes ouvertes et la dernière mesure, sans persistance : l'encart est replié à chaque lancement.
 
 ### `src/statusLog/`
 

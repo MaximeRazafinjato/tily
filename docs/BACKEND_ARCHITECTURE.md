@@ -304,7 +304,7 @@ Mises à jour par les releases GitHub (spec, §13).
 
 ### Activité (`ActivityFeed`)
 
-- Partagé par les fenêtres (`HostServices.Activity`), il ne mesure que tant que l'interface y est abonnée : `activity.subscribe` lance une mesure immédiate puis une toutes les 2 secondes, `activity.unsubscribe` l'arrête. Chaque mesure est envoyée à la fenêtre principale en `activity.state` (processus par pane, puis processus de Tily). Une erreur système sur un processus qui disparaît n'interrompt pas la boucle.
+- Partagé par les fenêtres (`HostServices.Activity`), il ne mesure que tant que l'interface y est abonnée : `activity.subscribe` lance une mesure immédiate puis une toutes les 2 secondes, `activity.unsubscribe` l'arrête ; les abonnements sont comptés par fenêtre et une fenêtre fermée se désabonne. Chaque mesure est envoyée à chaque fenêtre abonnée en `activity.state`, qui n'en affiche que ses onglets (processus par pane, puis processus de Tily). Une erreur système sur un processus qui disparaît n'interrompt pas la boucle.
 
 ## Règles
 

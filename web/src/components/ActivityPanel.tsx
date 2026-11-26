@@ -44,7 +44,7 @@ export function ActivityPanel({ session }: ActivityPanelProps) {
   }, [expanded])
 
   const tabs = useMemo(() => tabUsages(session, panes), [session, panes])
-  const total = useMemo(() => usageOf([...host, ...panes.flatMap((pane) => pane.processes)]), [host, panes])
+  const total = useMemo(() => usageOf([...host, ...tabs.flatMap((tab) => tab.processes)]), [host, tabs])
   const hostUsage = useMemo(() => usageOf(host), [host])
 
   return (

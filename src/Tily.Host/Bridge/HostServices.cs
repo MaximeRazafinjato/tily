@@ -35,7 +35,7 @@ public sealed class HostServices : IDisposable
         PreviewRequests = new PreviewRequestFeed(dataDirectory, PostToPane);
         Updates = new UpdateFeed(message => Main?.Post(message), ApplicationVersion, dataDirectory);
         Mcp = new McpFeed(dataDirectory, PostToPane, exception => Main?.PostError(exception));
-        Activity = new ActivityFeed(Terminals, message => Main?.Post(message));
+        Activity = new ActivityFeed(Terminals);
         ApplySharedSettings(Settings);
     }
 
@@ -85,6 +85,7 @@ public sealed class HostServices : IDisposable
     public void Unregister(HostBridge window)
     {
         _windows.Remove(window);
+        Activity.Unsubscribe(window);
         if (window.Role == WindowRole.Detached)
         {
             PostDetachedTabs();

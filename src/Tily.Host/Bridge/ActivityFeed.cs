@@ -9,31 +9,52 @@ public sealed class ActivityFeed : IDisposable
     private static readonly TimeSpan SampleInterval = TimeSpan.FromSeconds(2);
 
     private readonly TerminalManager _terminals;
-    private readonly Action<object> _post;
     private readonly ProcessUsageSampler _sampler = new(new WindowsProcessProbe());
+    private readonly HashSet<HostBridge> _subscribers = [];
     private readonly object _gate = new();
     private readonly Timer _timer;
     private bool _disposed;
 
-    public ActivityFeed(TerminalManager terminals, Action<object> post)
+    public ActivityFeed(TerminalManager terminals)
     {
         _terminals = terminals;
-        _post = post;
         _timer = new Timer(_ => Sample());
     }
 
-    public void Handle(BridgeCommandModel command)
+    public void Handle(BridgeCommandModel command, HostBridge window)
     {
         switch (command.Type)
         {
             case "activity.subscribe":
-                _timer.Change(TimeSpan.Zero, SampleInterval);
+                Subscribe(window);
                 break;
             case "activity.unsubscribe":
-                _timer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
+                Unsubscribe(window);
                 break;
             default:
                 throw new InvalidOperationException($"Commande inconnue : {command.Type}");
+        }
+    }
+
+    public void Unsubscribe(HostBridge window)
+    {
+        lock (_gate)
+        {
+            if (_subscribers.Remove(window) && _subscribers.Count == 0 && !_disposed)
+            {
+                _timer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
+            }
+        }
+    }
+
+    private void Subscribe(HostBridge window)
+    {
+        lock (_gate)
+        {
+            if (_subscribers.Add(window) && !_disposed)
+            {
+                _timer.Change(TimeSpan.Zero, SampleInterval);
+            }
         }
     }
 
@@ -41,7 +62,7 @@ public sealed class ActivityFeed : IDisposable
     {
         lock (_gate)
         {
-            if (_disposed)
+            if (_disposed || _subscribers.Count == 0)
             {
                 return;
             }
@@ -49,7 +70,11 @@ public sealed class ActivityFeed : IDisposable
             try
             {
                 var activity = _sampler.Sample(_terminals.ProcessIds(), Environment.ProcessId);
-                _post(new { type = "activity.state", panes = activity.Panes, host = activity.Host });
+                var message = new { type = "activity.state", panes = activity.Panes, host = activity.Host };
+                foreach (var window in _subscribers)
+                {
+                    window.Post(message);
+                }
             }
             catch (Exception exception) when (exception is Win32Exception or InvalidOperationException or ObjectDisposedException)
             {
@@ -62,6 +87,7 @@ public sealed class ActivityFeed : IDisposable
         lock (_gate)
         {
             _disposed = true;
+            _subscribers.Clear();
         }
 
         _timer.Dispose();

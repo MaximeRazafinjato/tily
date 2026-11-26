@@ -405,7 +405,7 @@ public sealed class HostBridge : IDisposable
                 _statusLog.Handle(command);
                 break;
             case var type when type.StartsWith("activity.", StringComparison.Ordinal):
-                _services.Activity.Handle(command);
+                _services.Activity.Handle(command, this);
                 break;
             case "link.open":
                 LocalActions.OpenLink(command.Url ?? throw new InvalidOperationException("Lien manquant."));
