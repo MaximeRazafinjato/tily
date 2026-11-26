@@ -147,6 +147,100 @@ public sealed class AgentStateHookScriptTests : IDisposable
         Assert.Contains($"puis lance `start \"\" \"{page}\"` seul", Reason(output));
     }
 
+    [Fact]
+    public void Run_WhenToolUsed_ThenWritesToolName()
+    {
+        var state = Run("{ \"hook_event_name\": \"PostToolUse\", \"tool_name\": \"mcp__tily__tily_run\" }");
+
+        Assert.Equal(("working", "mcp__tily__tily_run"), (state["state"]!.GetValue<string>(), state["tool"]!.GetValue<string>()));
+    }
+
+    [Fact]
+    public void Run_WhenHookCarriesTranscript_ThenWritesItsPath()
+    {
+        var state = Run("{ \"hook_event_name\": \"PostToolUse\", \"tool_name\": \"Read\", \"transcript_path\": \"C:\\\\sessions\\\\a.jsonl\" }");
+
+        Assert.Equal(@"C:\sessions\a.jsonl", state["transcript"]!.GetValue<string>());
+    }
+
+    [Fact]
+    public void Run_WhenSubagentUsesTool_ThenWritesItInSubagentFileOnly()
+    {
+        Run("{ \"hook_event_name\": \"Stop\", \"last_assistant_message\": \"Lancé.\" }");
+        Execute("{ \"hook_event_name\": \"SubagentStart\", \"agent_id\": \"a5f11e0c\", \"agent_type\": \"Explore\" }");
+
+        Execute("{ \"hook_event_name\": \"PostToolUse\", \"agent_id\": \"a5f11e0c\", \"agent_type\": \"Explore\", \"tool_name\": \"Grep\" }");
+
+        Assert.Equal(("Explore", "Grep", "done"), (Subagent("a5f11e0c")["type"]!.GetValue<string>(), Subagent("a5f11e0c")["tool"]!.GetValue<string>(), MainState()));
+    }
+
+    [Fact]
+    public void Run_WhenSubagentUsesToolWhileMainWaits_ThenMainWorksAgain()
+    {
+        Run("{ \"hook_event_name\": \"PermissionRequest\", \"agent_id\": \"a5f11e0c\", \"tool_name\": \"Bash\", \"tool_input\": { \"command\": \"ls\" } }");
+
+        Execute("{ \"hook_event_name\": \"PostToolUse\", \"agent_id\": \"a5f11e0c\", \"agent_type\": \"Explore\", \"tool_name\": \"Bash\" }");
+
+        Assert.Equal("working", MainState());
+    }
+
+    [Fact]
+    public void Run_WhenSubagentStops_ThenRemovesItsFile()
+    {
+        Execute("{ \"hook_event_name\": \"SubagentStart\", \"agent_id\": \"a5f11e0c\", \"agent_type\": \"Explore\" }");
+
+        Execute("{ \"hook_event_name\": \"SubagentStop\", \"agent_id\": \"a5f11e0c\", \"agent_type\": \"Explore\" }");
+
+        Assert.False(File.Exists(SubagentPath("a5f11e0c")));
+    }
+
+    [Fact]
+    public void Run_WhenSubagentToolHookArrivesAfterStop_ThenSubagentStaysRemoved()
+    {
+        Execute("{ \"hook_event_name\": \"SubagentStart\", \"agent_id\": \"a5f11e0c\", \"agent_type\": \"Explore\" }");
+        Execute("{ \"hook_event_name\": \"SubagentStop\", \"agent_id\": \"a5f11e0c\", \"agent_type\": \"Explore\" }");
+
+        Execute("{ \"hook_event_name\": \"PostToolUse\", \"agent_id\": \"a5f11e0c\", \"agent_type\": \"Explore\", \"tool_name\": \"Read\" }");
+
+        Assert.False(File.Exists(SubagentPath("a5f11e0c")));
+    }
+
+    [Fact]
+    public void Run_WhenTurnStopsWithBackgroundTasks_ThenRemovesSubagentsNoLongerRunning()
+    {
+        Execute("{ \"hook_event_name\": \"SubagentStart\", \"agent_id\": \"a1\", \"agent_type\": \"Explore\" }");
+        Execute("{ \"hook_event_name\": \"SubagentStart\", \"agent_id\": \"a2\", \"agent_type\": \"Explore\" }");
+
+        Execute("{ \"hook_event_name\": \"Stop\", \"last_assistant_message\": \"Fini.\", \"background_tasks\": [ { \"id\": \"a2\", \"type\": \"subagent\", \"status\": \"running\" } ] }");
+
+        Assert.Equal((false, true), (File.Exists(SubagentPath("a1")), File.Exists(SubagentPath("a2"))));
+    }
+
+    [Fact]
+    public void Run_WhenSessionEnds_ThenRemovesSubagentFiles()
+    {
+        Execute("{ \"hook_event_name\": \"SubagentStart\", \"agent_id\": \"a5f11e0c\", \"agent_type\": \"Explore\" }");
+
+        Execute("{ \"hook_event_name\": \"SessionEnd\" }");
+
+        Assert.False(File.Exists(SubagentPath("a5f11e0c")));
+    }
+
+    [Fact]
+    public void Run_WhenAgentIdHasPathCharacters_ThenWritesNoSubagentFile()
+    {
+        Execute("{ \"hook_event_name\": \"SubagentStart\", \"agent_id\": \"..\\\\..\\\\x\", \"agent_type\": \"Explore\" }");
+
+        Assert.Empty(Directory.Exists(Path.Combine(_directory, "agents")) ? Directory.GetFiles(Path.Combine(_directory, "agents"), $"{PaneId}.sub.*") : []);
+    }
+
+    private string SubagentPath(string agentId) => Path.Combine(_directory, "agents", $"{PaneId}.sub.{agentId}.json");
+
+    private JsonNode Subagent(string agentId) => JsonNode.Parse(File.ReadAllText(SubagentPath(agentId), Encoding.UTF8))!;
+
+    private string MainState() =>
+        JsonNode.Parse(File.ReadAllText(Path.Combine(_directory, "agents", PaneId + ".json"), Encoding.UTF8))!["state"]!.GetValue<string>();
+
     private string Page(string name)
     {
         var path = Path.Combine(_directory, name);

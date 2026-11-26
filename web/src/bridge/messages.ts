@@ -191,6 +191,15 @@ export interface PaneAgent {
   message?: string
   detail?: string
   interrupted?: boolean
+  tool?: string
+  subagents?: Subagent[]
+  contextTokens?: number
+}
+
+export interface Subagent {
+  id: string
+  type: string
+  tool?: string
 }
 
 export type HostToWebMessage =

@@ -6,6 +6,8 @@ namespace Tily.Core.Agents;
 public sealed class AgentStateRepository
 {
     public const int MaxDetailLength = 240;
+    private const string SubagentInfix = ".sub.";
+    private const string StoppedExtension = ".stopped";
 
     private static readonly Dictionary<string, AgentState> States = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -15,6 +17,8 @@ public sealed class AgentStateRepository
         ["error"] = AgentState.Error,
         ["unknown"] = AgentState.Unknown
     };
+
+    private readonly ClaudeTranscriptReader _transcripts = new();
 
     public AgentStateRepository(string dataDirectory)
     {
@@ -49,8 +53,46 @@ public sealed class AgentStateRepository
             return null;
         }
 
-        return new AgentStateModel(file.Agent.Trim().ToLowerInvariant(), state, SingleLine(file.Message), SingleLine(file.Detail)) { UpdatedAtUtc = writtenAtUtc };
+        return new AgentStateModel(file.Agent.Trim().ToLowerInvariant(), state, SingleLine(file.Message), SingleLine(file.Detail))
+        {
+            UpdatedAtUtc = writtenAtUtc,
+            Tool = SingleLine(file.Tool),
+            Subagents = ReadSubagents(paneId, notBeforeUtc),
+            ContextTokens = _transcripts.ContextTokens(file.Transcript)
+        };
     }
+
+    public string SubagentFilePathFor(string paneId, string agentId) => Path.Combine(Directory, $"{paneId}{SubagentInfix}{agentId}.json");
+
+    private IReadOnlyList<SubagentModel>? ReadSubagents(string paneId, DateTime notBeforeUtc)
+    {
+        var prefix = paneId + SubagentInfix;
+        var subagents = SubagentFiles(paneId, "*.json")
+            .Select(path => new FileInfo(path))
+            .Where(file => file.LastWriteTimeUtc >= notBeforeUtc && !File.Exists(Path.ChangeExtension(file.FullName, StoppedExtension)))
+            .OrderBy(file => file.CreationTimeUtc)
+            .ThenBy(file => file.Name, StringComparer.Ordinal)
+            .Select(file => ReadSubagent(file, file.Name[prefix.Length..^".json".Length]))
+            .OfType<SubagentModel>()
+            .ToList();
+        return subagents.Count > 0 ? subagents : null;
+    }
+
+    private static SubagentModel? ReadSubagent(FileInfo file, string agentId)
+    {
+        try
+        {
+            var model = JsonSerializer.Deserialize<SubagentFileModel>(File.ReadAllText(file.FullName), SessionRepository.JsonOptions);
+            return string.IsNullOrWhiteSpace(model?.Type) ? null : new SubagentModel(agentId, model.Type.Trim(), SingleLine(model.Tool));
+        }
+        catch (Exception exception) when (exception is JsonException or IOException or UnauthorizedAccessException)
+        {
+            return null;
+        }
+    }
+
+    private IEnumerable<string> SubagentFiles(string paneId, string pattern = "*") =>
+        System.IO.Directory.Exists(Directory) ? System.IO.Directory.EnumerateFiles(Directory, $"{paneId}{SubagentInfix}{pattern}") : [];
 
     private static string? SingleLine(string? detail)
     {
@@ -65,12 +107,15 @@ public sealed class AgentStateRepository
 
     public void Delete(string paneId)
     {
-        try
+        foreach (var path in SubagentFiles(paneId).Prepend(FilePathFor(paneId)).ToList())
         {
-            File.Delete(FilePathFor(paneId));
-        }
-        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
-        {
+            try
+            {
+                File.Delete(path);
+            }
+            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+            {
+            }
         }
     }
 
@@ -81,7 +126,7 @@ public sealed class AgentStateRepository
             return;
         }
 
-        foreach (var path in System.IO.Directory.EnumerateFiles(Directory, "*.json"))
+        foreach (var path in System.IO.Directory.EnumerateFiles(Directory, "*.json").Concat(System.IO.Directory.EnumerateFiles(Directory, "*" + StoppedExtension)).ToList())
         {
             try
             {

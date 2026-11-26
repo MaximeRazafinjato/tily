@@ -354,7 +354,7 @@ export function AppShell({ session }: AppShellProps) {
           onNew={newTab}
           onMove={moveTab}
         />
-        <div data-surface="panel" className="relative min-h-0 flex-1 border-t border-tily-line bg-tily-panel p-1">
+        <div data-surface="panel" data-perch="" className="relative min-h-0 flex-1 border-t border-tily-line bg-tily-panel p-1">
           <SplitView key={currentTab.id} node={zoomedPane ? { pane: zoomedPane } : currentTab.tree} zoomed={zoomedPane !== undefined} onToggleZoom={togglePaneZoom} activePaneId={currentTab.active} onFocus={selectPane} onClose={closePaneKeepingText} onSplit={handleSplit} onResize={handleResize} shells={availableShells} onRestart={restartPane} onRestartIn={restartPaneIn} onChangeShell={changePaneShell} onDismissState={dismissPaneState} />
           {graphShown && <GitGraphView layout={session.gitGraph} />}
           {gitShown && <GitDiffDrawer />}

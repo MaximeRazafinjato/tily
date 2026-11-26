@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { clearSeenCommandNotices } from './terminal/commandNotices'
 import { startAttentionNotifier } from './agents/attentionNotifier'
+import { startCompanions } from './companions/companionLoader'
 import { AMBIANCE_MEDIA_FIELD, AMBIANCE_MEDIA_PICK_FIELD, importAmbianceMedia, receiveAmbiance, startAmbiance } from './ambiance/ambianceActions'
 import { receiveAppearance, receiveAppearanceCatalog, receiveProjects, startAppearanceProjects } from './appearance/appearanceActions'
 import { bridge } from './bridge/bridge'
@@ -77,6 +78,7 @@ export default function App() {
     const stopBrowserLayer = startBrowserLayer()
     const stopAppearanceProjects = startAppearanceProjects()
     const stopAmbiance = startAmbiance()
+    const stopCompanions = startCompanions()
     const stopWindowSync = startWindowSync()
     const stopLinkedNoteSync = startLinkedNoteSync()
     const { markFailed, markExited, markPathMissing, markAlive } = usePaneStore.getState()
@@ -278,6 +280,7 @@ export default function App() {
       stopBrowserLayer()
       stopAppearanceProjects()
       stopAmbiance()
+      stopCompanions()
       stopWindowSync()
       stopLinkedNoteSync()
       stopAutosave?.()

@@ -8,9 +8,49 @@ $dataDirectory = if ([string]::IsNullOrWhiteSpace($env:TILY_DATA_DIR)) { Join-Pa
 $directory = Join-Path $dataDirectory 'agents'
 $file = Join-Path $directory "$paneId.json"
 $eventName = [string]$hook.hook_event_name
+$agentId = [string]$hook.agent_id
+if ($agentId -notmatch '^[A-Za-z0-9_-]+$') { $agentId = '' }
 
 if ($eventName -eq 'SessionEnd') {
     Remove-Item -LiteralPath $file -Force -ErrorAction SilentlyContinue
+    Get-ChildItem -LiteralPath $directory -Filter "$paneId.sub.*" -ErrorAction SilentlyContinue | Remove-Item -Force -ErrorAction SilentlyContinue
+    exit 0
+}
+
+function Write-StateFile([string]$path, $content) {
+    New-Item -ItemType Directory -Path $directory -Force | Out-Null
+    [System.IO.File]::WriteAllText($path, ($content | ConvertTo-Json -Compress), [System.Text.UTF8Encoding]::new($false))
+}
+
+function Stop-Subagent([string]$id) {
+    New-Item -ItemType Directory -Path $directory -Force | Out-Null
+    [System.IO.File]::WriteAllText((Join-Path $directory "$paneId.sub.$id.stopped"), '')
+    Remove-Item -LiteralPath (Join-Path $directory "$paneId.sub.$id.json") -Force -ErrorAction SilentlyContinue
+}
+
+if (-not $agentId -and $eventName -eq 'Stop' -and $hook.PSObject.Properties['background_tasks']) {
+    $running = @($hook.background_tasks | Where-Object { $_.type -eq 'subagent' -and $_.status -eq 'running' } | ForEach-Object { [string]$_.id })
+    Get-ChildItem -LiteralPath $directory -Filter "$paneId.sub.*.json" -ErrorAction SilentlyContinue | ForEach-Object {
+        $id = $_.Name.Substring("$paneId.sub.".Length, $_.Name.Length - "$paneId.sub.".Length - '.json'.Length)
+        if ($id -notin $running) { Stop-Subagent $id }
+    }
+}
+
+if ($agentId -and $eventName -in 'SubagentStart', 'SubagentStop', 'PostToolUse') {
+    $subagentFile = Join-Path $directory "$paneId.sub.$agentId.json"
+    if ($eventName -eq 'SubagentStop') {
+        Stop-Subagent $agentId
+        exit 0
+    }
+    if (Test-Path -LiteralPath (Join-Path $directory "$paneId.sub.$agentId.stopped")) { exit 0 }
+    $type = [string]$hook.agent_type
+    if ([string]::IsNullOrWhiteSpace($type)) { $type = 'agent' }
+    $tool = if ($eventName -eq 'PostToolUse') { [string]$hook.tool_name } else { $null }
+    Write-StateFile $subagentFile @{ type = $type; tool = $tool }
+    if ($eventName -eq 'PostToolUse' -and (Test-Path -LiteralPath $file)) {
+        try { $current = Get-Content -LiteralPath $file -Raw -Encoding UTF8 | ConvertFrom-Json } catch { $current = $null }
+        if ($current.state -eq 'waiting') { Write-StateFile $file @{ agent = 'claude'; state = 'working'; message = $null; detail = $null; tool = $null } }
+    }
     exit 0
 }
 
@@ -160,11 +200,12 @@ $waitingNotifications = @('permission_prompt', 'elicitation_dialog', 'agent_need
 $state = $null
 $message = $null
 $detail = $null
+$tool = $null
 switch ($eventName) {
     'SessionStart' { $state = 'unknown' }
     'UserPromptSubmit' { $state = 'working' }
     'PreToolUse' { if ($hook.tool_name -eq 'AskUserQuestion') { $state = 'waiting'; $message = Get-Question $hook.tool_input } }
-    'PostToolUse' { $state = 'working' }
+    'PostToolUse' { $state = 'working'; $tool = [string]$hook.tool_name }
     'Stop' { $state = 'done'; $detail = Get-LastAssistantText $hook }
     'StopFailure' { $state = 'error'; $message = 'Erreur signalée par Claude Code.' }
     'PermissionRequest' {
@@ -184,6 +225,6 @@ switch ($eventName) {
 }
 if (-not $state) { exit 0 }
 
-New-Item -ItemType Directory -Path $directory -Force | Out-Null
-$json = @{ agent = 'claude'; state = $state; message = $message; detail = $detail } | ConvertTo-Json -Compress
-[System.IO.File]::WriteAllText($file, $json, [System.Text.UTF8Encoding]::new($false))
+$transcript = [string]$hook.transcript_path
+if ([string]::IsNullOrWhiteSpace($transcript)) { $transcript = $null }
+Write-StateFile $file @{ agent = 'claude'; state = $state; message = $message; detail = $detail; tool = $tool; transcript = $transcript }

@@ -1,6 +1,7 @@
 import { useState, type ChangeEvent } from 'react'
 import type { AmbianceSettings } from '../bridge/appearanceMessages'
 import { AmbianceAlertFields } from './AmbianceAlertFields'
+import { AmbianceCompanionFields } from './AmbianceCompanionFields'
 import { AmbianceBackgroundFields } from './AmbianceBackgroundFields'
 import { AmbianceInterfaceFields } from './AmbianceInterfaceFields'
 import { AmbiancePerformanceFields } from './AmbiancePerformanceFields'
@@ -45,6 +46,8 @@ export function AmbianceSettingsSection({ title, ambiance, onChange, onPickMedia
           <AmbianceTerminalFields ambiance={ambiance} onChange={onChange} />
           <SettingsGroupTitle title="Effets d’agents" />
           <AmbianceAlertFields ambiance={ambiance} onChange={onChange} />
+          <SettingsGroupTitle title="Compagnons" />
+          <AmbianceCompanionFields ambiance={ambiance} onChange={onChange} />
           <SettingsGroupTitle title="Avancé" expanded={advancedOpen} onToggle={handleAdvancedToggle} />
           {advancedOpen && <AmbiancePerformanceFields ambiance={ambiance} onChange={onChange} />}
         </>

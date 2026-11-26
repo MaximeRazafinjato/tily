@@ -112,6 +112,7 @@ export const WorkspaceItem = memo(function WorkspaceItem({ workspace, workspaceN
       <div
         className={`group flex h-[30px] cursor-pointer items-center gap-[4px] rounded-md px-[2px] select-none ${rowStateOf(!expanded && isDropTarget(dropTarget, id), here)}`}
         data-drop-workspace={id}
+        data-perch=""
         data-spring-workspace={expanded ? undefined : id}
         onClick={handleSelect}
         onContextMenu={handleContextMenu}

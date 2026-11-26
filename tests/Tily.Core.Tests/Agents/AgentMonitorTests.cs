@@ -121,6 +121,44 @@ public sealed class AgentMonitorTests : IDisposable
     }
 
     [Fact]
+    public void Resolve_WhenSubagentsReported_ThenListsThemWithToolAndMainTool()
+    {
+        var started = DateTime.UtcNow.AddMinutes(-1);
+        File.WriteAllText(_states.FilePathFor("pane-a"), "{ \"agent\": \"claude\", \"state\": \"working\", \"tool\": \"Agent\" }");
+        File.WriteAllText(_states.SubagentFilePathFor("pane-a", "a1"), "{ \"type\": \"Explore\", \"tool\": \"Grep\" }");
+        File.WriteAllText(_states.SubagentFilePathFor("pane-a", "a2"), "{ \"type\": \"Plan\" }");
+        File.WriteAllText(_states.SubagentFilePathFor("pane-b", "b1"), "{ \"type\": \"Explore\" }");
+
+        var agent = _monitor.Resolve([new PaneProbeModel("pane-a", started, ["node"])]).Single();
+
+        Assert.Equal("Agent", agent.Tool);
+        Assert.Equal([new SubagentModel("a1", "Explore", "Grep"), new SubagentModel("a2", "Plan")], agent.Subagents!);
+    }
+
+    [Fact]
+    public void Resolve_WhenSubagentMarkedStopped_ThenIgnored()
+    {
+        File.WriteAllText(_states.FilePathFor("pane-a"), "{ \"agent\": \"claude\", \"state\": \"working\" }");
+        File.WriteAllText(_states.SubagentFilePathFor("pane-a", "a1"), "{ \"type\": \"Explore\" }");
+        File.WriteAllText(Path.ChangeExtension(_states.SubagentFilePathFor("pane-a", "a1"), ".stopped"), "");
+
+        var agent = _monitor.Resolve([new PaneProbeModel("pane-a", DateTime.UtcNow.AddMinutes(-1), ["node"])]).Single();
+
+        Assert.Null(agent.Subagents);
+    }
+
+    [Fact]
+    public void Resolve_WhenNoProcessLeft_ThenDeletesSubagentFiles()
+    {
+        File.WriteAllText(_states.FilePathFor("pane-idle"), "{ \"agent\": \"claude\", \"state\": \"done\" }");
+        File.WriteAllText(_states.SubagentFilePathFor("pane-idle", "a1"), "{ \"type\": \"Explore\" }");
+
+        _monitor.Resolve([new PaneProbeModel("pane-idle", DateTime.UtcNow.AddMinutes(-1), [])]);
+
+        Assert.Empty(Directory.GetFiles(_states.Directory));
+    }
+
+    [Fact]
     public void Clear_WhenFilesExist_ThenRemovesThemAll()
     {
         File.WriteAllText(_states.FilePathFor("pane-1"), "{}");
