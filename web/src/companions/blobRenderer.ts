@@ -194,11 +194,17 @@ const drawFace = (context: CanvasRenderingContext2D, world: World, blob: Blob, r
   context.fill()
 }
 
-const drawBubble = (context: CanvasRenderingContext2D, text: string, x: number, y: number, pulse: number): void => {
+const BUBBLE_HEIGHT = 22
+const BUBBLE_MARGIN = 4
+const BUBBLE_BELOW_GAP = 6
+
+const drawBubble = (context: CanvasRenderingContext2D, world: World, text: string, x: number, above: number, below: number, pulse: number): void => {
   context.font = '600 12px system-ui, sans-serif'
   const width = context.measureText(text).width + 16
+  const y = above - BUBBLE_HEIGHT >= BUBBLE_MARGIN ? above : below + BUBBLE_HEIGHT + BUBBLE_BELOW_GAP
+  const half = width / 2 + BUBBLE_MARGIN
   context.save()
-  context.translate(x, y)
+  context.translate(Math.min(Math.max(x, half), Math.max(half, world.width - half)), y)
   context.scale(1 + pulse, 1 + pulse)
   context.fillStyle = '#fff'
   context.strokeStyle = INK
@@ -261,7 +267,7 @@ export const drawBlob = (context: CanvasRenderingContext2D, world: World, blob: 
   }
   const label = labelOf(blob, hovered, waiting)
   if (label) {
-    drawBubble(context, label, blob.x, barShown ? top - 10 : top, waiting ? 0.08 * Math.sin(blob.moodTime * 6) : 0)
+    drawBubble(context, world, label, blob.x, barShown ? top - 10 : top, blob.y, waiting ? 0.08 * Math.sin(blob.moodTime * 6) : 0)
   }
 }
 

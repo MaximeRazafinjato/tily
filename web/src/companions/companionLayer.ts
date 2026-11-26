@@ -97,8 +97,25 @@ const mountLayer = (size: number, speed: number, gore: boolean): { world: World;
     canvas.remove()
     return { world, stop: () => {} }
   }
+  let basketAnchor: Element | null = null
+  let layoutChanged = false
+  const basketObserver = new ResizeObserver(() => {
+    readPerches(world)
+    layoutChanged = true
+  })
+  const readSurfaces = () => {
+    readPerches(world)
+    const anchor = document.querySelector('[data-basket]')
+    if (anchor !== basketAnchor) {
+      basketObserver.disconnect()
+      basketAnchor = anchor
+      if (anchor) {
+        basketObserver.observe(anchor)
+      }
+    }
+  }
   fitLayer(canvas, context, world)
-  readPerches(world)
+  readSurfaces()
   syncCompanions(world)
 
   let previous = performance.now()
@@ -113,14 +130,15 @@ const mountLayer = (size: number, speed: number, gore: boolean): { world: World;
     if (document.hidden || (performanceSettings && !shouldRender(performanceSettings, now, previous))) {
       return
     }
-    if (calm && !syncPending && now - previous < CALM_FRAME_MS) {
+    if (calm && !syncPending && !layoutChanged && now - previous < CALM_FRAME_MS) {
       return
     }
     const dt = Math.min(MAX_STEP_S, (now - previous) / 1000)
     previous = now
+    layoutChanged = false
     if (now - perchesReadAt >= PERCH_REFRESH_MS) {
       perchesReadAt = now
-      readPerches(world)
+      readSurfaces()
       modalOpen = document.querySelector(MODAL_SELECTOR) !== null
     }
     if (syncPending) {
@@ -141,7 +159,7 @@ const mountLayer = (size: number, speed: number, gore: boolean): { world: World;
 
   const handleResize = () => {
     fitLayer(canvas, context, world)
-    readPerches(world)
+    readSurfaces()
   }
   const markSyncPending = () => {
     syncPending = true
@@ -157,6 +175,7 @@ const mountLayer = (size: number, speed: number, gore: boolean): { world: World;
     world,
     stop: () => {
       cancelAnimationFrame(frame)
+      basketObserver.disconnect()
       removeEventListener('resize', handleResize)
       unsubscribes.forEach((unsubscribe) => unsubscribe())
       stopPointer()
