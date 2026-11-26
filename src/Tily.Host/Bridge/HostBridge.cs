@@ -160,7 +160,7 @@ public sealed class HostBridge : IDisposable
         {
             if (File.Exists(path) || Directory.Exists(path))
             {
-                Post(new { type = "terminal.dropped", pane = paneId, text = DroppedPaths.Format([path], shellId) });
+                Post(new { type = "terminal.dropped", pane = paneId, text = DroppedPaths.Format(new[] { path }, shellId) });
             }
             else
             {
@@ -536,7 +536,7 @@ public sealed class HostBridge : IDisposable
             return;
         }
 
-        Notify(paneId, [command.Title ?? "Tily", command.Body], done ? settings.DoneSound : settings.Sound, settings, done);
+        Notify(paneId, new[] { command.Title ?? "Tily", command.Body }, done ? settings.DoneSound : settings.Sound, settings, done);
     }
 
     private void TestAttention(string paneId, BridgeCommandModel command)
