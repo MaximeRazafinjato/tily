@@ -100,6 +100,9 @@ export interface Blob {
   project: string | null
   trace: TracePoint[]
   effect: EffectState
+  shiny: boolean
+  twinkle: number
+  demo: number
 }
 
 export interface Tomb {
@@ -116,6 +119,8 @@ export enum ParticleKind {
   Drop = 'drop',
   Stain = 'stain',
   Hole = 'hole',
+  Twinkle = 'twinkle',
+  Nova = 'nova',
 }
 
 export interface Particle {
@@ -285,6 +290,9 @@ export const createBlob = (world: World, key: string, paneId: string, hue: numbe
     project: parent?.project ?? null,
     trace: [],
     effect: createEffectState(),
+    shiny: false,
+    twinkle: 0,
+    demo: 0,
   }
 }
 

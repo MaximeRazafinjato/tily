@@ -6,6 +6,7 @@ import { useAgentStore } from '../store/agentStore'
 import { projectKey, useAppearanceStore } from '../store/appearanceStore'
 import { useSessionStore } from '../store/sessionStore'
 import { BlobMood, contextScaleOf, createBlob, hashOf, removeBlob, setMood, type Blob, type World } from './blobModel'
+import { setShiny } from './shinyEffects'
 
 const MOODS: Record<AgentState, BlobMood> = {
   [AgentState.Working]: BlobMood.Working,
@@ -82,13 +83,14 @@ const syncChildren = (world: World, blob: Blob, agent: PaneAgent): void => {
     }
     child.name = subagent.type
     child.tool = toolLabel(subagent.tool)
+    setShiny(world, child, Boolean(subagent.shiny))
   })
 }
 
 export const syncCompanions = (world: World): void => {
   const { agents } = useAgentStore.getState()
   world.blobs
-    .filter((blob) => !blob.parent && !agents[blob.paneId])
+    .filter((blob) => !blob.parent && blob.demo === 0 && !agents[blob.paneId])
     .forEach((blob) => {
       blob.leaving = true
       blob.children.forEach((child) => {
@@ -110,6 +112,7 @@ export const syncCompanions = (world: World): void => {
     blob.tool = toolLabel(agent.tool)
     blob.contextScale = contextScaleOf(agent.contextTokens)
     blob.context = agent.contextTokens
+    setShiny(world, blob, Boolean(agent.shiny))
     if (blob.reported !== mood) {
       blob.reported = mood
       setMood(world, blob, mood)

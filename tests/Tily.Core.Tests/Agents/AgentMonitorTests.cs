@@ -136,6 +136,38 @@ public sealed class AgentMonitorTests : IDisposable
     }
 
     [Fact]
+    public void Resolve_WhenTranscriptSessionIsShiny_ThenAgentIsShinyWithItsSession()
+    {
+        File.WriteAllText(_states.FilePathFor("pane-a"), "{ \"agent\": \"claude\", \"state\": \"working\", \"transcript\": \"C:\\\\Users\\\\moi\\\\.claude\\\\projects\\\\app\\\\session-142.jsonl\" }");
+
+        var agent = _monitor.Resolve([new PaneProbeModel("pane-a", DateTime.UtcNow.AddMinutes(-1), ["node"])]).Single();
+
+        Assert.Equal(("session-142", true), (agent.SessionId, agent.Shiny));
+    }
+
+    [Fact]
+    public void Resolve_WhenNoTranscript_ThenAgentIsNotShiny()
+    {
+        File.WriteAllText(_states.FilePathFor("pane-a"), "{ \"agent\": \"claude\", \"state\": \"working\" }");
+
+        var agent = _monitor.Resolve([new PaneProbeModel("pane-a", DateTime.UtcNow.AddMinutes(-1), ["node"])]).Single();
+
+        Assert.False(agent.Shiny);
+    }
+
+    [Fact]
+    public void Resolve_WhenSubagentIdIsShiny_ThenOnlyThatSubagentIsShiny()
+    {
+        File.WriteAllText(_states.FilePathFor("pane-a"), "{ \"agent\": \"claude\", \"state\": \"working\" }");
+        File.WriteAllText(_states.SubagentFilePathFor("pane-a", "agent-259"), "{ \"type\": \"Explore\" }");
+        File.WriteAllText(_states.SubagentFilePathFor("pane-a", "agent-0"), "{ \"type\": \"Plan\" }");
+
+        var agent = _monitor.Resolve([new PaneProbeModel("pane-a", DateTime.UtcNow.AddMinutes(-1), ["node"])]).Single();
+
+        Assert.Equal(["agent-259"], agent.Subagents!.Where(subagent => subagent.Shiny).Select(subagent => subagent.Id));
+    }
+
+    [Fact]
     public void Resolve_WhenSubagentMarkedStopped_ThenIgnored()
     {
         File.WriteAllText(_states.FilePathFor("pane-a"), "{ \"agent\": \"claude\", \"state\": \"working\" }");

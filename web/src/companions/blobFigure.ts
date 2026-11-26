@@ -2,7 +2,8 @@ import type { CompanionOutfit } from '../bridge/appearanceMessages'
 import { HURT_S, SAD_HEALTH } from './goreEffects'
 import { BlobMood, lerp, PETTED, SHAPES, type Blob, type World } from './blobModel'
 import { drawProps, faceOffset } from './blobProps'
-import { INK, type Point } from './cosmetics/clayShapes'
+import { INK, tracePath, type Point } from './cosmetics/clayShapes'
+import { drawShimmer, hueOf } from './shinyEffects'
 import type { FigurePose } from './cosmetics/cosmeticState'
 import { drawFaceCosmetic } from './cosmetics/faceDrawing'
 import { drawHat } from './cosmetics/hatDrawing'
@@ -23,9 +24,9 @@ const WOBBLE: Record<BlobMood, { energy: number; speed: number }> = {
 const DRAGGED_WOBBLE = { energy: 0.08, speed: 8 }
 const BLUSH = '#ff7a9a'
 
-export const colorOf = (blob: Blob, hue = blob.hue): string => {
+export const colorOf = (blob: Blob, hue = hueOf(blob)): string => {
   const errorHue = ERROR_HUE + (hue > 180 ? 360 : 0)
-  return `hsl(${lerp(hue, errorHue, blob.errorMix)}, 85%, ${lerp(64, 52, blob.errorMix)}%)`
+  return `hsl(${lerp(hue, errorHue, blob.errorMix)}, ${blob.shiny ? 95 : 85}%, ${lerp(blob.shiny ? 68 : 64, 52, blob.errorMix)}%)`
 }
 
 const middle = (a: Point, b: Point): Point => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2]
@@ -193,6 +194,12 @@ const paintFigure = (context: CanvasRenderingContext2D, world: World, blob: Blob
     step(() => style.back?.(context, painting))
   }
   step(() => style.paint(context, painting))
+  if (blob.shiny) {
+    step(() => {
+      tracePath(context, points, true, true)
+      drawShimmer(context, blob, radius)
+    })
+  }
   const ink = style.eyeColor?.(pose.hue) ?? INK
   const drawEyes = (): void => {
     if (style.eyes) {

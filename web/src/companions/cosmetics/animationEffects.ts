@@ -3,6 +3,7 @@ import { clamp, jump, randomBetween, type Blob, type World } from '../blobModel'
 import { CompanionAnimation } from './cosmeticCatalog'
 import { drawClayShape, easeInOutCubic, hashUnit, INK, ring, smoothstep, star, TAU } from './clayShapes'
 import type { FigurePose } from './cosmeticState'
+import { hueOf } from '../shinyEffects'
 import { drawTinted } from './offscreenFigure'
 
 const STOP_MOTION_FPS = 7
@@ -19,7 +20,7 @@ const easeOutBack = (progress: number): number => 1 + 2.7 * (progress - 1) ** 3 
 
 const directionOf = (blob: Blob): number => Math.sign(blob.vx) || blob.effect.side
 
-export const basePose = (blob: Blob): FigurePose => ({ dx: 0, dy: 0, sx: 1, sy: 1, rotation: 0, time: blob.clock, hue: blob.hue })
+export const basePose = (blob: Blob): FigurePose => ({ dx: 0, dy: 0, sx: 1, sy: 1, rotation: 0, time: blob.clock, hue: hueOf(blob) })
 
 const teleportPhase = (blob: Blob): number | null => {
   const phase = (blob.clock - blob.effect.startedAt) / TELEPORT_S

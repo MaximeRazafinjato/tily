@@ -14,6 +14,8 @@ import { clearCompanions, syncCompanions } from './companionSync'
 import { cosmeticsActive, drawTrails, updateCosmetics } from './cosmetics/trailEffects'
 import { isFocused, updateFocus } from './wardrobeFocus'
 import { keepWardrobeLinked, linkWardrobe } from './wardrobeLink'
+import { shinyDemoRequested, takeShinyDemo } from './shinyDemo'
+import { spawnShinyDemo } from './shinyEffects'
 
 const LAYER_ID = 'tily-companions'
 const LAYER_Z_INDEX = '2147482000'
@@ -149,6 +151,9 @@ const mountLayer = (size: number, speed: number, gore: boolean): { world: World;
     if (syncPending) {
       syncPending = false
       syncCompanions(world)
+    }
+    if (shinyDemoRequested() && !document.querySelector(MODAL_SELECTOR) && takeShinyDemo()) {
+      spawnShinyDemo(world)
     }
     updateBasket(world)
     updateSocial(world, dt)

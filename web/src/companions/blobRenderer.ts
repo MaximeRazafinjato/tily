@@ -4,6 +4,7 @@ import { formatTokens } from './companionSocial'
 import { animationPose, drawAnimationBehind, drawAnimationFront } from './cosmetics/animationEffects'
 import type { FigurePose } from './cosmetics/cosmeticState'
 import { drawFocusBehind, drawFocusFront, focusPose, focusScale, isFocused, outfitOf } from './wardrobeFocus'
+import { drawShinyParticle } from './shinyEffects'
 
 const INK = '#1a1530'
 
@@ -12,7 +13,7 @@ const labelOf = (blob: Blob, hovered: boolean, waiting: boolean): string => {
     return waiting ? '?' : ''
   }
   const activity = waiting ? '?' : blob.mood === BlobMood.Working ? blob.tool : ''
-  return [blob.name, activity, formatTokens(blob.context)].filter(Boolean).join(' · ')
+  return [blob.shiny ? `✦ ${blob.name}` : blob.name, activity, formatTokens(blob.context)].filter(Boolean).join(' · ')
 }
 
 const easeOutBack = (progress: number): number => 1 + 2.7 * (progress - 1) ** 3 + 1.7 * (progress - 1) ** 2
@@ -139,6 +140,9 @@ export const drawParticles = (context: CanvasRenderingContext2D, world: World): 
     } else if (particle.kind === ParticleKind.Heart) {
       paint(`hsl(${particle.hue}, 90%, 70%)`)
       drawHeart(context, particle.x, particle.y, particle.size * (0.7 + 0.3 * particle.life))
+    } else if (particle.kind === ParticleKind.Twinkle || particle.kind === ParticleKind.Nova) {
+      drawShinyParticle(context, particle)
+      style = ''
     } else {
       paint('#c9cfe0')
       context.font = `700 ${particle.size}px system-ui, sans-serif`

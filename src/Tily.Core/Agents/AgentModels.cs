@@ -12,7 +12,11 @@ public enum AgentState
     [JsonStringEnumMemberName("unknown")] Unknown
 }
 
-public sealed record SubagentModel(string Id, string Type, string? Tool = null);
+public sealed record SubagentModel(string Id, string Type, string? Tool = null)
+{
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public bool Shiny { get; init; }
+}
 
 public sealed record PaneAgentModel(string PaneId, string Agent, AgentState State, string? Message, string? Detail = null)
 {
@@ -24,7 +28,15 @@ public sealed record PaneAgentModel(string PaneId, string Agent, AgentState Stat
     public IReadOnlyList<SubagentModel>? Subagents { get; init; }
 
     public int? ContextTokens { get; init; }
+
+    [JsonIgnore]
+    public string? SessionId { get; init; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public bool Shiny { get; init; }
 }
+
+public sealed record ShinyEncounterModel(string PaneId, string? SubagentId, int Total);
 
 public sealed record PaneProbeModel(string PaneId, DateTime StartedAtUtc, IReadOnlyList<string> Processes, IReadOnlyList<int>? ProcessIds = null);
 
@@ -53,4 +65,6 @@ public sealed record AgentStateModel(string Agent, AgentState State, string? Mes
     public IReadOnlyList<SubagentModel>? Subagents { get; init; }
 
     public int? ContextTokens { get; init; }
+
+    public string? SessionId { get; init; }
 }

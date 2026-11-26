@@ -15,13 +15,14 @@ import { SETTINGS_CHECKBOX } from './settingsStyles'
 interface AmbianceSettingsSectionProps {
   title: string
   ambiance: AmbianceSettings
+  shinyEncounters: number
   onChange: (patch: Partial<AmbianceSettings>) => void
   onPickMedia: () => void
 }
 
 const SECTION_TIP = 'Fond animé, terminaux translucides et accent animé. L’aperçu suit vos réglages ; Tily les applique à l’enregistrement. La commande « Activer ou couper l’ambiance » la bascule à tout moment.'
 
-export function AmbianceSettingsSection({ title, ambiance, onChange, onPickMedia }: AmbianceSettingsSectionProps) {
+export function AmbianceSettingsSection({ title, ambiance, shinyEncounters, onChange, onPickMedia }: AmbianceSettingsSectionProps) {
   const [advancedOpen, setAdvancedOpen] = useState(false)
 
   const handleEnabledChange = (event: ChangeEvent<HTMLInputElement>) => onChange({ enabled: event.target.checked })
@@ -47,7 +48,7 @@ export function AmbianceSettingsSection({ title, ambiance, onChange, onPickMedia
           <SettingsGroupTitle title="Effets d’agents" />
           <AmbianceAlertFields ambiance={ambiance} onChange={onChange} />
           <SettingsGroupTitle title="Compagnons" />
-          <AmbianceCompanionFields ambiance={ambiance} onChange={onChange} />
+          <AmbianceCompanionFields ambiance={ambiance} shinyEncounters={shinyEncounters} onChange={onChange} />
           <SettingsGroupTitle title="Avancé" expanded={advancedOpen} onToggle={handleAdvancedToggle} />
           {advancedOpen && <AmbiancePerformanceFields ambiance={ambiance} onChange={onChange} />}
         </>

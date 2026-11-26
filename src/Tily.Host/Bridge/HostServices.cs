@@ -31,7 +31,7 @@ public sealed class HostServices : IDisposable
         Settings = SettingsService.Load();
         Terminals = new TerminalManager();
         Panes = new PaneRouter(Terminals);
-        Agents = new AgentStateFeed(dataDirectory, Terminals, PublishAgents);
+        Agents = new AgentStateFeed(dataDirectory, Terminals, PublishAgents, CompanionsShown, PublishShinyEncounters);
         PreviewRequests = new PreviewRequestFeed(dataDirectory, PostToPane);
         Updates = new UpdateFeed(message => Main?.Post(message), ApplicationVersion, dataDirectory);
         Mcp = new McpFeed(dataDirectory, PostToPane, exception => Main?.PostError(exception));
@@ -224,6 +224,22 @@ public sealed class HostServices : IDisposable
         {
             _agentStates = states;
             RepostAgents();
+        });
+
+    private bool CompanionsShown() => Settings.Appearance.Ambiance is { Enabled: true, Companions.Enabled: true };
+
+    private void PublishShinyEncounters(IReadOnlyList<ShinyEncounterModel> encounters) =>
+        Dispatcher.TryEnqueue(() =>
+        {
+            foreach (var window in encounters.GroupBy(encounter => Panes.OwnerOf(encounter.PaneId) ?? Main))
+            {
+                window.Key?.Post(new
+                {
+                    type = "companions.shiny",
+                    encounters = window.Select(encounter => new { pane = encounter.PaneId, subagent = encounter.SubagentId }).ToList(),
+                    total = encounters[^1].Total
+                });
+            }
         });
 
     private void ApplySharedSettings(SettingsModel settings)

@@ -58,8 +58,15 @@ public sealed class AgentStateRepository
             UpdatedAtUtc = writtenAtUtc,
             Tool = SingleLine(file.Tool),
             Subagents = ReadSubagents(paneId, notBeforeUtc),
-            ContextTokens = _transcripts.ContextTokens(file.Transcript)
+            ContextTokens = _transcripts.ContextTokens(file.Transcript),
+            SessionId = SessionIdOf(file.Transcript)
         };
+    }
+
+    private static string? SessionIdOf(string? transcript)
+    {
+        var name = string.IsNullOrWhiteSpace(transcript) ? null : Path.GetFileNameWithoutExtension(transcript.Trim());
+        return string.IsNullOrWhiteSpace(name) ? null : name;
     }
 
     public string SubagentFilePathFor(string paneId, string agentId) => Path.Combine(Directory, $"{paneId}{SubagentInfix}{agentId}.json");

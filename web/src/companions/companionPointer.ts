@@ -47,7 +47,9 @@ const release = (world: World, blob: Blob): void => {
   blob.vy = vy
   if (moved < CLICK_DISTANCE) {
     blob.poke = POKE_S
-    joinPane(blob.paneId)
+    if (blob.demo === 0) {
+      joinPane(blob.paneId)
+    }
   }
 }
 
