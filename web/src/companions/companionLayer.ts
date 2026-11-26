@@ -11,6 +11,9 @@ import { placeBasket, updateBasket } from './companionBasket'
 import { startCompanionPointer } from './companionPointer'
 import { updateSocial } from './companionSocial'
 import { clearCompanions, syncCompanions } from './companionSync'
+import { cosmeticsActive, drawTrails, updateCosmetics } from './cosmetics/trailEffects'
+import { isFocused, updateFocus } from './wardrobeFocus'
+import { keepWardrobeLinked, linkWardrobe } from './wardrobeLink'
 
 const LAYER_ID = 'tily-companions'
 const LAYER_Z_INDEX = '2147482000'
@@ -28,6 +31,7 @@ const pixelRatio = (): number => Math.min(devicePixelRatio, MAX_PIXEL_RATIO)
 
 const isCalm = (world: World): boolean =>
   world.particles.length === 0 &&
+  !cosmeticsActive(world) &&
   !world.ball &&
   !world.dragged &&
   !world.sniper &&
@@ -76,9 +80,10 @@ const draw = (context: CanvasRenderingContext2D, world: World, modalOpen: boolea
   drawStains(context, world)
   drawTombs(context, world)
   drawBasket(context, world)
+  drawTrails(context, world)
   world.blobs
     .filter((blob) => !blob.stored)
-    .sort((a, b) => Number(a === world.dragged) - Number(b === world.dragged) || b.radius - a.radius)
+    .sort((a, b) => Number(a === world.dragged) - Number(b === world.dragged) || Number(isFocused(world, a)) - Number(isFocused(world, b)) || b.radius - a.radius)
     .forEach((blob) => drawBlob(context, world, blob))
   drawBall(context, world)
   drawParticles(context, world)
@@ -150,6 +155,9 @@ const mountLayer = (size: number, speed: number, gore: boolean): { world: World;
     ;[...world.blobs].forEach((blob) => updateBlob(world, blob, dt))
     updateBall(world, dt)
     updateParticles(world, dt)
+    updateFocus(world, dt)
+    keepWardrobeLinked(world)
+    updateCosmetics(world, dt)
     world.recoil = Math.max(0, world.recoil - dt * 6)
     world.flash = Math.max(0, world.flash - dt * 12)
     draw(context, world, modalOpen)
@@ -171,6 +179,7 @@ const mountLayer = (size: number, speed: number, gore: boolean): { world: World;
     useAppearanceStore.subscribe((state, previous) => (state.projects !== previous.projects || state.ambiance !== previous.ambiance) && markSyncPending()),
   ]
   const stopPointer = startCompanionPointer(world)
+  const stopWardrobe = linkWardrobe(world)
   return {
     world,
     stop: () => {
@@ -179,6 +188,7 @@ const mountLayer = (size: number, speed: number, gore: boolean): { world: World;
       removeEventListener('resize', handleResize)
       unsubscribes.forEach((unsubscribe) => unsubscribe())
       stopPointer()
+      stopWardrobe()
       clearCompanions(world)
       canvas.remove()
     },

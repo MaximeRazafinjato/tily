@@ -1,3 +1,4 @@
+import { isFocused } from './wardrobeFocus'
 import { FLOOR_HURT_SPEED, FLOOR_SPLAT_SPEED, impact, reform, regenerate, WALL_HURT_SPEED, WALL_SPLAT_SPEED } from './goreEffects'
 import { BlobMood, targetRadius, clamp, DONE_CELEBRATION_S, GRAVITY, impulse, jump, lerp, ParticleKind, PETTED, randomBetween, removeBlob, setMood, type Blob, type Perch, type World } from './blobModel'
 
@@ -211,6 +212,11 @@ export const updateBlob = (world: World, blob: Blob, dt: number): void => {
     blob.y = Math.min(world.pointer.y + blob.radius, world.height)
     blob.squash = lerp(blob.squash, -0.14 + 0.04 * Math.sin(blob.clock * 14), 0.3)
   } else {
+    if (isFocused(world, blob)) {
+      blob.vx = 0
+      blob.targetX = blob.x
+      blob.hopTimer = Math.max(blob.hopTimer, 1)
+    }
     move(world, blob, dt)
   }
   animate(world, blob, dt)
