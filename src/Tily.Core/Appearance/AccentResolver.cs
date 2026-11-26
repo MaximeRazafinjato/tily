@@ -7,7 +7,7 @@ namespace Tily.Core.Appearance;
 
 public sealed record AppearanceStateModel(AccentThemeModel Theme, string DefaultColor);
 
-public sealed record FolderProjectModel(string Path, string? Project, string? Color)
+public sealed record FolderProjectModel(string Path, string? Project, string? Color, CompanionOutfitModel? Outfit = null)
 {
     public string? ProjectName => Project is null ? null : System.IO.Path.GetFileName(Project);
 }
@@ -29,7 +29,7 @@ public static class AccentResolver
             .Select(path =>
             {
                 var project = ProjectOf(path, settings.ProjectsRoots(), worktreeFolder);
-                return new FolderProjectModel(path, project, ProjectColor(settings.Appearance, project));
+                return new FolderProjectModel(path, project, ProjectColor(settings.Appearance, project), ProjectOutfit(settings.Appearance, project ?? path));
             })
             .ToList();
     }
@@ -55,4 +55,7 @@ public static class AccentResolver
 
     public static string? ProjectColor(AppearanceSettingsModel settings, string? project) =>
         project is not null && settings.ProjectColors.TryGetValue(project, out var color) ? HexColor.Normalize(color) : null;
+
+    public static CompanionOutfitModel? ProjectOutfit(AppearanceSettingsModel settings, string project) =>
+        settings.ProjectOutfits.TryGetValue(project, out var outfit) ? outfit : null;
 }

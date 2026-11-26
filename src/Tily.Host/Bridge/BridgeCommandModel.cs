@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Tily.Core.Appearance;
 using Tily.Core.Forge;
 using Tily.Core.Git;
 
@@ -58,6 +59,7 @@ public sealed class BridgeCommandModel
     public GitHunkSelectionModel[]? Selection { get; init; }
     public MergeRequestInputModel? MergeRequest { get; init; }
     public MergeRequestInputModel? Original { get; init; }
+    public CompanionOutfitModel? Outfit { get; init; }
     public int Cols { get; init; }
     public int Rows { get; init; }
     public int Line { get; init; }
