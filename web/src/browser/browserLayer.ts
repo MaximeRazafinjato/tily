@@ -1,6 +1,6 @@
 import { bridge } from '../bridge/bridge'
 import { BLANK_PAGE, BrowserViewport } from '../model/browser'
-import { activeTab, activeWorkspace, findPane } from '../model/session'
+import { activeTab, activeWorkspace, allPanes, findPane, isBrowserPane } from '../model/session'
 import { useBrowserStore } from '../store/browserStore'
 import { useHostStore } from '../store/hostStore'
 import { useSessionStore } from '../store/sessionStore'
@@ -12,6 +12,7 @@ const MODAL_SELECTOR = '[role="menu"], [role="dialog"], [role="alertdialog"]'
 const FLOATING_SELECTOR = '[role="tooltip"]'
 const SAMPLES_PER_SIDE = 4
 const SNAPSHOT_RELEASE_MS = 150
+const HIDDEN_CHECK_MS = 250
 
 interface BrowserSlot {
   covered: boolean
@@ -103,10 +104,11 @@ const uncover = (paneId: string, slot: BrowserSlot): void => {
   }, SNAPSHOT_RELEASE_MS)
 }
 
-const frame = (): void => {
+const frame = (): boolean => {
   const { draggingTabId, draggingWorkspaceId, draggingPaneId } = useUiStore.getState()
   const frozen = document.querySelector(MODAL_SELECTOR) !== null || draggingTabId !== null || draggingWorkspaceId !== null || draggingPaneId !== null
   const seen = new Set<string>()
+  let anyDisplayed = false
   for (const body of document.querySelectorAll<HTMLElement>(BODY_SELECTOR)) {
     const paneId = body.dataset.browserBody
     if (!paneId) {
@@ -116,6 +118,7 @@ const frame = (): void => {
     const slot = slotOf(paneId)
     const rect = body.getBoundingClientRect()
     const displayed = rect.width > 0 && rect.height > 0
+    anyDisplayed ||= displayed
     const covered = displayed && isCovered(body, rect, frozen)
     if (covered && !slot.covered) {
       cover(paneId, slot)
@@ -129,6 +132,7 @@ const frame = (): void => {
       sendBounds(paneId, slot, null, false)
     }
   }
+  return anyDisplayed
 }
 
 export const snapshotShown = (paneId: string): void => {
@@ -178,20 +182,49 @@ export const disposeMissingBrowsers = (livePaneIds: Set<string>): void => {
   }
 }
 
+const sessionHasBrowser = (): boolean => {
+  const { session } = useSessionStore.getState()
+  return session !== null && allPanes(session).some(isBrowserPane)
+}
+
 export const startBrowserLayer = (): (() => void) => {
-  let handle = 0
-  const loop = () => {
-    frame()
-    handle = requestAnimationFrame(loop)
+  let running = false
+  let frameHandle = 0
+  let checkTimer: ReturnType<typeof setTimeout> | undefined
+  const cancelScheduled = () => {
+    cancelAnimationFrame(frameHandle)
+    clearTimeout(checkTimer)
   }
-  handle = requestAnimationFrame(loop)
+  const tick = () => {
+    if (!running) {
+      return
+    }
+    if (frame()) {
+      frameHandle = requestAnimationFrame(tick)
+    } else {
+      checkTimer = setTimeout(tick, HIDDEN_CHECK_MS)
+    }
+  }
+  const wake = () => {
+    running = sessionHasBrowser() || slots.size > 0
+    cancelScheduled()
+    if (running) {
+      frameHandle = requestAnimationFrame(tick)
+    }
+  }
+  wake()
+  const stopSession = useSessionStore.subscribe(wake)
+  const stopUi = useUiStore.subscribe(wake)
   const stopLeader = useHostStore.subscribe((state, previous) => {
     if (previous.leaderActive && !state.leaderActive) {
       restoreBrowserFocus()
     }
   })
   return () => {
-    cancelAnimationFrame(handle)
+    running = false
+    cancelScheduled()
+    stopSession()
+    stopUi()
     stopLeader()
   }
 }
