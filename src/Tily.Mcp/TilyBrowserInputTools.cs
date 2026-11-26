@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Text.Json.Nodes;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 using Tily.Core.Browser;
@@ -77,7 +78,7 @@ internal static class TilyBrowserInputTools
         [Description("Sélecteur CSS de la partie de la page à lire ; par défaut, toute la page.")] string? scope = null,
         [Description(PaneDescription)] string? pane = null,
         CancellationToken token = default) =>
-        TilyConnection.CallAsync(McpBrowser.Snapshot, new { scope = string.IsNullOrWhiteSpace(scope) ? null : scope.Trim(), pane }, token);
+        TilyConnection.CallAsync(McpBrowser.Snapshot, new JsonObject { ["scope"] = string.IsNullOrWhiteSpace(scope) ? null : scope.Trim(), ["pane"] = pane }, token);
 
     private static Task<CallToolResult> ClickAsync(
         [Description(RefDescription)] string? @ref = null,
@@ -88,7 +89,7 @@ internal static class TilyBrowserInputTools
         [Description("Double-cliquer au lieu de cliquer.")] bool doubleClick = false,
         [Description(PaneDescription)] string? pane = null,
         CancellationToken token = default) =>
-        TilyConnection.CallCheckedAsync(McpBrowser.Click, () => new { target = BrowserTargets.Required(BrowserTargets.Of(@ref, selector, label, x, y)), doubleClick, pane }, token);
+        TilyConnection.CallCheckedAsync(McpBrowser.Click, () => new JsonObject { ["target"] = TilyConnection.Node(BrowserTargets.Required(BrowserTargets.Of(@ref, selector, label, x, y))), ["doubleClick"] = doubleClick, ["pane"] = pane }, token);
 
     private static Task<CallToolResult> TypeAsync(
         [Description("Texte à saisir ; vide avec clear pour vider le champ.")] string? text = null,
@@ -101,7 +102,7 @@ internal static class TilyBrowserInputTools
         [Description(YDescription)] double? y = null,
         [Description(PaneDescription)] string? pane = null,
         CancellationToken token = default) =>
-        TilyConnection.CallCheckedAsync(McpBrowser.Type, () => new { text = McpBrowser.TypedText(text, clear), clear, submit, target = BrowserTargets.Of(@ref, selector, label, x, y), pane }, token);
+        TilyConnection.CallCheckedAsync(McpBrowser.Type, () => new JsonObject { ["text"] = McpBrowser.TypedText(text, clear), ["clear"] = clear, ["submit"] = submit, ["target"] = TilyConnection.Node(BrowserTargets.Of(@ref, selector, label, x, y)), ["pane"] = pane }, token);
 
     private static Task<CallToolResult> PressAsync(
         [Description("Touche ou combinaison : Enter, Escape, Tab, ArrowDown, Ctrl+A, Shift+Tab…")] string keys,
@@ -113,7 +114,7 @@ internal static class TilyBrowserInputTools
         [Description(YDescription)] double? y = null,
         [Description(PaneDescription)] string? pane = null,
         CancellationToken token = default) =>
-        TilyConnection.CallCheckedAsync(McpBrowser.Press, () => new { keys = McpBrowser.Keys(keys), repeat = McpBrowser.Repeat(repeat), target = BrowserTargets.Of(@ref, selector, label, x, y), pane }, token);
+        TilyConnection.CallCheckedAsync(McpBrowser.Press, () => new JsonObject { ["keys"] = McpBrowser.Keys(keys), ["repeat"] = McpBrowser.Repeat(repeat), ["target"] = TilyConnection.Node(BrowserTargets.Of(@ref, selector, label, x, y)), ["pane"] = pane }, token);
 
     private static Task<CallToolResult> ScrollAsync(
         [Description("up, down, left ou right ; absente : amener l’élément visé à l’écran.")] string? direction = null,
@@ -134,12 +135,12 @@ internal static class TilyBrowserInputTools
                 throw new InvalidOperationException("Indiquez direction (up, down, left ou right), ou l’élément à amener à l’écran.");
             }
 
-            return new { direction = value, amount = McpBrowser.Amount(amount), target, pane };
+            return new JsonObject { ["direction"] = value, ["amount"] = McpBrowser.Amount(amount), ["target"] = TilyConnection.Node(target), ["pane"] = pane };
         }, token);
 
     private static Task<CallToolResult> EvaluateAsync(
         [Description("Expression JavaScript, par exemple document.querySelectorAll('tr').length ou await fetch('/api/me').then(r => r.json()).")] string expression,
         [Description(PaneDescription)] string? pane = null,
         CancellationToken token = default) =>
-        TilyConnection.CallCheckedAsync(McpBrowser.Evaluate, () => new { expression = McpBrowser.Expression(expression), pane }, token);
+        TilyConnection.CallCheckedAsync(McpBrowser.Evaluate, () => new JsonObject { ["expression"] = McpBrowser.Expression(expression), ["pane"] = pane }, token);
 }

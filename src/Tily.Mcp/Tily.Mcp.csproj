@@ -6,6 +6,8 @@
     <RootNamespace>Tily.Mcp</RootNamespace>
     <AssemblyName>tily-mcp</AssemblyName>
     <SelfContained>true</SelfContained>
+    <PublishAot>true</PublishAot>
+    <InvariantGlobalization>true</InvariantGlobalization>
     <ApplicationIcon>..\Tily.Host\Assets\Tily.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>

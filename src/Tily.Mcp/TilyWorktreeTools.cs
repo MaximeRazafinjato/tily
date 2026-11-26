@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Text.Json.Nodes;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 using Tily.Core.Mcp;
@@ -62,7 +63,7 @@ internal static class TilyWorktreeTools
     private static Task<CallToolResult> ListAsync(
         [Description("Dossier d’un dépôt ou d’un worktree ; par défaut, votre dossier courant.")] string? path = null,
         CancellationToken token = default) =>
-        TilyConnection.CallCheckedAsync(McpWorktrees.List, () => new { path = Folder(path) }, token);
+        TilyConnection.CallCheckedAsync(McpWorktrees.List, () => new JsonObject { ["path"] = Folder(path) }, token);
 
     private static Task<CallToolResult> CreateAsync(
         [Description("Branche du worktree.")] string branch,
@@ -76,18 +77,18 @@ internal static class TilyWorktreeTools
         [Description("Lancer Claude Code dans le terminal du worktree.")] bool claude = false,
         [Description("Premier message de Claude Code, les sauts de ligne devenant des espaces ; le donner lance Claude Code.")] string? prompt = null,
         CancellationToken token = default) =>
-        TilyConnection.CallCheckedAsync(McpWorktrees.Create, () => new
+        TilyConnection.CallCheckedAsync(McpWorktrees.Create, () => new JsonObject
         {
-            branch = McpActions.Name(branch) ?? throw new InvalidOperationException("Indiquez la branche du worktree."),
-            mode,
-            @base = McpActions.Name(@base),
-            repository = Folder(repository),
-            install,
-            database,
-            folder = McpFolder.Resolve(folder, Environment.CurrentDirectory),
-            focus,
-            claude = claude || !string.IsNullOrWhiteSpace(prompt),
-            prompt
+            ["branch"] = McpActions.Name(branch) ?? throw new InvalidOperationException("Indiquez la branche du worktree."),
+            ["mode"] = mode,
+            ["base"] = McpActions.Name(@base),
+            ["repository"] = Folder(repository),
+            ["install"] = install,
+            ["database"] = database,
+            ["folder"] = McpFolder.Resolve(folder, Environment.CurrentDirectory),
+            ["focus"] = focus,
+            ["claude"] = claude || !string.IsNullOrWhiteSpace(prompt),
+            ["prompt"] = prompt
         }, token);
 
     private static Task<CallToolResult> RemoveAsync(
@@ -95,10 +96,10 @@ internal static class TilyWorktreeTools
         [Description("Garder la branche du worktree.")] bool keepBranch = false,
         [Description("Supprimer la base répliquée du worktree (jamais celle du dépôt principal).")] bool dropDatabase = true,
         CancellationToken token = default) =>
-        TilyConnection.CallCheckedAsync(McpWorktrees.Remove, () => new
+        TilyConnection.CallCheckedAsync(McpWorktrees.Remove, () => new JsonObject
         {
-            path = McpFolder.Resolve(path, Environment.CurrentDirectory) ?? throw new InvalidOperationException("Indiquez le dossier du worktree."),
-            keepBranch,
-            dropDatabase
+            ["path"] = McpFolder.Resolve(path, Environment.CurrentDirectory) ?? throw new InvalidOperationException("Indiquez le dossier du worktree."),
+            ["keepBranch"] = keepBranch,
+            ["dropDatabase"] = dropDatabase
         }, token);
 }

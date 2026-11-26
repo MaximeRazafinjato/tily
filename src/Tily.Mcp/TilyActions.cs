@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Text.Json.Nodes;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 using Tily.Core.Mcp;
@@ -85,13 +86,13 @@ internal static class TilyActions
         [Description(CommandDescription)] string? command = null,
         [Description(ShowDescription)] bool focus = false,
         CancellationToken token = default) =>
-        TilyConnection.CallCheckedAsync(McpActions.OpenWorkspace, () => new
+        TilyConnection.CallCheckedAsync(McpActions.OpenWorkspace, () => new JsonObject
         {
-            path = Folder(path) ?? throw new InvalidOperationException("Indiquez le dossier du workspace."),
-            name = McpActions.Name(name),
-            shell,
-            command = McpActions.Command(command),
-            focus
+            ["path"] = Folder(path) ?? throw new InvalidOperationException("Indiquez le dossier du workspace."),
+            ["name"] = McpActions.Name(name),
+            ["shell"] = shell,
+            ["command"] = McpActions.Command(command),
+            ["focus"] = focus
         }, token);
 
     private static Task<CallToolResult> NewTabAsync(
@@ -102,14 +103,14 @@ internal static class TilyActions
         [Description("Nom fixe de l’onglet ; par défaut, il suit le dossier de son pane.")] string? name = null,
         [Description(ShowDescription)] bool focus = false,
         CancellationToken token = default) =>
-        TilyConnection.CallCheckedAsync(McpActions.NewTab, () => new
+        TilyConnection.CallCheckedAsync(McpActions.NewTab, () => new JsonObject
         {
-            workspace,
-            path = Folder(path),
-            shell,
-            command = McpActions.Command(command),
-            name = McpActions.Name(name),
-            focus
+            ["workspace"] = workspace,
+            ["path"] = Folder(path),
+            ["shell"] = shell,
+            ["command"] = McpActions.Command(command),
+            ["name"] = McpActions.Name(name),
+            ["focus"] = focus
         }, token);
 
     private static Task<CallToolResult> SplitAsync(
@@ -120,14 +121,14 @@ internal static class TilyActions
         [Description(CommandDescription)] string? command = null,
         [Description(ShowDescription)] bool focus = false,
         CancellationToken token = default) =>
-        TilyConnection.CallCheckedAsync(McpActions.Split, () => new
+        TilyConnection.CallCheckedAsync(McpActions.Split, () => new JsonObject
         {
-            pane,
-            direction,
-            path = Folder(path),
-            shell,
-            command = McpActions.Command(command),
-            focus
+            ["pane"] = pane,
+            ["direction"] = direction,
+            ["path"] = Folder(path),
+            ["shell"] = shell,
+            ["command"] = McpActions.Command(command),
+            ["focus"] = focus
         }, token);
 
     private static Task<CallToolResult> FocusAsync(
@@ -135,38 +136,38 @@ internal static class TilyActions
         [Description("Identifiant de l’onglet, donné par tily_layout.")] string? tab = null,
         [Description("Identifiant du workspace, donné par tily_layout.")] string? workspace = null,
         CancellationToken token = default) =>
-        TilyConnection.CallAsync(McpActions.Focus, new { pane, tab, workspace }, token);
+        TilyConnection.CallAsync(McpActions.Focus, new JsonObject { ["pane"] = pane, ["tab"] = tab, ["workspace"] = workspace }, token);
 
     private static Task<CallToolResult> RenameAsync(
         [Description("Nouveau nom, 100 caractères au plus.")] string name,
         [Description("Identifiant du workspace à renommer.")] string? workspace = null,
         [Description("Identifiant de l’onglet à renommer.")] string? tab = null,
         CancellationToken token = default) =>
-        TilyConnection.CallCheckedAsync(McpActions.Rename, () => new
+        TilyConnection.CallCheckedAsync(McpActions.Rename, () => new JsonObject
         {
-            workspace,
-            tab,
-            name = McpActions.Name(name) ?? throw new InvalidOperationException("Indiquez le nouveau nom.")
+            ["workspace"] = workspace,
+            ["tab"] = tab,
+            ["name"] = McpActions.Name(name) ?? throw new InvalidOperationException("Indiquez le nouveau nom.")
         }, token);
 
     private static Task<CallToolResult> RunAsync(
         [Description(TargetPaneDescription)] string pane,
         [Description("Commande d’une ligne à lancer.")] string command,
         CancellationToken token = default) =>
-        TilyConnection.CallCheckedAsync(McpActions.Run, () => new
+        TilyConnection.CallCheckedAsync(McpActions.Run, () => new JsonObject
         {
-            pane,
-            command = McpActions.Command(command) ?? throw new InvalidOperationException("Indiquez la commande à lancer.")
+            ["pane"] = pane,
+            ["command"] = McpActions.Command(command) ?? throw new InvalidOperationException("Indiquez la commande à lancer.")
         }, token);
 
     private static Task<CallToolResult> InterruptAsync(
         [Description(TargetPaneDescription)] string pane,
         CancellationToken token = default) =>
-        TilyConnection.CallAsync(McpActions.Interrupt, new { pane }, token);
+        TilyConnection.CallAsync(McpActions.Interrupt, new JsonObject { ["pane"] = pane }, token);
 
     private static Task<CallToolResult> CloseAsync(
         [Description("Identifiant du pane à fermer, donné par tily_layout.")] string? pane = null,
         [Description("Identifiant de l’onglet à fermer, donné par tily_layout.")] string? tab = null,
         CancellationToken token = default) =>
-        TilyConnection.CallAsync(McpActions.Close, new { pane, tab }, token);
+        TilyConnection.CallAsync(McpActions.Close, new JsonObject { ["pane"] = pane, ["tab"] = tab }, token);
 }

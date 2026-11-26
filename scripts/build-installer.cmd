@@ -23,18 +23,25 @@ if "%VERSION%"=="" (
 )
 echo %APPNAME% %VERSION%
 
-echo [1/4] Nettoyage de la publication precedente
+echo [1/5] Nettoyage de la publication precedente
 if exist publish rmdir /s /q publish
+if exist src\Tily.Mcp\bin\aot rmdir /s /q src\Tily.Mcp\bin\aot
 
-echo [2/4] Publication autonome win-x64 (Windows App SDK et interface web embarques)
+echo [2/5] Publication autonome win-x64 (Windows App SDK et interface web embarques)
 dotnet publish src\Tily.Host\Tily.Host.csproj -c Release -r win-x64 -p:Platform=x64 -p:Channel=%CHANNEL% -p:Version=%VERSION% --self-contained -o publish || exit /b 1
 
-echo [3/4] Programme d'installation WebView2 Evergreen
+echo [3/5] Publication native (Native AOT) de tily-mcp.exe, outils C++ de Visual Studio requis
+set "PATH=%PATH%;%ProgramFiles(x86)%\Microsoft Visual Studio\Installer"
+dotnet publish src\Tily.Mcp\Tily.Mcp.csproj -c Release -r win-x64 -p:Version=%VERSION% -o src\Tily.Mcp\bin\aot || exit /b 1
+copy /y src\Tily.Mcp\bin\aot\tily-mcp.exe publish\tily-mcp.exe >nul || exit /b 1
+del /q publish\tily-mcp.dll publish\tily-mcp.pdb publish\tily-mcp.deps.json publish\tily-mcp.runtimeconfig.json 2>nul
+
+echo [4/5] Programme d'installation WebView2 Evergreen
 if not exist installer\MicrosoftEdgeWebview2Setup.exe (
   curl -L -o installer\MicrosoftEdgeWebview2Setup.exe "https://go.microsoft.com/fwlink/p/?LinkId=2124703" || exit /b 1
 )
 
-echo [4/4] Compilation de l'installeur Inno Setup
+echo [5/5] Compilation de l'installeur Inno Setup
 set ISCC=%ProgramFiles(x86)%\Inno Setup 6\ISCC.exe
 if not exist "%ISCC%" set ISCC=%LocalAppData%\Programs\Inno Setup 6\ISCC.exe
 if not exist "%ISCC%" (
