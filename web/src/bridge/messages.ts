@@ -1,4 +1,5 @@
 import type { Session } from '../model/session'
+import type { ActivityHostMessage, ActivityWebMessage } from './activityMessages'
 import type { AmbianceSettings, AppearanceCatalog, AppearanceHostMessage, AppearanceWebMessage } from './appearanceMessages'
 import type { BrowserHostMessage, BrowserWebMessage } from './browserMessages'
 import type { CloneHostMessage, CloneWebMessage } from './cloneMessages'
@@ -229,6 +230,7 @@ export type HostToWebMessage =
   | CloneHostMessage
   | UpdateHostMessage
   | StatusLogHostMessage
+  | ActivityHostMessage
   | McpHostMessage
   | BrowserHostMessage
   | WindowHostMessage
@@ -282,6 +284,7 @@ export type WebToHostMessage =
   | CloneWebMessage
   | UpdateWebMessage
   | StatusLogWebMessage
+  | ActivityWebMessage
   | McpWebMessage
   | BrowserWebMessage
   | WindowWebMessage
