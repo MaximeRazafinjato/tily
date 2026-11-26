@@ -254,7 +254,7 @@ public sealed class GitFeed : IDisposable
             return;
         }
 
-        var json = JsonSerializer.Serialize(state, SessionRepository.JsonOptions);
+        var json = JsonSerializer.Serialize(state, HostBridge.JsonOptions);
         var signature = $"{GitStateReader.Signature(state)}\n{scope}\n{count}";
         bool postState;
         bool postHistory;

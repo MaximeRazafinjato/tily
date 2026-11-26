@@ -30,7 +30,7 @@ public sealed class HostBridge : IDisposable
     private const string MainWindowOnly = "Les paramètres et les mises à jour se gèrent dans la fenêtre principale de Tily.";
     private static readonly HashSet<string> MainWindowCommands = ["settings.save", "settings.export", "settings.import", "appearance.fontSize", "appearance.ambianceEnabled", "appearance.projectColor", "appearance.importMedia", "agents.installHooks", "agents.removeHooks", "mcp.install", "mcp.remove"];
     private static readonly TimeSpan WriteDrainTimeout = TimeSpan.FromSeconds(10);
-    private static readonly JsonSerializerOptions JsonOptions = SessionRepository.JsonOptions;
+    internal static readonly JsonSerializerOptions JsonOptions = new(SessionRepository.JsonOptions) { WriteIndented = false };
 
     private readonly HostServices _services;
     private readonly DispatcherQueue _dispatcher;

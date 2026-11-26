@@ -105,7 +105,7 @@ public sealed class AgentStateFeed : IDisposable
                 _encountered(encounters);
             }
 
-            var json = JsonSerializer.Serialize(agents, SessionRepository.JsonOptions);
+            var json = JsonSerializer.Serialize(agents, HostBridge.JsonOptions);
             if (json == _lastPosted)
             {
                 return;

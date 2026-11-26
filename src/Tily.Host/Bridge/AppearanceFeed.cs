@@ -62,7 +62,7 @@ public sealed class AppearanceFeed
     public void Refresh()
     {
         var state = AccentResolver.Resolve(_settings().Appearance, ReleaseChannels.Current);
-        if (_state is null || JsonSerializer.Serialize(state, SessionRepository.JsonOptions) != JsonSerializer.Serialize(_state, SessionRepository.JsonOptions))
+        if (_state is null || JsonSerializer.Serialize(state, HostBridge.JsonOptions) != JsonSerializer.Serialize(_state, HostBridge.JsonOptions))
         {
             _state = state;
             _applyWindow(state.Theme.Window);
@@ -84,7 +84,7 @@ public sealed class AppearanceFeed
         _queue.Enqueue(() =>
         {
             var projects = AccentResolver.ProjectsOf(settings, paths);
-            var serialized = JsonSerializer.Serialize(projects, SessionRepository.JsonOptions);
+            var serialized = JsonSerializer.Serialize(projects, HostBridge.JsonOptions);
             if (serialized == _postedProjects)
             {
                 return;
