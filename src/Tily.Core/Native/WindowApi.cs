@@ -31,6 +31,30 @@ public static class WindowApi
     [DllImport("user32.dll")]
     public static extern bool ShowWindow(nint windowHandle, int command);
 
+    public const uint AncestorRoot = 2;
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct ScreenPoint
+    {
+        public int X;
+        public int Y;
+    }
+
+    [DllImport("user32.dll")]
+    public static extern bool GetCursorPos(out ScreenPoint point);
+
+    [DllImport("user32.dll")]
+    public static extern nint WindowFromPoint(ScreenPoint point);
+
+    [DllImport("user32.dll")]
+    public static extern nint GetAncestor(nint windowHandle, uint flags);
+
+    [DllImport("user32.dll")]
+    public static extern bool ScreenToClient(nint windowHandle, ref ScreenPoint point);
+
+    [DllImport("user32.dll")]
+    public static extern uint GetDpiForWindow(nint windowHandle);
+
     public const uint SoundAsync = 0x0001;
     public const uint SoundNoDefault = 0x0002;
     public const uint SoundAlias = 0x00010000;

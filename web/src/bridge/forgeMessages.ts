@@ -142,7 +142,7 @@ export type ForgeHostMessage =
 export type ForgeWebMessage =
   | { type: 'forge.list'; request: number; path: string }
   | { type: 'forge.branch'; path: string; branch: string; force: boolean }
-  | { type: 'forge.form'; request: number; path: string; branch?: string; number?: number }
+  | { type: 'forge.form'; request: number; path: string; branch?: string; target?: string; number?: number }
   | { type: 'forge.compare'; request: number; path: string; branch: string; target: string; number?: number }
   | { type: 'forge.create'; request: number; path: string; push: boolean; mergeRequest: MergeRequestInput }
   | { type: 'forge.update'; request: number; path: string; number: number; push: boolean; close: boolean; original: MergeRequestInput; mergeRequest: MergeRequestInput }

@@ -104,7 +104,8 @@ const uncover = (paneId: string, slot: BrowserSlot): void => {
 }
 
 const frame = (): void => {
-  const frozen = document.querySelector(MODAL_SELECTOR) !== null || useUiStore.getState().draggingTabId !== null
+  const { draggingTabId, draggingWorkspaceId, draggingPaneId } = useUiStore.getState()
+  const frozen = document.querySelector(MODAL_SELECTOR) !== null || draggingTabId !== null || draggingWorkspaceId !== null || draggingPaneId !== null
   const seen = new Set<string>()
   for (const body of document.querySelectorAll<HTMLElement>(BODY_SELECTOR)) {
     const paneId = body.dataset.browserBody

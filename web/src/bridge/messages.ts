@@ -1,4 +1,5 @@
 import type { Session } from '../model/session'
+import type { ActivityHostMessage, ActivityWebMessage } from './activityMessages'
 import type { AmbianceSettings, AppearanceCatalog, AppearanceHostMessage, AppearanceWebMessage } from './appearanceMessages'
 import type { BrowserHostMessage, BrowserWebMessage } from './browserMessages'
 import type { CloneHostMessage, CloneWebMessage } from './cloneMessages'
@@ -8,6 +9,7 @@ import type { McpHostMessage, McpServerInfo, McpWebMessage } from './mcpMessages
 import type { PreviewHostMessage, PreviewKind, PreviewWebMessage } from './previewMessages'
 import type { StatusLogEntry, StatusLogHostMessage, StatusLogWebMessage } from './statusLogMessages'
 import type { UpdateHostMessage, UpdateSettings, UpdateWebMessage } from './updateMessages'
+import type { WindowHostMessage, WindowInfo, WindowWebMessage } from './windowMessages'
 import type { WorktreeHostMessage, WorktreeProjectFolder, WorktreeSettings, WorktreeSources, WorktreeWebMessage } from './worktreeMessages'
 
 export interface ShellProfile {
@@ -193,8 +195,8 @@ export interface PaneAgent {
 
 export type HostToWebMessage =
   | { type: 'appearance.changed'; fontSize: number }
-  | { type: 'app.hello'; version: string; name: string; channel: ReleaseChannel; session: Session; shells: ShellProfile[]; home: string; text: Record<string, string>; persistence: PersistenceSettings; appearance: AppearanceSettings; theme: AppearanceCatalog; shortcuts: ShortcutSettings; statusLog: StatusLogEntry[]; recovery?: string }
-  | { type: 'app.closing'; activity: PaneActivity[] }
+  | { type: 'app.hello'; version: string; name: string; channel: ReleaseChannel; window: WindowInfo; session: Session | null; shells: ShellProfile[]; home: string; text: Record<string, string>; persistence: PersistenceSettings; appearance: AppearanceSettings; theme: AppearanceCatalog; shortcuts: ShortcutSettings; statusLog: StatusLogEntry[]; recovery?: string }
+  | { type: 'app.closing'; activity: PaneActivity[]; detached: string[] }
   | { type: 'session.saved' }
   | { type: 'session.saveFailed'; message: string }
   | ({ type: 'dialog.picked' } & PickedPath)
@@ -228,8 +230,10 @@ export type HostToWebMessage =
   | CloneHostMessage
   | UpdateHostMessage
   | StatusLogHostMessage
+  | ActivityHostMessage
   | McpHostMessage
   | BrowserHostMessage
+  | WindowHostMessage
 
 export type WebToHostMessage =
   | { type: 'app.ready' }
@@ -280,8 +284,10 @@ export type WebToHostMessage =
   | CloneWebMessage
   | UpdateWebMessage
   | StatusLogWebMessage
+  | ActivityWebMessage
   | McpWebMessage
   | BrowserWebMessage
+  | WindowWebMessage
 
 export type HostMessageType = HostToWebMessage['type']
 export type HostMessageOf<T extends HostMessageType> = Extract<HostToWebMessage, { type: T }>

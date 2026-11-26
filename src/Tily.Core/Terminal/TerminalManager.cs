@@ -100,6 +100,9 @@ public sealed class TerminalManager : IDisposable
         return activity;
     }
 
+    public IReadOnlyDictionary<string, IReadOnlyList<int>> ProcessIds() =>
+        _sessions.Values.ToDictionary(session => session.PaneId, session => session.LiveProcessIds());
+
     public IReadOnlyList<PaneProbeModel> Probes() =>
         _sessions.Values
             .Where(session => !session.HasExited)

@@ -67,6 +67,7 @@ export interface Workspace {
   active: string
   expanded?: boolean
   note?: string
+  linkedNote?: boolean
   color?: string
 }
 
@@ -121,6 +122,7 @@ export const DEFAULT_GIT_GRAPH: GitGraphLayout = {
   authorShown: true,
   dateShown: true,
 }
+export const SESSION_VERSION = 2
 export const DEFAULT_SHELL = 'powershell'
 export const CLOSED_TABS_MAX = 5
 export const FAVORITES_MAX = 50
@@ -157,6 +159,18 @@ export const distinctTabName = (workspace: Workspace, tab: Tab): string =>
 
 export const mergedNote = (note: string | undefined, movedFrom: string, moved: string): string =>
   (note ? `${note}\n\n${movedFrom} :\n${moved}` : moved).slice(0, NOTE_MAX_CHARS)
+
+export const emptySession = (): Session => ({
+  version: SESSION_VERSION,
+  workspaces: [],
+  active: '',
+  sidebar: SIDEBAR_DEFAULT,
+  sidebarCollapsed: false,
+  explorerWidth: EXPLORER_DEFAULT,
+  gitGraph: DEFAULT_GIT_GRAPH,
+  closed: [],
+  favorites: [],
+})
 
 export const isLeaf = (node: SplitNode): node is SplitLeaf => 'pane' in node
 

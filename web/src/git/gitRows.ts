@@ -1,5 +1,6 @@
 import { GitDiffSource, type GitConflict, type GitFileChange } from '../bridge/gitMessages'
-import { openInEditor, showChange } from './gitRequests'
+import { guardConflictEdits, openConflict } from './gitConflictActions'
+import { showChange } from './gitRequests'
 
 export enum GitRowGroup {
   Conflict = 'conflict',
@@ -61,9 +62,10 @@ export const changeRows = (conflicts: GitConflict[], staged: GitFileChange[], un
 ]
 
 export const openChangeRow = (row: GitChangeRow): void => {
-  if (row.conflict) {
-    openInEditor(row.conflict.path)
-  } else if (row.change) {
-    showChange(row.change, row.group === GitRowGroup.Staged ? GitDiffSource.Staged : GitDiffSource.Unstaged)
+  const { conflict, change } = row
+  if (conflict) {
+    openConflict(conflict)
+  } else if (change) {
+    guardConflictEdits(() => showChange(change, row.group === GitRowGroup.Staged ? GitDiffSource.Staged : GitDiffSource.Unstaged))
   }
 }

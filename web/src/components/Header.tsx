@@ -7,6 +7,8 @@ import { useShortcutText, useShortcutTip, withShortcut } from '../keyboard/short
 import { LeaderHints } from './LeaderHints'
 import { UpdateButton } from './UpdateButton'
 import { useHostStore } from '../store/hostStore'
+import { useWindowStore } from '../store/windowStore'
+import { InfoTip } from './InfoTip'
 
 interface HeaderProps {
   workspaceName: string | null
@@ -24,6 +26,7 @@ export function Header({ workspaceName, renaming, sidebarCollapsed, leaderActive
   const sidebarShortcut = useShortcutText(Command.ToggleSidebar)
   const settingsTip = useShortcutTip('Paramètres', Command.Settings)
   const applicationName = useHostStore((state) => state.applicationName)
+  const detached = useWindowStore((state) => state.detached)
   const sidebarLabel = sidebarCollapsed ? 'Afficher les workspaces' : 'Masquer les workspaces'
   return (
     <header data-surface="panel" className="relative flex h-[34px] shrink-0 items-center gap-4 border-b border-tily-line bg-tily-panel px-3 text-tily-ink">
@@ -49,16 +52,25 @@ export function Header({ workspaceName, renaming, sidebarCollapsed, leaderActive
       {navigation && <div className={leaderActive ? 'hidden' : 'contents'}>{navigation}</div>}
       {leaderActive && <LeaderHints />}
       <div className="ml-auto flex shrink-0 items-center gap-2">
-        <UpdateButton />
-        <button
-          type="button"
-          aria-label="Paramètres"
-          className="flex h-[26px] cursor-pointer items-center rounded border border-tily-line px-2 text-tily-muted hover:bg-tily-green-hover hover:text-tily-ink"
-          data-tip={settingsTip}
-          onClick={onOpenSettings}
-        >
-          <Icon name={IconName.Settings} size={14} />
-        </button>
+        {detached ? (
+          <span className="flex items-center gap-1.5 text-[12px] text-tily-muted">
+            Fenêtre détachée
+            <InfoTip text="Rien de cette fenêtre n’est enregistré : fermer la fenêtre ferme ses onglets. Glissez un onglet vers la fenêtre principale, ou « Rattacher » dans son menu, pour le garder. Les Paramètres restent dans la fenêtre principale." />
+          </span>
+        ) : (
+          <>
+            <UpdateButton />
+            <button
+              type="button"
+              aria-label="Paramètres"
+              className="flex h-[26px] cursor-pointer items-center rounded border border-tily-line px-2 text-tily-muted hover:bg-tily-green-hover hover:text-tily-ink"
+              data-tip={settingsTip}
+              onClick={onOpenSettings}
+            >
+              <Icon name={IconName.Settings} size={14} />
+            </button>
+          </>
+        )}
       </div>
     </header>
   )

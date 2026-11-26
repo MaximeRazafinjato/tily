@@ -1,12 +1,68 @@
 import { current } from 'immer'
-import { insertBeside, mergedNote, panesOf, pruneNode, splitLeaf, SplitAxis, tabNameFor, tabOfPane, type PaneEdge, type Session, type SplitNode, type Tab, type Workspace } from '../model/session'
+import { findWorkspace, insertBeside, mergedNote, panesOf, pruneNode, splitLeaf, SplitAxis, tabNameFor, tabOfPane, type Pane, type PaneEdge, type Session, type SplitNode, type Tab, type Workspace } from '../model/session'
 
-const keepRemaining = (source: Tab, paneId: string, remaining: SplitNode): void => {
+export const keepRemaining = (source: Tab, paneId: string, remaining: SplitNode): void => {
   source.tree = remaining
   if (source.active === paneId) {
     const next = panesOf(remaining)[0]
     source.active = next.id
     source.name = tabNameFor(source, next.id, next.path)
+  }
+}
+
+interface PaneLocation {
+  workspace: Workspace
+  tab: Tab
+  pane: Pane
+}
+
+const locatePane = (draft: Session, paneId: string): PaneLocation | undefined => {
+  for (const workspace of draft.workspaces) {
+    for (const tab of workspace.tabs) {
+      const pane = panesOf(tab.tree).find((candidate) => candidate.id === paneId)
+      if (pane) {
+        return { workspace, tab, pane }
+      }
+    }
+  }
+  return undefined
+}
+
+export const movePaneBeside = (draft: Session, paneId: string, targetPaneId: string, edge: PaneEdge): void => {
+  const source = locatePane(draft, paneId)
+  const target = locatePane(draft, targetPaneId)
+  const remaining = source ? pruneNode(source.tab.tree, paneId) : null
+  if (!source || !target || !remaining || paneId === targetPaneId) {
+    return
+  }
+  const moved = current(source.pane)
+  keepRemaining(source.tab, paneId, remaining)
+  target.tab.tree = insertBeside(target.tab.tree, targetPaneId, edge, { pane: moved })
+  target.tab.active = moved.id
+  target.workspace.active = target.tab.id
+  draft.active = target.workspace.id
+}
+
+export const movePaneToTabAt = (draft: Session, paneId: string, workspaceId: string, beforeTabId?: string): void => {
+  const source = locatePane(draft, paneId)
+  const workspace = findWorkspace(draft, workspaceId)
+  const remaining = source ? pruneNode(source.tab.tree, paneId) : null
+  if (!source || !workspace || !remaining) {
+    return
+  }
+  const tab = tabOfPane(current(source.pane))
+  keepRemaining(source.tab, paneId, remaining)
+  const index = beforeTabId ? workspace.tabs.findIndex((candidate) => candidate.id === beforeTabId) : -1
+  workspace.tabs.splice(index < 0 ? workspace.tabs.length : index, 0, tab)
+  workspace.active = tab.id
+  draft.active = workspace.id
+}
+
+export const takePane = (draft: Session, paneId: string): void => {
+  const source = locatePane(draft, paneId)
+  const remaining = source ? pruneNode(source.tab.tree, paneId) : null
+  if (source && remaining) {
+    keepRemaining(source.tab, paneId, remaining)
   }
 }
 
@@ -56,7 +112,7 @@ const removeMergedTab = (draft: Session, workspace: Workspace, tabId: string, de
   const index = workspace.tabs.findIndex((tab) => tab.id === tabId)
   workspace.tabs.splice(index, 1)
   if (workspace.tabs.length === 0) {
-    if (workspace.note) {
+    if (workspace.note && !workspace.linkedNote) {
       destination.note = mergedNote(destination.note, workspace.name, workspace.note)
     }
     draft.workspaces = draft.workspaces.filter((candidate) => candidate !== workspace)

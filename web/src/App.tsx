@@ -10,13 +10,17 @@ import { disposeMissingBrowsers, startBrowserLayer } from './browser/browserLaye
 import { dispatchReply } from './bridge/requestListeners'
 import { AppShell } from './components/AppShell'
 import { receiveMcpRequest } from './mcp/mcpRequests'
-import { allPanes, restoredSessionLabel } from './model/session'
+import { allPanes, emptySession, restoredSessionLabel } from './model/session'
 import { forgetMissingNoteHistories } from './notes/noteHistory'
 import { useAgentStore } from './store/agentStore'
 import { StatusLevel, useHostStore } from './store/hostStore'
 import { usePaneStore } from './store/paneStore'
 import { useSessionStore } from './store/sessionStore'
 import { useUiStore } from './store/uiStore'
+import { isDetachedWindow, useWindowStore } from './store/windowStore'
+import { applyPendingTransfers, receiveTransfer } from './window/windowReceive'
+import { receiveDragLeave, receiveDragOver } from './window/windowDrag'
+import { showWorkspaceNote, startLinkedNoteSync, startWindowSync } from './window/windowSync'
 import { receiveActivity, receiveApplicationClosing } from './terminal/closeGuard'
 import { receiveQueriedActivity } from './terminal/paneActivity'
 import { queryContext, receiveContext } from './terminal/contextActions'
@@ -27,6 +31,7 @@ import { receiveCreated, receiveDeleted, receiveGitMarks, receiveListing, receiv
 import { receiveProjectFiles } from './explorer/projectFileActions'
 import { receivePreview, receivePreviewRequest, startDeferredPreviews } from './preview/previewActions'
 import { receivePreviewSaved, receivePreviewSaveFailed } from './preview/previewEdit'
+import { receiveGitConflict } from './git/gitConflictActions'
 import { receiveGitAutoFetchEnded, receiveGitAutoFetchStarted, receiveGitChanged, receiveGitDetails, receiveGitDiff, receiveGitDone, receiveGitFailed, receiveGitHistory, receiveGitPushRejected, receiveGitState } from './git/gitReceivers'
 import { insertIntoPane, joinPane } from './terminal/terminalActions'
 import { WORKTREE_FOLDER_FIELD, WORKTREE_REPOSITORY_FIELD } from './worktree/worktreeActions'
@@ -49,10 +54,12 @@ import { terminalRegistry } from './terminal/terminalRegistry'
 import { receiveReleaseHistory, receiveUpdateRestart, receiveUpdateState } from './update/updateActions'
 import { receiveStatusLogCleared, receiveStatusLogEntry, startStatusLog } from './statusLog/statusLogActions'
 import { useShortcutStore } from './store/shortcutStore'
+import { useActivityStore } from './store/activityStore'
 import { useStatusLogStore } from './store/statusLogStore'
 import { forgetRemovedText, markTextSaveFailed, primeSessionText, startTextAutosave } from './terminal/textPersistence'
 
 const SAVE_DEBOUNCE_MS = 500
+const DETACHED_STATUS = 'Fenêtre détachée : rien n’y est enregistré, les Paramètres restent dans la fenêtre principale.'
 
 export default function App() {
   const session = useSessionStore((state) => state.session)
@@ -70,9 +77,13 @@ export default function App() {
     const stopBrowserLayer = startBrowserLayer()
     const stopAppearanceProjects = startAppearanceProjects()
     const stopAmbiance = startAmbiance()
+    const stopWindowSync = startWindowSync()
+    const stopLinkedNoteSync = startLinkedNoteSync()
     const { markFailed, markExited, markPathMissing, markAlive } = usePaneStore.getState()
     const subscriptions = [
       bridge.on('app.hello', (message) => {
+        useWindowStore.getState().setWindow(message.window)
+        const session = message.session ?? emptySession()
         setHello(message.version, message.name, message.shells, message.home, message.persistence)
         receiveAppearanceCatalog(message.theme)
         useShortcutStore.getState().setShortcuts(message.shortcuts)
@@ -80,15 +91,20 @@ export default function App() {
         terminalRegistry.configure(message.persistence.linesPerPane)
         terminalRegistry.setFontSize(message.appearance.fontSize)
         receiveAmbiance(message.appearance.ambiance)
-        primeSessionText(message.session, message.text)
+        primeSessionText(session, message.text)
         void document.fonts.load('14px "Symbols Nerd Font Mono"').then(() => {
-          load(message.session)
+          load(session)
+          applyPendingTransfers()
+          if (message.window.detached) {
+            setStatus(DETACHED_STATUS)
+            return
+          }
           stopAutosave?.()
           stopAutosave = startTextAutosave(message.persistence.textIntervalSeconds)
           if (message.recovery) {
             setStatus(message.recovery, StatusLevel.Warning)
           } else {
-            setStatus(`Session restaurée${restoredSessionLabel(message.session)} : nouveaux shells, aucune commande rejouée.`)
+            setStatus(`Session restaurée${restoredSessionLabel(session)} : nouveaux shells, aucune commande rejouée.`)
           }
         })
       }),
@@ -112,6 +128,10 @@ export default function App() {
         terminalRegistry.configure(message.persistence.linesPerPane)
         terminalRegistry.setFontSize(message.settings.appearance.fontSize)
         receiveAmbiance(message.settings.appearance.ambiance)
+        if (isDetachedWindow()) {
+          setStatus('Réglages de la fenêtre principale appliqués.')
+          return
+        }
         stopAutosave?.()
         stopAutosave = startTextAutosave(message.persistence.textIntervalSeconds)
         useUiStore.getState().closeSettings()
@@ -140,7 +160,15 @@ export default function App() {
         setImportedPreferences({ settings: message.settings, path: message.path, warnings: message.warnings })
         setStatus(`Préférences lues depuis ${message.path} : Enregistrer remplace la configuration actuelle.`)
       }),
-      bridge.on('app.closing', (message) => receiveApplicationClosing(message.activity)),
+      bridge.on('app.closing', (message) => receiveApplicationClosing(message.activity, message.detached)),
+      bridge.on('window.receive', receiveTransfer),
+      bridge.on('window.transferred', (message) => dispatchReply(message.type, message.request, message)),
+      bridge.on('terminal.held', (message) => dispatchReply(message.type, message.request, message)),
+      bridge.on('window.detached', (message) => useWindowStore.getState().setDetachedTabs(message.tabs)),
+      bridge.on('window.mainWorkspaces', (message) => useWindowStore.getState().setMainWorkspaces(message.workspaces)),
+      bridge.on('window.showNote', (message) => showWorkspaceNote(message.workspace)),
+      bridge.on('window.dragOver', (message) => receiveDragOver(message.x, message.y, message.single)),
+      bridge.on('window.dragLeave', receiveDragLeave),
       bridge.on('terminal.activityResult', (message) => {
         if (!receiveQueriedActivity(message.request, message.panes)) {
           receiveActivity(message.panes)
@@ -187,6 +215,7 @@ export default function App() {
       bridge.on('git.history', (message) => receiveGitHistory(message.history, message.error)),
       bridge.on('git.diff', (message) => receiveGitDiff(message.request, message.result, message.error)),
       bridge.on('git.details', (message) => receiveGitDetails(message.request, message.result, message.error)),
+      bridge.on('git.conflict', (message) => receiveGitConflict(message.request, message.result, message.error)),
       bridge.on('git.done', (message) => receiveGitDone(message.operation, message.message, message.warning, message.output)),
       bridge.on('git.failed', (message) => receiveGitFailed(message.operation, message.message, message.output, message.code)),
       bridge.on('git.pushRejected', (message) => receiveGitPushRejected(message.operation, message.branch, message.message, message.output)),
@@ -217,6 +246,7 @@ export default function App() {
       bridge.on('update.history', (message) => receiveReleaseHistory(message)),
       bridge.on('statusLog.added', (message) => receiveStatusLogEntry(message.entry)),
       bridge.on('statusLog.cleared', receiveStatusLogCleared),
+      bridge.on('activity.state', (message) => useActivityStore.getState().setUsage(message.panes, message.host)),
       bridge.on('mcp.request', (message) => void receiveMcpRequest(message)),
       bridge.on('browser.state', (message) => receiveBrowserState(message.state)),
       bridge.on('browser.newPane', (message) => receiveNewBrowserPane(message.pane, message.url)),
@@ -248,6 +278,8 @@ export default function App() {
       stopBrowserLayer()
       stopAppearanceProjects()
       stopAmbiance()
+      stopWindowSync()
+      stopLinkedNoteSync()
       stopAutosave?.()
       subscriptions.forEach((unsubscribe) => unsubscribe())
     }
@@ -265,6 +297,9 @@ export default function App() {
       forgetMissingNoteHistories(new Set(state.session.workspaces.map((workspace) => workspace.id)))
       clearSeenCommandNotices()
       clearTimeout(timer)
+      if (isDetachedWindow()) {
+        return
+      }
       timer = setTimeout(() => {
         bridge.send({ type: 'session.save', session: state.session! })
         if (removed) {

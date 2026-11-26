@@ -1,6 +1,6 @@
 # Architecture backend (hôte C#)
 
-L'hôte est une application C# .NET 10 avec une fenêtre WinUI 3 (Windows App SDK, non empaquetée). Une WebView2 porte toute l'interface ; chaque pane navigateur a la sienne, et une popup de connexion dimensionnée (MSAL par exemple) s'ouvre dans une fenêtre WebView2 à part (spec, §14). L'hôte ne porte aucune interface métier : il gère la fenêtre, les terminaux, la persistance et les services locaux. L'interface entière est dans `web/`.
+L'hôte est une application C# .NET 10 avec une fenêtre WinUI 3 principale, plus une par fenêtre détachée dans le même processus (Windows App SDK, non empaquetée). Une WebView2 par fenêtre porte toute l'interface ; chaque pane navigateur a la sienne, et une popup de connexion dimensionnée (MSAL par exemple) s'ouvre dans une fenêtre WebView2 à part (spec, §14). L'hôte ne porte aucune interface métier : il gère la fenêtre, les terminaux, la persistance et les services locaux. L'interface entière est dans `web/`.
 
 Chaque section donne le rôle d'un dossier, ses invariants et ses choix non évidents. Signatures, constantes, bornes et champs se lisent dans le code.
 
@@ -111,6 +111,7 @@ Vue Git du panneau de droite (spec, §10) : `GitRunner` lance `git`, `GitStateRe
 - Push avec `--porcelain` pour reconnaître un refus. `--force-with-lease` n'est accepté qu'après un refus de la même branche, avec confirmation. `PushUpTo` pousse une branche non courante, entière ou jusqu'à un commit, sans jamais proposer de push forcé.
 - Pull `--no-rebase` si aucune stratégie n'est configurée, pour qu'un pull divergent n'échoue pas. Rebase jamais interactif. Cherry-pick et revert d'un merge par `-m 1`.
 - Marquer résolu est refusé tant que des marqueurs de conflit restent (code `conflictMarkers`) ; une branche non mergée renvoie `notMerged` ; ces codes ouvrent une confirmation côté web.
+- Résolveur de conflits : `GitConflictReader` lit les étapes 1 à 3 de l'index (`ls-files -u`, `cat-file`), décode chaque version comme l'aperçu (`TextFileWriter.Detect` ; binaire ou plus de 2 Mo : pas de vue en trois parties) et fait calculer par `git diff -U0` les écarts base → courante et base → entrante ; `GitMergeAligner` en tire les blocs (communs, changés d'un seul côté, identiques des deux côtés, en conflit), en groupant comme Git les écarts qui se chevauchent ou se touchent et en sortant d'un conflit ses lignes communes de début et de fin. `GitConflictSides` nomme les deux côtés selon l'opération (`MERGE_HEAD`, `onto` et `head-name` du rebase, `CHERRY_PICK_HEAD`, `REVERT_HEAD`). La lecture rend l'empreinte SHA-256 du fichier : `GitConflictCommands.Write` refuse un fichier modifié depuis (code `fileChanged`) ou un résultat qui contient des marqueurs, sauf `confirmed`, garde l'encodage et les fins de ligne du fichier puis le stage ; `Take` (`confirmed` exigé) fait `checkout --ours` ou `--theirs` puis `add`, ou supprime le fichier quand la version choisie n'existe pas.
 - Stash de fichiers choisis : les autres fichiers staged quittent l'index le temps du stash puis y reviennent. `.gitignore` : chemins ancrés, caractères de motif échappés. Noms validés par `git check-ref-format` ; une référence qui commence par `-` est refusée.
 - Suppression groupée : tout est vérifié avant la première suppression, branche courante refusée ; stashes supprimés du plus ancien au plus récent pour que les indices restants ne bougent pas.
 - `GitUndoJournal` garde en mémoire la dernière opération par dépôt. `GitUndo` la défait : reset `--soft` après un commit, `--keep` après un merge, un pull, un rebase, un cherry-pick ou un revert, `read-tree` après un reset mixed, `stash create` pris avant un reset hard, `stash store` pour un stash supprimé, blobs sauvegardés pour un abandon. Elle est refusée si le dépôt a changé ou si un push a publié les commits ; les branches distantes supprimées ne sont pas restaurées.
@@ -198,13 +199,20 @@ Mises à jour par les releases GitHub (spec, §13).
 - Historique des notes de version : `UpdateClient.HistoryAsync` lit jusqu'à 100 releases ; `ReleaseParser.ParseHistory` écarte les brouillons, les tags illisibles et, sur le canal stable, les pré-releases, sans exiger d'installeur ; `ReleaseNotes.Sections` découpe chaque corps par titre, introduction comprise, sans la section « Installation ». `UpdateFeed` garde la liste pour la session après la première lecture réussie.
 - Copie installée reconnue à `unins000.exe` ; installation pour tous les utilisateurs si elle est sous `Program Files`.
 
+### Activity/
+
+`ProcessUsageSampler` mesure le processeur et la mémoire des processus de chaque pane (ceux de son Job Object et la console ConPTY de son shell, lue par `NtQueryInformationProcess` : `TerminalManager.ProcessIds`) et de Tily (`Tily.exe` et ses descendants hors des panes : WebView2, autres consoles). Il lit les compteurs par `IProcessProbe` (`WindowsProcessProbe` : instantané Toolhelp et `GetProcessTimes` / `GetProcessMemoryInfo`) ; le processeur est le temps consommé depuis la mesure précédente, ramené à la machine entière, nul à la première mesure d'un processus. `ProcessClassifier` range chaque processus : sous `claude.exe`, un shell (`bash`, `sh`, `powershell`, `pwsh`) et ses descendants sont des commandes, tout autre processus un serveur MCP, `conhost.exe` reste à Claude ; hors de Claude, c'est le terminal.
+
 ### StatusLog/
 
 `StatusLogRepository` (`status-log.json`, entrées plafonnées, fichier illisible mis en quarantaine) et `UserErrorMessage.Of`, par lequel passe toute remontée d'erreur générique : le message d'une exception de Tily, déjà en français, ou, pour une exception d'entrée / sortie du framework, une phrase française suivie du détail système.
 
 ## Tily.Host
 
-### Démarrage et fenêtre (`App`, `MainWindow`, `app.manifest`, `Assets/`)
+### Démarrage et fenêtres (`App`, `TilyWindow`, `app.manifest`, `Assets/`)
+
+- `App` crée `HostServices` puis la fenêtre principale ; `HostServices.OpenDetached` ouvre une `TilyWindow` détachée, au curseur (60 % × 70 % de l'écran, curseur dans la barre de titre) ou, sans curseur, agrandie sur un autre écran s'il y en a un. `DisplayArea.FindAll()` se parcourt par index : son énumération par C#/WinRT lève « Classe non enregistrée ».
+- Fermer la fenêtre principale ferme d'abord les fenêtres détachées, puis libère `HostServices` (terminaux, agents, MCP, installeur en attente).
 
 - Barre de titre et fond de la WebView2 suivent la couleur de Tily (`ApplyWindowColors`), calculée dès la construction du pont puis à chaque changement.
 - Dossier de données : `TILY_DATA_DIR`, réécrite en chemin absolu pour que le hook et `tily-mcp.exe` retrouvent l'instance, sinon `%LOCALAPPDATA%\Tily`, ou `%LOCALAPPDATA%\Tily Beta` en bêta (la variable est alors posée). Profil WebView2 de l'interface dans `WebView2\`.
@@ -217,7 +225,13 @@ Mises à jour par les releases GitHub (spec, §13).
 - `BrowserLayer`, un `Canvas` au-dessus de l'interface, reçoit les WebView2 des panes navigateur. WinUI 3 ne sait pas rendre une WebView2 transparente : rien ne peut s'afficher par-dessus elles, si bien que l'interface les masque et montre leur capture pendant un menu, la palette ou un dialogue.
 - Icônes versionnées, régénérées par `node scripts/generate-icon.js`, jamais pendant le build ; en bêta, `IconName` prend `TilyBeta.*`, copiées sous le nom `Tily.*`.
 
-### Pont (`HostBridge`, `BackgroundQueue`, `PaneOutputBuffer`)
+### Pont (`HostServices`, `PaneRouter`, `HostBridge`, `HeldPanes`, `BackgroundQueue`, `PaneOutputBuffer`)
+
+- `HostServices` porte ce que partagent les fenêtres : réglages, `TerminalManager`, agents, MCP, demandes d'aperçu, mises à jour et registre des fenêtres. Chaque fenêtre a son `HostBridge` (rôle principal ou détaché) et ses propres feeds d'interface (explorateur, aperçu, Git, MR/PR, worktrees, clonage, navigateur, couleurs, notifications, journal).
+- `PaneRouter` sait quelle fenêtre possède chaque terminal (celle qui l'a créé, puis celle qui l'a reçu) et tient les tampons de sortie : sortie, dossier courant, fin du shell, états d'agents, demandes d'aperçu et appels MCP vont à la fenêtre du pane. Une frappe, un redimensionnement, un acquittement ou une fermeture venus d'une autre fenêtre sont ignorés ; `terminal.create` d'un pane déjà ouvert ailleurs est refusé.
+- Transfert : `terminal.hold` retient la sortie des panes (`HeldPanes`) et répond `terminal.held` après tout ce qui est déjà parti, pour que le texte sérialisé ensuite par le web soit complet ; `window.transfer` donne les panes à la fenêtre visée (fenêtre nommée, fenêtre de Tily sous le curseur, sinon nouvelle fenêtre détachée), qui les retient jusqu'à `terminal.adopted`, puis vide leur sortie et leurs événements retenus. Un transfert refusé (dépôt sur la fenêtre d'origine) ou en échec relâche la retenue ; `window.transferred` répond toujours.
+- Aperçu du glisser : tant que le pointeur est hors de sa fenêtre, le web envoie `window.dragMove` ; l'hôte déplace une `DragGhostWindow` (fenêtre WinUI sans bordure, toujours au premier plan, montrée sans activation, absente de la barre des tâches, décalée du curseur pour ne pas gêner `WindowFromPoint`) et envoie `window.dragOver` à la fenêtre de Tily survolée, `window.dragLeave` quand il la quitte. `window.dragEnd` et tout transfert masquent l'aperçu ; elle est fermée avec `HostServices`, sinon le processus ne se terminerait pas.
+- Une fenêtre détachée n'enregistre rien (`session.save` et `text.save` ignorés, journal en mémoire) et refuse les Paramètres, les préférences et les mises à jour ; elle reçoit `settings.result` à chaque enregistrement des réglages. `app.closing` de la fenêtre principale porte les onglets détachés (`window.summary` de chaque fenêtre détachée).
 
 - `HostBridge` désérialise chaque message en `BridgeCommandModel` et le route par type ou par préfixe vers un feed ; un type inconnu remonte en `error`.
 - Le thread UI, par lequel passent chaque frappe et son écho, ne fait ni écriture disque ni lecture lente. `session.save` et `text.save` (décodé dans la file, car c'est le plus gros message) partent dans une file d'écriture ordonnée, vidée avant la fermeture ; chaque feed a ses propres files (`BackgroundQueue` : un travail à la fois, dans l'ordre). Une exception dans une file remonte en `error`.
@@ -228,10 +242,10 @@ Mises à jour par les releases GitHub (spec, §13).
 
 ### Agents et notifications (`AgentStateFeed`, `hooks/tily-agent-state.ps1`, `PreviewRequestFeed`, `AttentionNotifier`)
 
-- `AgentStateFeed` purge tous les états au démarrage seulement ; `terminal.create` et `terminal.close` ne suppriment que le fichier du pane. Il évalue `AgentMonitor` hors du thread UI, sur un minuteur non réentrant avancé après un changement du dossier `agents`, et n'envoie `agent.states` que si le résultat change.
+- `AgentStateFeed`, partagé, purge tous les états au démarrage seulement ; chaque fenêtre ne reçoit dans `agent.states` que les panes qu'elle possède, renvoyés après chaque transfert ; `terminal.create` et `terminal.close` ne suppriment que le fichier du pane. Il évalue `AgentMonitor` hors du thread UI, sur un minuteur non réentrant avancé après un changement du dossier `agents`, et n'envoie `agent.states` que si le résultat change.
 - `tily-agent-state.ps1`, copié à côté de `Tily.exe`, écrit l'état du pane `TILY_PANE_ID` (rien sans lui) dans `agents\` du dossier de données (`TILY_DATA_DIR`), tous deux hérités du shell : `SessionStart` inconnu ; `UserPromptSubmit` et `PostToolUse` en cours ; `PermissionRequest`, `PreToolUse` sur `AskUserQuestion` et `Notification` d'attente réelle en attente (`idle_prompt` est ignorée pour ne pas confondre attente et fin de tour, et une notification n'écrase pas une attente de `PermissionRequest`) ; `Stop` terminé ; `StopFailure` erreur ; `SessionEnd` suppression. Messages français fixes, sauf la question d'`AskUserQuestion`. BOM UTF-8 obligatoire : sans lui, Windows PowerShell 5.1 lit mal les accents.
 - Aperçu : un second groupe `PreToolUse` (`Bash`, `"if": "Bash(start *)"`) ne lance PowerShell que si une sous-commande est `start`. Pour une page `.html` / `.htm` existante, le script dépose une demande dans `previews\` (`.tmp` puis renommage) et refuse la commande avec une raison en français : Tily a ouvert la page, relancer le reste sans ce `start` (le hook ne peut laisser passer une partie d'une commande composée). Tout autre cas passe sans réponse. `PreviewRequestFeed` relaie chaque demande en `preview.requested`.
-- `AttentionNotifier` passe par `ToastNotifier` (`Windows.UI.Notifications`) après inscription de l'identifiant d'application sous `HKCU\Software\Classes\AppUserModelId`, car `AppNotificationManager` du Windows App SDK échoue en déploiement autonome. Fenêtre active : rien, sauf test et fin d'agent. Sinon clignotement, son et notification, une par pane ; un `.wav` est joué par `PlaySound`, la notification restant muette. Un clic ramène la fenêtre et envoie `agent.join`. Inscription impossible : clignotement et son seuls, signalés dans `settings.result`.
+- `AttentionNotifier` passe par `ToastNotifier` (`Windows.UI.Notifications`) après inscription de l'identifiant d'application sous `HKCU\Software\Classes\AppUserModelId`, car `AppNotificationManager` du Windows App SDK échoue en déploiement autonome. Fenêtre active : rien, sauf test et fin d'agent. Sinon clignotement, son et notification, une par pane ; un `.wav` est joué par `PlaySound`, la notification restant muette. Un clic ramène la fenêtre du pane et envoie `agent.join` ; seule la fenêtre principale vide l'historique des notifications à sa fermeture, une fenêtre détachée ne retire que les siennes. Inscription impossible : clignotement et son seuls, signalés dans `settings.result`.
 
 ### Explorateur et aperçu (`FileExplorerFeed`, `ExplorerGitMarks`, `FilePreviewFeed`)
 
@@ -263,7 +277,7 @@ Mises à jour par les releases GitHub (spec, §13).
 ### Serveur MCP (`McpFeed`)
 
 - Le pipe n'est ouvert que si le serveur est déclaré ; au démarrage, la déclaration est recalée sur cette copie si l'exécutable déclaré a disparu.
-- Chaque appel devient `mcp.request`, terminé par `mcp.response` ; avant `app.ready`, il échoue (« Tily démarre encore »). Le pane appelant vient de `TILY_PANE_ID`, hérité par Claude Code puis par `tily-mcp.exe`. L'attente se fait sur le pool de threads.
+- Chaque appel devient `mcp.request`, envoyé à la fenêtre du pane appelant et terminé par `mcp.response` ; avant `app.ready`, il échoue (« Tily démarre encore »). Le pane appelant vient de `TILY_PANE_ID`, hérité par Claude Code puis par `tily-mcp.exe`. L'attente se fait sur le pool de threads.
 - Délais de réponse : 10 s par défaut ; délai demandé plus 5 s pour l'attente d'un motif ; 125 s pour `run`, `interrupt` et `close`, qui peuvent attendre l'accord de l'utilisateur ; 10 min pour créer ou supprimer un worktree ; 60 s pour les outils navigateur qui attendent une navigation, une capture ou une action dans la page.
 - La réponse de `layout` reçoit la branche de chaque pane.
 
@@ -288,6 +302,10 @@ Mises à jour par les releases GitHub (spec, §13).
 - `StatusLogFeed` écrit par la file de la session ; un échec d'écriture n'est signalé qu'une fois jusqu'à la prochaine réussite, car ce message, lui-même journalisé, relancerait une boucle d'échecs.
 - `PathPicker` : sélecteurs natifs ; une annulation n'envoie rien.
 
+### Activité (`ActivityFeed`)
+
+- Partagé par les fenêtres (`HostServices.Activity`), il ne mesure que tant que l'interface y est abonnée : `activity.subscribe` lance une mesure immédiate puis une toutes les 2 secondes, `activity.unsubscribe` l'arrête ; les abonnements sont comptés par fenêtre et une fenêtre fermée se désabonne. Chaque mesure est envoyée à chaque fenêtre abonnée en `activity.state`, qui n'en affiche que ses onglets (processus par pane, puis processus de Tily). Une erreur système sur un processus qui disparaît n'interrompt pas la boucle.
+
 ## Règles
 
 - L'hôte est la source de vérité de la session persistée : il valide la session complète envoyée par le web avant de l'écrire. Chaque `session.save` ou `text.save` répond `session.saved` ou `session.saveFailed`, sans faire tomber la session en cours.
@@ -300,7 +318,7 @@ Mises à jour par les releases GitHub (spec, §13).
 
 ## Contrat du pont
 
-Les types TypeScript sont dans `web/src/bridge/` : `messages.ts` (application, session, réglages, terminaux, agents, projets, explorateur), `appearanceMessages.ts`, `gitMessages.ts`, `forgeMessages.ts`, `worktreeMessages.ts`, `cloneMessages.ts`, `previewMessages.ts`, `mcpMessages.ts`, `browserMessages.ts`, `updateMessages.ts`, `statusLogMessages.ts`. Les champs se lisent là et dans les modèles C#. Toute évolution se fait des deux côtés dans le même commit.
+Les types TypeScript sont dans `web/src/bridge/` : `messages.ts` (application, session, réglages, terminaux, agents, projets, explorateur), `windowMessages.ts`, `appearanceMessages.ts`, `gitMessages.ts`, `forgeMessages.ts`, `worktreeMessages.ts`, `cloneMessages.ts`, `previewMessages.ts`, `mcpMessages.ts`, `browserMessages.ts`, `updateMessages.ts`, `statusLogMessages.ts`. Les champs se lisent là et dans les modèles C#. Toute évolution se fait des deux côtés dans le même commit.
 
 ### Web → hôte
 
@@ -312,17 +330,18 @@ Les types TypeScript sont dans `web/src/bridge/` : `messages.ts` (application, s
 - Projets et contexte : `projects.list` (projets du sélecteur), `projects.repositories` (dépôts d'un projet), `projects.rememberRepository` (dépôt par défaut d'un projet), `context.query` (contexte Git du dossier d'un pane), `context.open` (dossier dans l'éditeur ou l'Explorateur), `link.open` (lien d'un terminal hors de Tily).
 - Explorateur : `files.watch` (dossiers affichés, le premier étant la racine), `files.refresh` (relit dossiers et marques Git), `files.open` (éditeur), `files.openAt` (lien `chemin:ligne:colonne` d'un terminal), `files.reveal` (Explorateur Windows), `files.search` (fichiers du projet pour la palette), `files.create`, `files.rename`, `files.delete` (corbeille).
 - Aperçu : `preview.open` (ouvre un fichier), `preview.follow` (lien cliqué), `preview.close` (arrête la surveillance), `preview.browser` (page HTML dans le navigateur par défaut), `preview.save`.
-- Git, lectures : `git.watch` (suit un dépôt, chemin vide pour arrêter), `git.refresh` (relit l'état), `git.init` (crée un dépôt et le suit), `git.history` (portée et nombre de commits), `git.diff` (diff d'un fichier), `git.details` (commit ou stash).
-- Git, index et copie de travail : `git.stage`, `git.unstage`, `git.discard`, `git.stageLines`, `git.unstageLines`, `git.discardLines`, `git.ignore`, `git.resolve`.
+- Git, lectures : `git.watch` (suit un dépôt, chemin vide pour arrêter), `git.refresh` (relit l'état), `git.init` (crée un dépôt et le suit), `git.history` (portée et nombre de commits), `git.diff` (diff d'un fichier), `git.details` (commit ou stash), `git.conflict` (fichier en conflit pour le résolveur).
+- Git, index et copie de travail : `git.stage`, `git.unstage`, `git.discard`, `git.stageLines`, `git.unstageLines`, `git.discardLines`, `git.ignore`, `git.resolve`, `git.resolveText` (résultat du résolveur), `git.takeSide` (version courante, entrante ou suppression).
 - Git, historique : `git.commit` (amend et push facultatifs), `git.merge`, `git.rebase`, `git.cherryPick`, `git.revert`, `git.reset`, `git.continue`, `git.abort`, `git.undo`.
 - Git, synchronisation : `git.push`, `git.pushBranch` (branche non courante, entière ou jusqu'à un commit), `git.pull`, `git.fetch`.
 - Git, références et stash : `git.switch`, `git.branchCreate`, `git.branchRename`, `git.branchDelete`, `git.remoteBranchDelete`, `git.refsDelete` (suppression groupée), `git.tagCreate`, `git.tagDelete`, `git.tagPush`, `git.stash`, `git.stashApply`, `git.stashDrop`.
-- MR/PR : `forge.list` (MR/PR du dépôt), `forge.branch` (pastille d'une branche), `forge.form` (formulaire de création ou de modification), `forge.compare` (couple source / cible), `forge.create` (création, push facultatif), `forge.update` (modification ou fermeture).
+- MR/PR : `forge.list` (MR/PR du dépôt), `forge.branch` (pastille d'une branche), `forge.form` (formulaire de création ou de modification, cible facultative), `forge.compare` (couple source / cible), `forge.create` (création, push facultatif), `forge.update` (modification ou fermeture).
 - Worktrees : `worktrees.sources` (dépôts proposés), `worktrees.plan` (plan sans écriture), `worktrees.list` (worktrees du dépôt d'un dossier), `worktrees.create`, `worktrees.remove`.
 - Clonage : `clone.suggest` (texte du presse-papiers à reconnaître), `clone.plan` (plan sans écriture), `clone.start` (clonage).
 - MCP : `mcp.response` (réponse à un `mcp.request`).
 - Mises à jour : `update.check` (vérification), `update.install` (téléchargement), `update.cancel` (annule le téléchargement), `update.apply` (installation et redémarrage), `update.history` (historique des notes de version).
 - Journal de la barre de statut : `statusLog.append` (ajoute un message), `statusLog.clear` (vide le journal).
+- Fenêtres : `terminal.hold` (retient la sortie avant un transfert), `window.transfer` (contenu à déplacer : workspaces, texte et taille des terminaux, disposition ; fenêtre nommée, curseur ou nouvelle fenêtre), `terminal.adopted` (terminaux reçus prêts, ou retenue relâchée après un échec), `window.summary` (onglets d'une fenêtre détachée), `window.workspaces` (workspaces de la fenêtre principale, avec leur note), `window.showMainNote` (affiche la note d'un workspace dans la fenêtre principale, mise au premier plan), `window.dragMove` (pointeur hors de la fenêtre pendant un glisser : nom affiché, onglet seul ou non), `window.dragEnd` (fin de l'aperçu).
 - Navigateur : `browser.attach` (crée la vue du pane), `browser.bounds` (rectangle et visibilité), `browser.snapshot` (image affichée à la place de la vue masquée), `browser.navigate`, `browser.back`, `browser.reload` (navigation), `browser.viewport` (bureau ou mobile), `browser.devtools` (outils de développement), `browser.focus` (focus dans la page), `browser.close` (libère la vue), `browser.console`, `browser.network` (journaux filtrés), `browser.screenshot` (capture PNG), `browser.elements` (plan de la page avec références), `browser.click`, `browser.type`, `browser.press`, `browser.scroll`, `browser.evaluate` (actions de Claude Code dans la page).
 
 ### Hôte → web
@@ -334,12 +353,13 @@ Les types TypeScript sont dans `web/src/bridge/` : `messages.ts` (application, s
 - Projets et contexte : `projects.listed`, `projects.repositoriesFound`, `projects.repositoryRemembered`, `context.result`, réponses aux demandes correspondantes.
 - Explorateur : `files.listed` (contenu d'un dossier), `files.created`, `files.renamed`, `files.deleted` (confirmations), `files.gitMarks` (marques Git de l'arbre), `files.searched` (fichiers du projet).
 - Aperçu : `preview.loaded` (ouverture ou rechargement), `preview.saved`, `preview.saveFailed` (résultat d'un enregistrement), `preview.requested` (page HTML ouverte par Claude Code).
-- Git : `git.state` (état du dépôt suivi), `git.changed` (état inchangé, diff à recharger), `git.history`, `git.diff`, `git.details` (réponses aux lectures), `git.done`, `git.failed`, `git.pushRejected` (fin d'une opération), `git.autoFetchStarted`, `git.autoFetchEnded` (fetch automatique en cours).
+- Git : `git.state` (état du dépôt suivi), `git.changed` (état inchangé, diff à recharger), `git.history`, `git.diff`, `git.details`, `git.conflict` (réponses aux lectures), `git.done`, `git.failed`, `git.pushRejected` (fin d'une opération), `git.autoFetchStarted`, `git.autoFetchEnded` (fetch automatique en cours).
 - MR/PR : `forge.listed`, `forge.branchListed`, `forge.formLoaded`, `forge.compared`, `forge.created`, `forge.updated`, réponses aux messages `forge.*`.
 - Worktrees : `worktrees.sourcesFound`, `worktrees.planned`, `worktrees.listed` (réponses aux lectures), `worktrees.progress` (étape en cours), `worktrees.created` (dossier prêt, le web ouvre le workspace), `worktrees.done`, `worktrees.failed` (fin d'une opération), `worktrees.purging`, `worktrees.purged` (effacement en arrière-plan).
 - Clonage : `clone.suggested` (adresse reconnue, ou rien), `clone.planned` (plan et dossiers parents proposés), `clone.progress` (étape en cours), `clone.done` (dépôt cloné, le web l'ouvre), `clone.failed`.
 - Mises à jour : `update.state` (état des mises à jour), `update.restart` (installeur prêt, le web ferme l'application), `update.history` (versions et leurs notes, ou erreur en français).
 - Journal de la barre de statut : `statusLog.added`, `statusLog.cleared` (journal modifié).
+- Fenêtres : `terminal.held`, `window.transferred` (réponses numérotées), `window.receive` (contenu reçu, point de dépôt ou cible explicite), `window.detached` (onglets des fenêtres détachées, pour la fenêtre principale), `window.mainWorkspaces` (workspaces de la fenêtre principale, pour « Rattacher » et les notes liées), `window.showNote` (note à afficher dans la fenêtre principale), `window.dragOver` (point survolé par un glisser venu d'une autre fenêtre), `window.dragLeave`. `app.hello` porte `window` (rôle, identifiant) et une session nulle pour une fenêtre détachée ; `app.closing` porte `detached`.
 - Navigateur : `browser.state` (état d'un pane navigateur), `browser.newPane` (lien à ouvrir dans un nouveau pane), `browser.focused` (la page a pris le focus), `browser.key` (raccourci de Tily tapé dans la page), `browser.failed` (vue impossible à créer), `browser.reply` (réponse à une commande numérotée).
 
 ## Construction

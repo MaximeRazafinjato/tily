@@ -1,5 +1,5 @@
 import { bridge } from '../bridge/bridge'
-import { GitChangeKind, GitDiffSource, type GitConflict, type GitFileChange, type GitHistoryScope, type GitWebMessage } from '../bridge/gitMessages'
+import { GitChangeKind, GitDiffSource, type GitConflict, type GitFailureCode, type GitFileChange, type GitHistoryScope, type GitWebMessage } from '../bridge/gitMessages'
 import { HISTORY_MAX, HISTORY_PAGE, useGitStore, type GitConfirmation, type GitFileTarget, type GitMenuRequest } from '../store/gitStore'
 import { StatusLevel, useHostStore } from '../store/hostStore'
 import { busyRefsOf } from './gitBusy'
@@ -7,7 +7,7 @@ import { absolutePath, currentName, fileName, OPERATION_LABELS, plural } from '.
 
 interface PendingRetry {
   operation: string
-  confirm: () => void
+  confirm: (code: GitFailureCode) => void
 }
 
 let lastRequest = 0
@@ -36,11 +36,11 @@ export const withRoot = (build: (path: string) => GitWebMessage, busy = true): v
 
 export const askConfirmation = (confirmation: GitConfirmation): void => useGitStore.getState().confirm(confirmation)
 
-export const retryOnFailure = (operation: string, confirm: () => void): void => {
+export const retryOnFailure = (operation: string, confirm: (code: GitFailureCode) => void): void => {
   pendingRetry = { operation, confirm }
 }
 
-export const takeRetry = (operation: string): (() => void) | null => {
+export const takeRetry = (operation: string): ((code: GitFailureCode) => void) | null => {
   const retry = pendingRetry?.operation === operation ? pendingRetry.confirm : null
   pendingRetry = null
   return retry

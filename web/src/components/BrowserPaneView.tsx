@@ -1,4 +1,5 @@
-import { memo, useEffect, useRef, type MouseEvent } from 'react'
+import { memo, useEffect, useRef, type MouseEvent, type PointerEvent } from 'react'
+import { beginPaneDrag } from './paneDrag'
 import { goBack, navigateBrowser, openDevTools, reloadBrowser, setBrowserViewport } from '../browser/browserActions'
 import { focusBrowser, snapshotShown } from '../browser/browserLayer'
 import { usePaneHeaderTips } from './paneHeaderTips'
@@ -119,6 +120,7 @@ export const BrowserPaneView = memo(function BrowserPaneView({ pane, active, zoo
   }, [active, editing, pane.id])
 
   const handleHeaderMouseDown = () => onFocus(pane.id)
+  const handleHeaderPointerDown = (event: PointerEvent<HTMLElement>) => beginPaneDrag(event, pane.id)
   const handleHeaderDoubleClick = (event: MouseEvent) => {
     if (!(event.target instanceof Element && event.target.closest(BUTTON_SELECTOR))) {
       onToggleZoom(pane.id)
@@ -155,7 +157,7 @@ export const BrowserPaneView = memo(function BrowserPaneView({ pane, active, zoo
       data-pane-id={pane.id}
       className={`grid h-full min-h-0 grid-cols-1 grid-rows-[24px_1fr] overflow-hidden rounded-md border bg-tily-terminal ${active ? 'border-tily-green' : 'border-tily-line'}`}
     >
-      <header className="group @container flex items-center gap-1 bg-tily-panel px-2 text-[11px] text-tily-muted select-none" onMouseDown={handleHeaderMouseDown} onDoubleClick={handleHeaderDoubleClick}>
+      <header className="group @container flex items-center gap-1 bg-tily-panel px-2 text-[11px] text-tily-muted select-none" onMouseDown={handleHeaderMouseDown} onPointerDown={handleHeaderPointerDown} onDoubleClick={handleHeaderDoubleClick}>
         <span className="shrink-0 text-tily-ink" aria-hidden="true">
           <GlobeIcon />
         </span>

@@ -70,7 +70,7 @@ public sealed class ForgeService
         return result;
     }
 
-    public MergeRequestFormDataModel FormData(string path, string? source, int? number = null)
+    public MergeRequestFormDataModel FormData(string path, string? source, int? number = null, string? requestedTarget = null)
     {
         var git = _gitOf(path);
         var remote = Detect(git.Root);
@@ -98,7 +98,8 @@ public sealed class ForgeService
             throw new ForgeException(failures[0]);
         }
 
-        var target = edit?.Input.TargetBranch ?? DefaultTarget(sourceBranch, origin, _baseBranch(), forgeDefault ?? git.OriginDefaultBranch());
+        var target = edit?.Input.TargetBranch
+            ?? (string.IsNullOrWhiteSpace(requestedTarget) ? DefaultTarget(sourceBranch, origin, _baseBranch(), forgeDefault ?? git.OriginDefaultBranch()) : requestedTarget.Trim());
         var sources = local.Union(origin, StringComparer.Ordinal).Order(StringComparer.OrdinalIgnoreCase).ToList();
         return new MergeRequestFormDataModel(
             remote,

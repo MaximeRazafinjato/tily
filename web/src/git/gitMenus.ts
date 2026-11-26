@@ -174,16 +174,47 @@ export const labelMenu = (label: GitRefLabel, state: GitState): ActionMenuItem[]
 
 const isCurrentBranch = (handle: GitRefHandle, state: GitState): boolean => handle.kind === GitRefKind.Branch && !state.head.detached && handle.name === state.head.branch
 
+const canMergeOrRebase = (source: GitRefHandle, target: GitRefHandle, state: GitState): boolean =>
+  !state.operation && (isCurrentBranch(source, state) || isCurrentBranch(target, state))
+
+const originBranchOf = (handle: GitRefHandle, state: GitState): string | undefined =>
+  handle.kind === GitRefKind.Branch
+    ? handle.name
+    : handle.kind === GitRefKind.Remote
+    ? state.remoteBranches.find((remote) => remote.name === handle.name && remote.remote === ORIGIN)?.branch
+    : undefined
+
+const isOnOrigin = (branch: string, state: GitState): boolean => state.remoteBranches.some((remote) => remote.remote === ORIGIN && remote.branch === branch)
+
+const mergeRequestBranches = (source: GitRefHandle, target: GitRefHandle, state: GitState): { from: string; to: string } | null => {
+  const from = originBranchOf(source, state)
+  const to = originBranchOf(target, state)
+  return from && to && from !== to && isOnOrigin(to, state) ? { from, to } : null
+}
+
 export const canDropRef = (source: GitRefHandle, target: GitRefHandle, state: GitState): boolean =>
-  !state.operation && (source.kind !== target.kind || source.name !== target.name) && (isCurrentBranch(source, state) || isCurrentBranch(target, state))
+  (source.kind !== target.kind || source.name !== target.name) && (canMergeOrRebase(source, target, state) || mergeRequestBranches(source, target, state) !== null)
 
 export const dropMenu = (source: GitRefHandle, target: GitRefHandle, state: GitState): ActionMenuItem[] => {
   const current = currentName(state.head)
   const other = isCurrentBranch(target, state) ? source.name : target.name
-  return [
-    { id: 'merge', label: `Merge de « ${other} » dans « ${current} »`, run: () => mergeIntoCurrent(other) },
-    { id: 'rebase', label: `Rebase de « ${current} » sur « ${other} »`, run: () => rebaseCurrentOnto(other) },
-  ]
+  const mergeRequest = mergeRequestBranches(source, target, state)
+  const mergeOrRebase: ActionMenuItem[] = canMergeOrRebase(source, target, state)
+    ? [
+        { id: 'merge', label: `Merge de « ${other} » dans « ${current} »`, run: () => mergeIntoCurrent(other) },
+        { id: 'rebase', label: `Rebase de « ${current} » sur « ${other} »`, run: () => rebaseCurrentOnto(other) },
+      ]
+    : []
+  const mergeRequestItem: ActionMenuItem[] = mergeRequest
+    ? [
+        {
+          id: 'merge-request',
+          label: `${createMergeRequestLabel(state.root, currentName(state.head))} de « ${mergeRequest.from} » vers « ${mergeRequest.to} »…`,
+          run: () => openMergeRequestForm(state.root, mergeRequest.from, mergeRequest.to),
+        },
+      ]
+    : []
+  return [...mergeOrRebase, ...mergeRequestItem]
 }
 
 export const graphColumnsMenu = (layout: GitGraphLayout, change: (patch: Partial<GitGraphLayout>) => void): ActionMenuItem[] => [

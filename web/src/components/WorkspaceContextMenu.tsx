@@ -1,6 +1,8 @@
 import { openColorDialog } from '../appearance/appearanceActions'
 import { isManuallyNamed, type Session } from '../model/session'
 import { useSessionStore } from '../store/sessionStore'
+import { isDetachedWindow } from '../store/windowStore'
+import { attachWorkspace, detachWorkspace } from '../window/windowTransfer'
 import type { WorktreeTarget } from '../worktree/worktreePaths'
 import { requestWorktreeRemoval } from '../worktree/worktreeActions'
 import { closeOtherTabsKeepingText, closeTabsToRightKeepingText, FollowingTabs } from '../terminal/tabLifecycle'
@@ -47,6 +49,8 @@ const itemsFor = ({ workspaceId, tabId }: PanelMenuRequest, place: MenuPlace, ma
         { id: 'workspace-color', label: 'Couleur…', run: () => openColorDialog({ workspaceId }) },
         ...moveItems(place, (offset) => actions.moveWorkspace(workspaceId, offset)),
         { id: 'collapse-others', label: 'Replier les autres', run: () => actions.collapseOthers(workspaceId) },
+        { id: 'detach-workspace', label: 'Détacher dans une nouvelle fenêtre', run: () => detachWorkspace(workspaceId) },
+        ...(isDetachedWindow() ? [{ id: 'attach-workspace', label: 'Rattacher à la fenêtre principale', run: () => attachWorkspace(workspaceId) }] : []),
         { id: 'close-workspace', label: 'Fermer le workspace', run: () => actions.closeWorkspace(workspaceId) },
       ]
 

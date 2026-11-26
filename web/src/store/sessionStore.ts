@@ -2,7 +2,7 @@ import { current, produce } from 'immer'
 import { create } from 'zustand'
 import type { BrowserViewport } from '../model/browser'
 import { insertPaneBesideIn, setBrowserPageIn, setPaneViewportIn } from './browserPanes'
-import { movePaneInto, movePaneOut, moveTabInto } from './paneMoves'
+import { movePaneBeside, movePaneInto, movePaneOut, movePaneToTabAt, moveTabInto } from './paneMoves'
 import {
   activePane,
   activeTab,
@@ -44,6 +44,7 @@ import {
   type Tab,
   type Workspace,
 } from '../model/session'
+import { isDetachedWindow } from './windowStore'
 
 interface SessionState {
   session: Session | null
@@ -90,6 +91,8 @@ interface SessionState {
   movePaneToNewTab: (paneId: string) => void
   movePaneToTab: (paneId: string, targetTabId: string) => void
   moveTabIntoPane: (tabId: string, paneId: string, edge: PaneEdge) => void
+  movePaneBeside: (paneId: string, targetPaneId: string, edge: PaneEdge) => void
+  movePaneToTabAt: (paneId: string, workspaceId: string, beforeTabId?: string) => void
   closePane: (paneId: string) => void
   setPanePath: (paneId: string, path: string) => void
   setPaneShell: (paneId: string, shell: string) => void
@@ -234,7 +237,7 @@ export const useSessionStore = create<SessionState>()((set, get) => ({
     set((state) => ({
       session: mutateSession(state.session, (draft) => {
         const workspace = findWorkspace(draft, workspaceId)
-        if (workspace) {
+        if (workspace && !workspace.linkedNote) {
           workspace.note = note.slice(0, NOTE_MAX_CHARS) || undefined
         }
       }),
@@ -337,7 +340,7 @@ export const useSessionStore = create<SessionState>()((set, get) => ({
         }
         const [tab] = source.tabs.splice(source.tabs.findIndex((candidate) => candidate.id === tabId), 1)
         if (source.tabs.length === 0 && source !== target) {
-          if (source.note) {
+          if (source.note && !source.linkedNote) {
             target.note = mergedNote(target.note, source.name, source.note)
           }
           draft.workspaces = draft.workspaces.filter((candidate) => candidate !== source)
@@ -415,7 +418,9 @@ export const useSessionStore = create<SessionState>()((set, get) => ({
         if (workspace.tabs.length === 0 && workspace.note) {
           closed.workspaceNote = workspace.note
         }
-        draft.closed = [...draft.closed, closed].slice(-CLOSED_TABS_MAX)
+        if (!isDetachedWindow()) {
+          draft.closed = [...draft.closed, closed].slice(-CLOSED_TABS_MAX)
+        }
         if (workspace.tabs.length === 0) {
           draft.workspaces = draft.workspaces.filter((candidate) => candidate.id !== workspace.id)
           if (draft.active === workspace.id) {
@@ -513,6 +518,10 @@ export const useSessionStore = create<SessionState>()((set, get) => ({
   movePaneToTab: (paneId, targetTabId) => set((state) => ({ session: mutateSession(state.session, (draft) => movePaneInto(draft, paneId, targetTabId)) })),
 
   moveTabIntoPane: (tabId, paneId, edge) => set((state) => ({ session: mutateSession(state.session, (draft) => moveTabInto(draft, tabId, paneId, edge)) })),
+
+  movePaneBeside: (paneId, targetPaneId, edge) => set((state) => ({ session: mutateSession(state.session, (draft) => movePaneBeside(draft, paneId, targetPaneId, edge)) })),
+
+  movePaneToTabAt: (paneId, workspaceId, beforeTabId) => set((state) => ({ session: mutateSession(state.session, (draft) => movePaneToTabAt(draft, paneId, workspaceId, beforeTabId)) })),
 
   closePane: (paneId) =>
     set((state) => {

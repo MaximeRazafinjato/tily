@@ -12,6 +12,7 @@ public sealed class TerminalManagerTests
 {
     private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(30);
     private static readonly TimeSpan StopTimeout = TimeSpan.FromSeconds(10);
+    private static readonly HashSet<string?> ConsoleHostNames = new(StringComparer.OrdinalIgnoreCase) { "conhost", "OpenConsole" };
 
     [Fact]
     public async Task Start_WhenPowerShell_ThenReportsCurrentDirectoryAndInjectsPaneVariable()
@@ -97,6 +98,20 @@ public sealed class TerminalManagerTests
     }
 
     [Fact]
+    public async Task ProcessIds_WhenShellRuns_ThenIncludesItsConsoleHost()
+    {
+        using var manager = new TerminalManager();
+        var directory = new TaskCompletionSource<string>();
+        manager.CurrentDirectoryChanged += (_, path) => directory.TrySetResult(path);
+        manager.Start("pane-console", ShellCatalog.DefaultShellId, Path.GetTempPath(), 100, 30);
+        await directory.Task.WaitAsync(Timeout);
+
+        var processIds = manager.ProcessIds()["pane-console"];
+
+        Assert.Contains(processIds, processId => ConsoleHostNames.Contains(ProcessNameOf(processId)));
+    }
+
+    [Fact]
     public void Activity_WhenPaneUnknown_ThenReportsNothing()
     {
         using var manager = new TerminalManager();
@@ -145,6 +160,12 @@ public sealed class TerminalManagerTests
 
     private static bool RunsPing(TerminalManager manager, string paneId) =>
         manager.Activity(new[] { paneId }).Any(activity => activity.Processes.Contains("ping", StringComparer.OrdinalIgnoreCase));
+
+    private static string? ProcessNameOf(int processId)
+    {
+        using var process = OpenProcess(processId);
+        return process?.ProcessName;
+    }
 
     private static Process? OpenProcess(int processId)
     {

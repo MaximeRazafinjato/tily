@@ -3,6 +3,8 @@ import { PaneEdge, panesOf } from '../model/session'
 import { useSessionStore } from '../store/sessionStore'
 import { useUiStore, type PaneDropTarget, type TabDropTarget } from '../store/uiStore'
 import { mergeTabIntoPane } from '../terminal/tabMerge'
+import { trackOutsideDrag } from '../window/windowDrag'
+import { detachTab } from '../window/windowTransfer'
 import { trackPointerDrag } from './pointerDrag'
 
 const SPRING_DELAY_MS = 600
@@ -15,7 +17,12 @@ interface SpringTarget {
   open: () => void
 }
 
-const dropTargetAt = (x: number, y: number): TabDropTarget | null => {
+export interface SpringTracker {
+  follow: (x: number, y: number) => void
+  cancel: () => void
+}
+
+export const tabDropTargetAt = (x: number, y: number): TabDropTarget | null => {
   const element = document.elementFromPoint(x, y)?.closest<HTMLElement>('[data-drop-workspace]')
   if (!element?.dataset.dropWorkspace) {
     return null
@@ -36,14 +43,16 @@ const nearestEdge = (rect: DOMRect, x: number, y: number): PaneEdge => {
 const ownsPane = (tabId: string, paneId: string): boolean =>
   useSessionStore.getState().session?.workspaces.some((workspace) => workspace.tabs.some((tab) => tab.id === tabId && panesOf(tab.tree).some((pane) => pane.id === paneId))) ?? false
 
-const paneDropTargetAt = (x: number, y: number, tabId: string): PaneDropTarget | null => {
+export const paneEdgeTargetAt = (x: number, y: number, excluded: (paneId: string) => boolean): PaneDropTarget | null => {
   const element = document.elementFromPoint(x, y)?.closest<HTMLElement>(PANE_SELECTOR)
   const paneId = element?.dataset.paneId
-  if (!element || !paneId || ownsPane(tabId, paneId)) {
+  if (!element || !paneId || excluded(paneId)) {
     return null
   }
   return { paneId, edge: nearestEdge(element.getBoundingClientRect(), x, y) }
 }
+
+export const paneDropTargetAt = (x: number, y: number, tabId: string): PaneDropTarget | null => paneEdgeTargetAt(x, y, (paneId) => ownsPane(tabId, paneId))
 
 const showTab = (tabId: string): void => {
   const { session, selectWorkspace, selectTab } = useSessionStore.getState()
@@ -64,6 +73,25 @@ const springTargetAt = (x: number, y: number, draggedTabId: string): SpringTarge
   return workspaceId ? { key: workspaceId, open: () => useUiStore.getState().openSpringWorkspace(workspaceId) } : undefined
 }
 
+export const trackSpring = (draggedTabId: string): SpringTracker => {
+  let candidateKey: string | undefined
+  let timer: ReturnType<typeof setTimeout> | undefined
+  return {
+    follow: (x, y) => {
+      const candidate = springTargetAt(x, y, draggedTabId)
+      if (candidate?.key === candidateKey) {
+        return
+      }
+      candidateKey = candidate?.key
+      clearTimeout(timer)
+      if (candidate) {
+        timer = setTimeout(candidate.open, SPRING_DELAY_MS)
+      }
+    },
+    cancel: () => clearTimeout(timer),
+  }
+}
+
 export const isDropTarget = (target: TabDropTarget | null, workspaceId: string, beforeTabId?: string): boolean =>
   target !== null && target.workspaceId === workspaceId && target.beforeTabId === beforeTabId
 
@@ -73,43 +101,40 @@ const sameDropTarget = (left: TabDropTarget | null, right: TabDropTarget | null)
 const samePaneDropTarget = (left: PaneDropTarget | null, right: PaneDropTarget | null): boolean =>
   left === right || (left !== null && right !== null && left.paneId === right.paneId && left.edge === right.edge)
 
-export const beginTabDrag = (event: ReactPointerEvent<HTMLElement>, tabId: string, onMove: MoveTabHandler): void => {
-  let springCandidate: string | undefined
-  let springTimer: ReturnType<typeof setTimeout> | undefined
-
-  const followSpringCandidate = (x: number, y: number) => {
-    const candidate = springTargetAt(x, y, tabId)
-    if (candidate?.key === springCandidate) {
-      return
-    }
-    springCandidate = candidate?.key
-    clearTimeout(springTimer)
-    if (candidate) {
-      springTimer = setTimeout(candidate.open, SPRING_DELAY_MS)
-    }
+export const showDropTargets = (target: TabDropTarget | null, paneTarget: PaneDropTarget | null): void => {
+  const { tabDropTarget, paneDropTarget, setTabDropTarget, setPaneDropTarget } = useUiStore.getState()
+  if (!sameDropTarget(tabDropTarget, target)) {
+    setTabDropTarget(target)
   }
+  if (!samePaneDropTarget(paneDropTarget, paneTarget)) {
+    setPaneDropTarget(paneTarget)
+  }
+}
+
+export const beginTabDrag = (event: ReactPointerEvent<HTMLElement>, tabId: string, onMove: MoveTabHandler): void => {
+  let outside = false
+  const tabName = useSessionStore.getState().session?.workspaces.flatMap((workspace) => workspace.tabs).find((tab) => tab.id === tabId)?.name ?? ''
+  const outsideDrag = trackOutsideDrag(tabName, true)
+  const spring = trackSpring(tabId)
   trackPointerDrag(event, {
     start: () => useUiStore.getState().startDraggingTab(tabId),
     move: (x, y) => {
-      const target = dropTargetAt(x, y)
-      const paneTarget = target ? null : paneDropTargetAt(x, y, tabId)
-      const { tabDropTarget, paneDropTarget, setTabDropTarget, setPaneDropTarget } = useUiStore.getState()
-      if (!sameDropTarget(tabDropTarget, target)) {
-        setTabDropTarget(target)
-      }
-      if (!samePaneDropTarget(paneDropTarget, paneTarget)) {
-        setPaneDropTarget(paneTarget)
-      }
-      followSpringCandidate(x, y)
+      outside = outsideDrag.move(x, y)
+      const target = tabDropTargetAt(x, y)
+      showDropTargets(target, target ? null : paneDropTargetAt(x, y, tabId))
+      spring.follow(x, y)
     },
     end: (dropped) => {
-      clearTimeout(springTimer)
+      spring.cancel()
+      outsideDrag.end()
       const { tabDropTarget, paneDropTarget, stopDraggingTab } = useUiStore.getState()
       stopDraggingTab()
       if (dropped && tabDropTarget) {
         onMove(tabId, tabDropTarget.workspaceId, tabDropTarget.beforeTabId)
       } else if (dropped && paneDropTarget) {
         mergeTabIntoPane(tabId, paneDropTarget.paneId, paneDropTarget.edge)
+      } else if (dropped && outside) {
+        detachTab(tabId, true)
       }
     },
   })

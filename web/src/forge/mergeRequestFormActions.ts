@@ -46,7 +46,7 @@ const suggested = (form: MergeRequestForm, branch: MergeRequestBranchInfo): Part
   },
 })
 
-const startForm = (mode: MergeRequestFormMode, path: string, source: string | undefined, item: MergeRequest | null): void => {
+const startForm = (mode: MergeRequestFormMode, path: string, source: string | undefined, item: MergeRequest | null, target?: string): void => {
   const request = nextRequest()
   returnFocus = document.activeElement instanceof HTMLElement && document.activeElement !== document.body ? document.activeElement : null
   useMergeRequestFormStore.getState().open({
@@ -57,7 +57,7 @@ const startForm = (mode: MergeRequestFormMode, path: string, source: string | un
     reference: item?.reference ?? null,
     data: null,
     loadError: null,
-    fields: { ...EMPTY_FIELDS, sourceBranch: source ?? '' },
+    fields: { ...EMPTY_FIELDS, sourceBranch: source ?? '', targetBranch: target ?? '' },
     push: false,
     titleEdited: false,
     descriptionEdited: false,
@@ -69,10 +69,10 @@ const startForm = (mode: MergeRequestFormMode, path: string, source: string | un
     submitError: null,
     closeArmed: false,
   })
-  bridge.send({ type: 'forge.form', request, path, branch: source, number: item?.number })
+  bridge.send({ type: 'forge.form', request, path, branch: source, target, number: item?.number })
 }
 
-export const openMergeRequestForm = (path: string, source?: string): void => startForm(MergeRequestFormMode.Create, path, source, null)
+export const openMergeRequestForm = (path: string, source?: string, target?: string): void => startForm(MergeRequestFormMode.Create, path, source, null, target)
 
 export const canEditMergeRequest = (item: MergeRequest): boolean => item.state === MergeRequestState.Open
 
