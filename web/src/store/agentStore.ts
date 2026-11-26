@@ -3,6 +3,8 @@ import type { PaneAgent } from '../bridge/messages'
 
 export const agentKey = (agent: PaneAgent): string => `${agent.state}|${agent.message ?? ''}`
 
+const sameAgent = (previous: PaneAgent | undefined, agent: PaneAgent): previous is PaneAgent => previous !== undefined && JSON.stringify(previous) === JSON.stringify(agent)
+
 interface AgentStoreState {
   agents: Record<string, PaneAgent>
   acknowledged: Record<string, string>
@@ -17,7 +19,15 @@ export const useAgentStore = create<AgentStoreState>()((set) => ({
   since: {},
   setAgents: (panes) =>
     set((state) => {
-      const agents = Object.fromEntries(panes.map((agent) => [agent.paneId, agent]))
+      const agents = Object.fromEntries(
+        panes.map((agent) => {
+          const previous = state.agents[agent.paneId]
+          return [agent.paneId, sameAgent(previous, agent) ? previous : agent]
+        }),
+      )
+      if (panes.length === Object.keys(state.agents).length && panes.every((agent) => agents[agent.paneId] === state.agents[agent.paneId])) {
+        return state
+      }
       const acknowledged = Object.fromEntries(Object.entries(state.acknowledged).filter(([paneId, key]) => agents[paneId] !== undefined && agentKey(agents[paneId]) === key))
       const now = Date.now()
       const since = Object.fromEntries(
