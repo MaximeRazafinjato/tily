@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { clearSeenCommandNotices } from './terminal/commandNotices'
 import { startAttentionNotifier } from './agents/attentionNotifier'
-import { startCompanions } from './companions/companionLayer'
+import { startCompanions } from './companions/companionLoader'
 import { AMBIANCE_MEDIA_FIELD, AMBIANCE_MEDIA_PICK_FIELD, importAmbianceMedia, receiveAmbiance, startAmbiance } from './ambiance/ambianceActions'
 import { receiveAppearance, receiveAppearanceCatalog, receiveProjects, startAppearanceProjects } from './appearance/appearanceActions'
 import { bridge } from './bridge/bridge'

@@ -3,7 +3,7 @@ import { shouldRender } from '../ambiance/renderPacing'
 import { useAgentStore } from '../store/agentStore'
 import { useAppearanceStore } from '../store/appearanceStore'
 import { useSessionStore } from '../store/sessionStore'
-import { createWorld, resize, type World } from './blobModel'
+import { BlobMood, createWorld, resize, type World } from './blobModel'
 import { updateBlob, updateParticles } from './blobPhysics'
 import { drawBasket, drawBlob, drawParticles, drawReticle, drawStains, drawTombs } from './blobRenderer'
 import { placeBasket, updateBasket } from './companionBasket'
@@ -13,13 +13,23 @@ import { clearCompanions, syncCompanions } from './companionSync'
 
 const LAYER_ID = 'tily-companions'
 const LAYER_Z_INDEX = '2147482000'
-const PERCH_REFRESH_MS = 200
+const PERCH_REFRESH_MS = 400
+const CALM_FRAME_MS = 50
+const MAX_PIXEL_RATIO = 1.5
 const MAX_STEP_S = 0.05
 const FLOOR_TOLERANCE = 48
 const SNIPER_CLASS = 'tily-companion-sniper'
 const MODAL_SELECTOR = '[role="dialog"], [role="alertdialog"], [role="menu"]'
 
 const companionsOf = (ambiance: AmbianceSettings | null) => (ambiance?.enabled && ambiance.companions.enabled ? ambiance.companions : null)
+
+const pixelRatio = (): number => Math.min(devicePixelRatio, MAX_PIXEL_RATIO)
+
+const isCalm = (world: World): boolean =>
+  world.particles.length === 0 &&
+  !world.dragged &&
+  !world.sniper &&
+  world.blobs.every((blob) => blob.stored || (blob.perch !== null && blob.mood === BlobMood.Idle && blob.grow >= 1 && !blob.leaving && blob.exploded === 0 && blob.yawn === 0 && !blob.highFiveWith && Math.abs(blob.squash) < 0.01 && Math.abs(blob.vx) < 1))
 
 const readPerches = (world: World): void => {
   world.perches = [...document.querySelectorAll('[data-perch]')]
@@ -38,14 +48,15 @@ const readPerches = (world: World): void => {
 const fitLayer = (canvas: HTMLCanvasElement, context: CanvasRenderingContext2D, world: World): void => {
   world.width = innerWidth
   world.height = innerHeight
-  canvas.width = Math.round(world.width * devicePixelRatio)
-  canvas.height = Math.round(world.height * devicePixelRatio)
-  context.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0)
+  const ratio = pixelRatio()
+  canvas.width = Math.round(world.width * ratio)
+  canvas.height = Math.round(world.height * ratio)
+  context.setTransform(ratio, 0, 0, ratio, 0, 0)
 }
 
-const draw = (context: CanvasRenderingContext2D, world: World): void => {
+const draw = (context: CanvasRenderingContext2D, world: World, modalOpen: boolean): void => {
   context.clearRect(0, 0, world.width, world.height)
-  if (document.querySelector(MODAL_SELECTOR)) {
+  if (modalOpen) {
     world.sniper = false
     document.documentElement.classList.remove(SNIPER_CLASS)
     return
@@ -80,10 +91,16 @@ const mountLayer = (size: number, speed: number, gore: boolean): { world: World;
   let previous = performance.now()
   let perchesReadAt = previous
   let frame = 0
+  let modalOpen = false
+  let calm = false
+  let syncPending = false
   const tick = (now: number) => {
     frame = requestAnimationFrame(tick)
     const performanceSettings = useAppearanceStore.getState().ambiance?.performance
-    if (performanceSettings && !shouldRender(performanceSettings, now, previous)) {
+    if (document.hidden || (performanceSettings && !shouldRender(performanceSettings, now, previous))) {
+      return
+    }
+    if (calm && !syncPending && now - previous < CALM_FRAME_MS) {
       return
     }
     const dt = Math.min(MAX_STEP_S, (now - previous) / 1000)
@@ -91,6 +108,11 @@ const mountLayer = (size: number, speed: number, gore: boolean): { world: World;
     if (now - perchesReadAt >= PERCH_REFRESH_MS) {
       perchesReadAt = now
       readPerches(world)
+      modalOpen = document.querySelector(MODAL_SELECTOR) !== null
+    }
+    if (syncPending) {
+      syncPending = false
+      syncCompanions(world)
     }
     updateBasket(world)
     updateSocial(world, dt)
@@ -98,7 +120,8 @@ const mountLayer = (size: number, speed: number, gore: boolean): { world: World;
     updateParticles(world, dt)
     world.recoil = Math.max(0, world.recoil - dt * 6)
     world.flash = Math.max(0, world.flash - dt * 12)
-    draw(context, world)
+    draw(context, world, modalOpen)
+    calm = isCalm(world)
   }
   frame = requestAnimationFrame(tick)
 
@@ -106,9 +129,15 @@ const mountLayer = (size: number, speed: number, gore: boolean): { world: World;
     fitLayer(canvas, context, world)
     readPerches(world)
   }
-  const handleStoresChange = () => syncCompanions(world)
+  const markSyncPending = () => {
+    syncPending = true
+  }
   addEventListener('resize', handleResize)
-  const unsubscribes = [useAgentStore.subscribe(handleStoresChange), useSessionStore.subscribe(handleStoresChange), useAppearanceStore.subscribe(handleStoresChange)]
+  const unsubscribes = [
+    useAgentStore.subscribe((state, previous) => state.agents !== previous.agents && markSyncPending()),
+    useSessionStore.subscribe((state, previous) => state.session !== previous.session && markSyncPending()),
+    useAppearanceStore.subscribe((state, previous) => (state.projects !== previous.projects || state.ambiance !== previous.ambiance) && markSyncPending()),
+  ]
   const stopPointer = startCompanionPointer(world)
   return {
     world,

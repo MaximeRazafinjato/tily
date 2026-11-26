@@ -17,9 +17,18 @@ const CLAP_HUE = 48
 
 const active = (world: World, blob: Blob): boolean => !blob.stored && !blob.leaving && blob.exploded === 0 && blob !== world.dragged && blob.grow >= 1
 
+const NIGHT_CHECK_MS = 60_000
+let nightCheckedAt = -Infinity
+let night = false
+
 const isNight = (): boolean => {
-  const hour = new Date().getHours()
-  return hour >= EVENING_HOUR || hour < MORNING_HOUR
+  const now = Date.now()
+  if (now - nightCheckedAt >= NIGHT_CHECK_MS) {
+    nightCheckedAt = now
+    const hour = new Date(now).getHours()
+    night = hour >= EVENING_HOUR || hour < MORNING_HOUR
+  }
+  return night
 }
 
 const push = (world: World, blob: Blob, side: number): void => {
@@ -121,8 +130,8 @@ const yawn = (world: World, blob: Blob, dt: number, night: boolean): void => {
 export const updateSocial = (world: World, dt: number): void => {
   world.clock += dt
   world.pointerSpeed = Math.max(0, world.pointerSpeed - dt * 6000)
-  const night = isNight()
-  world.sleepAfter = night ? NIGHT_SLEEP_AFTER_S : SLEEP_AFTER_S
+  const nightNow = isNight()
+  world.sleepAfter = nightNow ? NIGHT_SLEEP_AFTER_S : SLEEP_AFTER_S
   const blobs = world.blobs.filter((blob) => active(world, blob))
   blobs.forEach((blob) => {
     blob.bumpCooldown = Math.max(0, blob.bumpCooldown - dt)
@@ -130,7 +139,7 @@ export const updateSocial = (world: World, dt: number): void => {
     blob.approachCooldown = Math.max(0, blob.approachCooldown - dt)
     clap(world, blob, dt)
     reactToPointer(world, blob, dt)
-    yawn(world, blob, dt, night)
+    yawn(world, blob, dt, nightNow)
   })
   highFive(world, blobs)
   bump(world, blobs.filter((blob) => !blob.highFiveWith))

@@ -214,23 +214,30 @@ export const drawBlob = (context: CanvasRenderingContext2D, world: World, blob: 
 }
 
 export const drawParticles = (context: CanvasRenderingContext2D, world: World): void => {
+  let style = ''
+  const paint = (next: string): void => {
+    if (next !== style) {
+      style = next
+      context.fillStyle = next
+    }
+  }
   world.particles.forEach((particle) => {
-    context.globalAlpha = Math.max(0, particle.life)
     if (particle.kind === ParticleKind.Stain || particle.kind === ParticleKind.Hole) {
       return
     }
+    context.globalAlpha = Math.max(0, particle.life)
     if (particle.kind === ParticleKind.Drop) {
-      context.fillStyle = `hsl(${particle.hue}, 85%, 38%)`
+      paint(`hsl(${particle.hue}, 85%, 38%)`)
       context.beginPath()
       context.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2)
       context.fill()
     } else if (particle.kind === ParticleKind.Spark) {
-      context.fillStyle = `hsl(${particle.hue}, 90%, 65%)`
+      paint(`hsl(${particle.hue}, 90%, 65%)`)
       context.beginPath()
       context.arc(particle.x, particle.y, particle.size * particle.life, 0, Math.PI * 2)
       context.fill()
     } else {
-      context.fillStyle = '#c9cfe0'
+      paint('#c9cfe0')
       context.font = `700 ${particle.size}px system-ui, sans-serif`
       context.fillText('z', particle.x, particle.y)
     }
@@ -239,27 +246,28 @@ export const drawParticles = (context: CanvasRenderingContext2D, world: World): 
 }
 
 export const drawStains = (context: CanvasRenderingContext2D, world: World): void => {
-  world.particles
-    .filter((particle) => particle.kind === ParticleKind.Stain || particle.kind === ParticleKind.Hole)
-    .forEach((particle) => {
-      if (particle.kind === ParticleKind.Hole) {
-        context.globalAlpha = Math.min(1, particle.life * 1.5)
-        context.fillStyle = INK
-        context.beginPath()
-        context.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2)
-        context.fill()
-        return
-      }
-      context.globalAlpha = Math.min(1, particle.life * 1.5) * 0.85
-      context.fillStyle = `hsl(${particle.hue}, 80%, 30%)`
+  world.particles.forEach((particle) => {
+    if (particle.kind !== ParticleKind.Stain && particle.kind !== ParticleKind.Hole) {
+      return
+    }
+    if (particle.kind === ParticleKind.Hole) {
+      context.globalAlpha = Math.min(1, particle.life * 1.5)
+      context.fillStyle = INK
       context.beginPath()
       context.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2)
-      ;(particle.spots ?? []).forEach(([dx, dy, size]) => {
-        context.moveTo(particle.x + dx + size, particle.y + dy)
-        context.arc(particle.x + dx, particle.y + dy, size, 0, Math.PI * 2)
-      })
       context.fill()
+      return
+    }
+    context.globalAlpha = Math.min(1, particle.life * 1.5) * 0.85
+    context.fillStyle = `hsl(${particle.hue}, 80%, 30%)`
+    context.beginPath()
+    context.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2)
+    ;(particle.spots ?? []).forEach(([dx, dy, size]) => {
+      context.moveTo(particle.x + dx + size, particle.y + dy)
+      context.arc(particle.x + dx, particle.y + dy, size, 0, Math.PI * 2)
     })
+    context.fill()
+  })
   context.globalAlpha = 1
 }
 
