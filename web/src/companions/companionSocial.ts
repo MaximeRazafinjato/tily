@@ -1,4 +1,25 @@
-import { BlobMood, impulse, jump, NIGHT_SLEEP_AFTER_S, ParticleKind, randomBetween, SLEEP_AFTER_S, type Blob, type World } from './blobModel'
+import { BlobMood, impulse, jump, NIGHT_SLEEP_AFTER_S, ParticleKind, PETTED, randomBetween, SLEEP_AFTER_S, type Blob, type World } from './blobModel'
+
+const PET_FULL_RADII = 6
+const HEART_EVERY_RADII = 3
+const HEART_HUE = 345
+
+export const petBlob = (world: World, blob: Blob, distance: number): void => {
+  blob.pet = Math.min(1, blob.pet + distance / (blob.radius * PET_FULL_RADII))
+  blob.idleTime = 0
+  if (blob.pet > PETTED && Math.random() < distance / (blob.radius * HEART_EVERY_RADII)) {
+    world.particles.push({
+      kind: ParticleKind.Heart,
+      x: blob.x + randomBetween(-0.5, 0.5) * blob.radius,
+      y: blob.y - blob.radius * 1.9,
+      vx: randomBetween(-20, 20),
+      vy: randomBetween(-70, -45),
+      life: 1,
+      hue: HEART_HUE,
+      size: blob.radius * 0.22,
+    })
+  }
+}
 
 const BUMP_COOLDOWN_S = 1.2
 const HIGH_FIVE_WINDOW_S = 3
@@ -102,7 +123,7 @@ const reactToPointer = (world: World, blob: Blob, dt: number): void => {
   }
   const dx = world.pointer.x - blob.x
   const distance = Math.hypot(dx, world.pointer.y - (blob.y - blob.radius))
-  if (distance < FLEE_DISTANCE && world.pointerSpeed > FLEE_POINTER_SPEED && blob.fleeCooldown <= 0) {
+  if (distance < FLEE_DISTANCE && world.pointerSpeed > FLEE_POINTER_SPEED && blob.fleeCooldown <= 0 && world.hovered !== blob && blob.pet < PETTED) {
     blob.vx = -Math.sign(dx || 1) * randomBetween(220, 300)
     blob.fleeCooldown = FLEE_COOLDOWN_S
     blob.idleTime = 0

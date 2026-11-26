@@ -1,5 +1,8 @@
 import { FLOOR_HURT_SPEED, FLOOR_SPLAT_SPEED, impact, reform, regenerate, WALL_HURT_SPEED, WALL_SPLAT_SPEED } from './goreEffects'
-import { BlobMood, targetRadius, clamp, DONE_CELEBRATION_S, GRAVITY, impulse, jump, lerp, ParticleKind, randomBetween, removeBlob, setMood, type Blob, type Perch, type World } from './blobModel'
+import { BlobMood, targetRadius, clamp, DONE_CELEBRATION_S, GRAVITY, impulse, jump, lerp, ParticleKind, PETTED, randomBetween, removeBlob, setMood, type Blob, type Perch, type World } from './blobModel'
+
+const PET_DECAY = 0.5
+const PETTED_SQUASH = 0.07
 
 const SPRING_STIFFNESS = 180
 const SPRING_DAMPING = 9
@@ -161,6 +164,10 @@ const animate = (world: World, blob: Blob, dt: number): void => {
   blob.blink = Math.min(1, blob.blink + dt * 7)
   look(world, blob)
   blob.poke = Math.max(0, blob.poke - dt)
+  blob.pet = Math.max(0, blob.pet - dt * PET_DECAY)
+  if (blob.pet > PETTED && blob !== world.dragged && blob.perch) {
+    blob.squash = lerp(blob.squash, PETTED_SQUASH, 0.1)
+  }
   blob.shake = Math.max(0, blob.shake - dt * 0.7)
   blob.errorMix = lerp(blob.errorMix, blob.mood === BlobMood.Error ? 1 : 0, 0.08)
   if (blob.mood === BlobMood.Idle && blob.perch && blob.idleTime > world.sleepAfter && Math.random() < dt * 0.8) {

@@ -1,5 +1,5 @@
 import { HURT_S, SAD_HEALTH } from './goreEffects'
-import { BlobMood, lerp, ParticleKind, SHAPES, type Blob, type World } from './blobModel'
+import { BlobMood, lerp, ParticleKind, PETTED, SHAPES, type Blob, type World } from './blobModel'
 import { drawProps, faceOffset } from './blobProps'
 import { formatTokens } from './companionSocial'
 
@@ -65,7 +65,7 @@ const drawEye = (context: CanvasRenderingContext2D, world: World, blob: Blob, ra
   const surprised = blob === world.dragged
   const size = radius * 0.1
   const sad = !surprised && sadOf(world, blob)
-  const happy = !surprised && !sad && (blob.mood === BlobMood.Done || blob.poke > 0)
+  const happy = !surprised && !sad && (blob.mood === BlobMood.Done || blob.poke > 0 || blob.pet > PETTED)
   const sleeping = !surprised && ((blob.mood === BlobMood.Idle && blob.idleTime > world.sleepAfter) || blob.yawn > 0)
   context.beginPath()
   if (blob.dizzy > 0 && !surprised) {
@@ -115,6 +115,40 @@ const drawEye = (context: CanvasRenderingContext2D, world: World, blob: Blob, ra
   }
 }
 
+const BLUSH = '#ff7a9a'
+const HEART_POINTS: [number, number][] = [[0, 0.95], [-0.95, 0.05], [-0.95, -0.5], [-0.5, -0.9], [0, -0.5], [0.5, -0.9], [0.95, -0.5], [0.95, 0.05]]
+
+const drawBlush = (context: CanvasRenderingContext2D, blob: Blob, radius: number, offsetX: number, offsetY: number): void => {
+  context.save()
+  context.globalAlpha = Math.min(1, (blob.pet - PETTED) * 3) * 0.6
+  context.fillStyle = BLUSH
+  for (const side of [-1, 1]) {
+    context.beginPath()
+    context.ellipse(side * radius * 0.5 + offsetX, offsetY + radius * 0.2, radius * 0.13, radius * 0.08, 0, 0, Math.PI * 2)
+    context.fill()
+  }
+  context.restore()
+  context.fillStyle = INK
+  context.strokeStyle = INK
+}
+
+const drawHeart = (context: CanvasRenderingContext2D, x: number, y: number, size: number): void => {
+  const points = HEART_POINTS.map(([pointX, pointY]): [number, number] => [x + pointX * size, y + pointY * size])
+  const middle = (a: [number, number], b: [number, number]): [number, number] => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2]
+  const start = middle(points[points.length - 1], points[0])
+  context.beginPath()
+  context.moveTo(start[0], start[1])
+  points.forEach((point, index) => {
+    const next = middle(point, points[(index + 1) % points.length])
+    context.quadraticCurveTo(point[0], point[1], next[0], next[1])
+  })
+  context.closePath()
+  context.fill()
+  context.strokeStyle = INK
+  context.lineWidth = 1.5
+  context.stroke()
+}
+
 const drawFace = (context: CanvasRenderingContext2D, world: World, blob: Blob, radius: number): void => {
   const { x: offsetX, y: offsetY } = faceOffset(blob, radius)
   context.lineCap = 'round'
@@ -123,6 +157,9 @@ const drawFace = (context: CanvasRenderingContext2D, world: World, blob: Blob, r
   context.lineWidth = radius * 0.07
   drawEye(context, world, blob, radius, -radius * 0.33 + offsetX, offsetY, -1)
   drawEye(context, world, blob, radius, radius * 0.33 + offsetX, offsetY, 1)
+  if (blob.pet > PETTED && blob !== world.dragged) {
+    drawBlush(context, blob, radius, offsetX, offsetY)
+  }
   context.beginPath()
   if (blob !== world.dragged && sadOf(world, blob)) {
     if (painedOf(blob)) {
@@ -139,7 +176,7 @@ const drawFace = (context: CanvasRenderingContext2D, world: World, blob: Blob, r
     context.ellipse(offsetX, offsetY + radius * 0.34, radius * 0.1, radius * (0.04 + opening * 0.14), 0, 0, Math.PI * 2)
   } else if (blob === world.dragged) {
     context.ellipse(offsetX, offsetY + radius * 0.32, radius * 0.08, radius * 0.1, 0, 0, Math.PI * 2)
-  } else if (blob.mood === BlobMood.Done || blob.poke > 0) {
+  } else if (blob.mood === BlobMood.Done || blob.poke > 0 || blob.pet > PETTED) {
     context.ellipse(offsetX, offsetY + radius * 0.3, radius * 0.13, radius * 0.09, 0, 0, Math.PI)
   } else if (blob.mood === BlobMood.Waiting) {
     context.arc(offsetX, offsetY + radius * 0.3, radius * 0.05, 0, Math.PI * 2)
@@ -239,6 +276,9 @@ export const drawParticles = (context: CanvasRenderingContext2D, world: World): 
       context.beginPath()
       context.arc(particle.x, particle.y, particle.size * particle.life, 0, Math.PI * 2)
       context.fill()
+    } else if (particle.kind === ParticleKind.Heart) {
+      paint(`hsl(${particle.hue}, 90%, 70%)`)
+      drawHeart(context, particle.x, particle.y, particle.size * (0.7 + 0.3 * particle.life))
     } else {
       paint('#c9cfe0')
       context.font = `700 ${particle.size}px system-ui, sans-serif`

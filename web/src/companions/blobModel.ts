@@ -27,6 +27,7 @@ export const GRAVITY = 2200
 export const CHILD_SCALE = 0.5
 export const DONE_CELEBRATION_S = 2.5
 export const SLEEP_AFTER_S = 5
+export const PETTED = 0.3
 export const NIGHT_SLEEP_AFTER_S = 2
 const NORMAL_CONTEXT = 100_000
 const LARGE_CONTEXT = 1_000_000
@@ -87,6 +88,7 @@ export interface Blob {
   approachCooldown: number
   nearPointer: number
   yawn: number
+  pet: number
   doneAt: number
   highFiveWith: Blob | null
   highFiveTimer: number
@@ -103,6 +105,7 @@ export interface Tomb {
 export enum ParticleKind {
   Spark = 'spark',
   Snore = 'snore',
+  Heart = 'heart',
   Drop = 'drop',
   Stain = 'stain',
   Hole = 'hole',
@@ -262,6 +265,7 @@ export const createBlob = (world: World, key: string, paneId: string, hue: numbe
     approachCooldown: 0,
     nearPointer: 0,
     yawn: 0,
+    pet: 0,
     doneAt: -Infinity,
     highFiveWith: null,
     highFiveTimer: 0,

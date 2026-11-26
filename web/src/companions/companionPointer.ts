@@ -3,6 +3,7 @@ import { clamp, impulse, type Blob, type World } from './blobModel'
 import { ballAt, grabBall, releaseBall, spawnBall, vanishBall } from './companionBall'
 import { insideBasket, releaseStored, storeBlob } from './companionBasket'
 import { countBasketClick, registerShake, shoot } from './goreEffects'
+import { petBlob } from './companionSocial'
 
 const HISTORY_LENGTH = 6
 const CLICK_DISTANCE = 3
@@ -110,6 +111,9 @@ export const startCompanionPointer = (world: World): (() => void) => {
       registerShake(world, world.dragged, performance.now())
     }
     world.hovered = world.dragged ? null : (blobAt(world, pointer.x, pointer.y) ?? null)
+    if (world.hovered && event.buttons === 0 && !world.sniper && previous && last) {
+      petBlob(world, world.hovered, Math.hypot(last.x - previous.x, last.y - previous.y))
+    }
     const hovering = !world.dragged && !world.ball?.held && (world.hovered !== null || insideBasket(world, pointer.x, pointer.y) || ballAt(world, pointer.x, pointer.y))
     document.documentElement.classList.toggle(HOVER_CLASS, hovering && !world.sniper)
     document.documentElement.classList.toggle(SNIPER_CLASS, world.sniper)
