@@ -16,7 +16,7 @@ export const insideBasket = (world: World, x: number, y: number): boolean =>
 export const updateBasket = (world: World): void => {
   const { basket, pointer } = world
   basket.hover = insideBasket(world, pointer.x, pointer.y)
-  basket.scale += ((world.dragged && basket.hover ? HOVER_SCALE : 1) - basket.scale) * 0.2
+  basket.scale += (((world.dragged || world.ball?.held) && basket.hover ? HOVER_SCALE : 1) - basket.scale) * 0.2
 }
 
 export const storeBlob = (blob: Blob): void => {

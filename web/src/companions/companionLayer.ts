@@ -5,7 +5,8 @@ import { useAppearanceStore } from '../store/appearanceStore'
 import { useSessionStore } from '../store/sessionStore'
 import { BlobMood, createWorld, resize, type World } from './blobModel'
 import { updateBlob, updateParticles } from './blobPhysics'
-import { drawBasket, drawBlob, drawParticles, drawReticle, drawStains, drawTombs } from './blobRenderer'
+import { drawBall, drawBasket, drawBlob, drawParticles, drawReticle, drawStains, drawTombs } from './blobRenderer'
+import { updateBall } from './companionBall'
 import { placeBasket, updateBasket } from './companionBasket'
 import { startCompanionPointer } from './companionPointer'
 import { updateSocial } from './companionSocial'
@@ -27,6 +28,7 @@ const pixelRatio = (): number => Math.min(devicePixelRatio, MAX_PIXEL_RATIO)
 
 const isCalm = (world: World): boolean =>
   world.particles.length === 0 &&
+  !world.ball &&
   !world.dragged &&
   !world.sniper &&
   world.blobs.every((blob) => blob.stored || (blob.perch !== null && blob.mood === BlobMood.Idle && blob.grow >= 1 && !blob.leaving && blob.exploded === 0 && blob.yawn === 0 && !blob.highFiveWith && Math.abs(blob.squash) < 0.01 && Math.abs(blob.vx) < 1))
@@ -68,6 +70,7 @@ const draw = (context: CanvasRenderingContext2D, world: World, modalOpen: boolea
     .filter((blob) => !blob.stored)
     .sort((a, b) => Number(a === world.dragged) - Number(b === world.dragged) || b.radius - a.radius)
     .forEach((blob) => drawBlob(context, world, blob))
+  drawBall(context, world)
   drawParticles(context, world)
   drawReticle(context, world)
 }
@@ -117,6 +120,7 @@ const mountLayer = (size: number, speed: number, gore: boolean): { world: World;
     updateBasket(world)
     updateSocial(world, dt)
     ;[...world.blobs].forEach((blob) => updateBlob(world, blob, dt))
+    updateBall(world, dt)
     updateParticles(world, dt)
     world.recoil = Math.max(0, world.recoil - dt * 6)
     world.flash = Math.max(0, world.flash - dt * 12)

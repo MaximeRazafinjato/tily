@@ -356,3 +356,24 @@ export const drawBasket = (context: CanvasRenderingContext2D, world: World): voi
     context.fill()
   })
 }
+
+export const drawBall = (context: CanvasRenderingContext2D, world: World): void => {
+  const { ball } = world
+  const radius = ball ? ball.radius * ball.scale : 0
+  if (!ball || radius <= 0.5) {
+    return
+  }
+  context.globalAlpha = ball.alpha
+  context.fillStyle = '#ffd84a'
+  context.strokeStyle = INK
+  context.lineWidth = 2
+  context.beginPath()
+  context.arc(ball.x, ball.y, radius, 0, Math.PI * 2)
+  context.fill()
+  context.stroke()
+  context.beginPath()
+  context.arc(ball.x, ball.y, radius * 0.6, Math.PI * 1.15, Math.PI * 1.6)
+  context.strokeStyle = '#fff'
+  context.stroke()
+  context.globalAlpha = 1
+}

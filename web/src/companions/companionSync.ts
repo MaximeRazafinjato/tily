@@ -105,4 +105,5 @@ export const syncCompanions = (world: World): void => {
 export const clearCompanions = (world: World): void => {
   world.blobs.filter((blob) => !blob.parent).forEach((blob) => removeBlob(world, blob))
   world.particles = []
+  world.ball = null
 }

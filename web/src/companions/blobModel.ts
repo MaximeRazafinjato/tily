@@ -137,8 +137,29 @@ export interface Basket {
   color: string
 }
 
+export interface Ball {
+  x: number
+  y: number
+  vx: number
+  vy: number
+  radius: number
+  resting: boolean
+  perch: Element | null
+  held: boolean
+  fetcher: Blob | null
+  carried: boolean
+  returned: boolean
+  idle: number
+  alpha: number
+  scale: number
+  appear: number
+  vanishing: boolean
+  vanish: number
+}
+
 export interface World {
   blobs: Blob[]
+  ball: Ball | null
   particles: Particle[]
   perches: Perch[]
   pointer: Pointer
@@ -161,6 +182,7 @@ export interface World {
 
 export const createWorld = (size: number, speed: number, gore: boolean): World => ({
   blobs: [],
+  ball: null,
   particles: [],
   perches: [],
   pointer: { x: -1, y: -1, history: [] },

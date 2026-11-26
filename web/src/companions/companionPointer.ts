@@ -1,5 +1,6 @@
 import { joinPane } from '../terminal/terminalActions'
 import { clamp, impulse, type Blob, type World } from './blobModel'
+import { ballAt, grabBall, releaseBall, spawnBall, vanishBall } from './companionBall'
 import { insideBasket, releaseStored, storeBlob } from './companionBasket'
 import { countBasketClick, registerShake, shoot } from './goreEffects'
 
@@ -63,6 +64,15 @@ export const startCompanionPointer = (world: World): (() => void) => {
       shoot(world, event.clientX, event.clientY)
       return
     }
+    if (world.ball && ballAt(world, event.clientX, event.clientY)) {
+      event.preventDefault()
+      event.stopPropagation()
+      world.pointer.history = []
+      document.documentElement.setPointerCapture(event.pointerId)
+      grabBall(world.ball)
+      document.documentElement.classList.add(DRAG_CLASS)
+      return
+    }
     const hit = blobAt(world, event.clientX, event.clientY)
     if (!hit && !onBasket) {
       return
@@ -100,7 +110,7 @@ export const startCompanionPointer = (world: World): (() => void) => {
       registerShake(world, world.dragged, performance.now())
     }
     world.hovered = world.dragged ? null : (blobAt(world, pointer.x, pointer.y) ?? null)
-    const hovering = !world.dragged && (world.hovered !== null || insideBasket(world, pointer.x, pointer.y))
+    const hovering = !world.dragged && !world.ball?.held && (world.hovered !== null || insideBasket(world, pointer.x, pointer.y) || ballAt(world, pointer.x, pointer.y))
     document.documentElement.classList.toggle(HOVER_CLASS, hovering && !world.sniper)
     document.documentElement.classList.toggle(SNIPER_CLASS, world.sniper)
   }
@@ -110,14 +120,32 @@ export const startCompanionPointer = (world: World): (() => void) => {
     if (world.basket.pressed) {
       world.basket.pressed = false
       if (insideBasket(world, event.clientX, event.clientY)) {
+        vanishBall(world)
         countBasketClick(world, performance.now())
         document.documentElement.classList.toggle(SNIPER_CLASS, world.sniper)
         releaseStored(world)
       }
       return
     }
+    if (world.ball?.held) {
+      const { vx, vy } = throwVelocity(world)
+      if (world.basket.hover) {
+        world.ball = null
+      } else {
+        releaseBall(world.ball, vx, vy)
+      }
+      return
+    }
     if (world.dragged) {
       release(world, world.dragged)
+    }
+  }
+
+  const handleContextMenu = (event: MouseEvent) => {
+    if (insideBasket(world, event.clientX, event.clientY)) {
+      event.preventDefault()
+      event.stopPropagation()
+      spawnBall(world)
     }
   }
 
@@ -132,12 +160,14 @@ export const startCompanionPointer = (world: World): (() => void) => {
 
   document.addEventListener('pointerdown', handlePointerDown, true)
   document.addEventListener('keydown', handleKeyDown, true)
+  document.addEventListener('contextmenu', handleContextMenu, true)
   addEventListener('pointermove', handlePointerMove)
   addEventListener('pointerup', handlePointerUp)
   addEventListener('pointercancel', handlePointerUp)
   return () => {
     document.removeEventListener('pointerdown', handlePointerDown, true)
     document.removeEventListener('keydown', handleKeyDown, true)
+    document.removeEventListener('contextmenu', handleContextMenu, true)
     removeEventListener('pointermove', handlePointerMove)
     removeEventListener('pointerup', handlePointerUp)
     removeEventListener('pointercancel', handlePointerUp)
