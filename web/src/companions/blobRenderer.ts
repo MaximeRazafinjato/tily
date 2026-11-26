@@ -1,5 +1,6 @@
 import { HURT_S, SAD_HEALTH } from './goreEffects'
 import { BlobMood, lerp, ParticleKind, SHAPES, type Blob, type World } from './blobModel'
+import { drawProps, faceOffset } from './blobProps'
 import { formatTokens } from './companionSocial'
 
 const INK = '#1a1530'
@@ -115,8 +116,7 @@ const drawEye = (context: CanvasRenderingContext2D, world: World, blob: Blob, ra
 }
 
 const drawFace = (context: CanvasRenderingContext2D, world: World, blob: Blob, radius: number): void => {
-  const offsetX = blob.lookX * radius * 0.12
-  const offsetY = blob.lookY * radius * 0.1 - radius * 0.12
+  const { x: offsetX, y: offsetY } = faceOffset(blob, radius)
   context.lineCap = 'round'
   context.strokeStyle = INK
   context.fillStyle = INK
@@ -196,6 +196,9 @@ export const drawBlob = (context: CanvasRenderingContext2D, world: World, blob: 
   context.fill()
   context.stroke()
   drawFace(context, world, blob, radius)
+  if (blob !== world.dragged) {
+    drawProps(context, blob, radius)
+  }
   context.restore()
   if (blob === world.dragged || blob.leaving || blob.grow < 1) {
     return
