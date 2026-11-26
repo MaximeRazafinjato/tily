@@ -33,6 +33,15 @@ const isCalm = (world: World): boolean =>
   !world.sniper &&
   world.blobs.every((blob) => blob.stored || (blob.perch !== null && blob.mood === BlobMood.Idle && blob.grow >= 1 && !blob.leaving && blob.exploded === 0 && blob.yawn === 0 && !blob.highFiveWith && Math.abs(blob.squash) < 0.01 && Math.abs(blob.vx) < 1))
 
+const insideViewport = (element: Element, y: number): boolean => {
+  const viewport = element.closest('[data-perch-viewport]')
+  if (!viewport) {
+    return true
+  }
+  const bounds = viewport.getBoundingClientRect()
+  return y >= bounds.top && y <= bounds.bottom
+}
+
 const readPerches = (world: World): void => {
   world.perches = [...document.querySelectorAll('[data-perch]')]
     .filter((element) => element.getClientRects().length > 0)
@@ -40,6 +49,7 @@ const readPerches = (world: World): void => {
       const rect = element.getBoundingClientRect()
       return { element, x1: rect.left, x2: rect.right, y: rect.top }
     })
+    .filter((perch) => insideViewport(perch.element, perch.y))
   if (!world.perches.some((perch) => perch.y >= world.height - FLOOR_TOLERANCE)) {
     world.perches.push({ element: null, x1: 0, x2: world.width, y: world.height })
   }

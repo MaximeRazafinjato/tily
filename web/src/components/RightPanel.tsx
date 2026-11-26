@@ -32,7 +32,7 @@ const viewContent = (view: RightPanelView, root: string, onOpenTerminal: (path: 
 
 export function RightPanel({ view, root, width, onClose, onOpenTerminal }: RightPanelProps) {
   return (
-    <aside data-right-panel="" data-surface="paper" data-perch="" aria-label="Panneau de droite" className="flex h-full min-h-0 shrink-0 flex-col overflow-hidden bg-tily-paper" style={{ width }}>
+    <aside data-right-panel="" data-surface="paper" aria-label="Panneau de droite" className="flex h-full min-h-0 shrink-0 flex-col overflow-hidden bg-tily-paper" style={{ width }}>
       <div className="flex h-[36px] shrink-0 items-center gap-[2px] pr-[6px] pl-[12px]">
         <h2 className={`flex-1 ${SECTION_TITLE}`}>{VIEW_LABELS[view]}</h2>
         <button type="button" className={PANEL_HEADER_BUTTON} aria-label="Masquer le panneau" data-tip="Masquer le panneau" onClick={onClose}>

@@ -9,7 +9,7 @@ interface AmbianceCompanionFieldsProps {
   onChange: (patch: Partial<AmbianceSettings>) => void
 }
 
-const TIP = 'Un compagnon par agent Claude Code, un plus petit par sous-agent. Il se pose sur la barre de statut, la barre d’onglets ou le haut des panneaux ; on peut l’attraper, le lancer ou le ranger dans la bulle en bas à gauche. Un clic rejoint son pane.'
+const TIP = 'Un compagnon par agent Claude Code, un plus petit par sous-agent. Il se pose sur la barre de statut, le haut des panes ou au-dessus d’un workspace ; on peut l’attraper, le lancer ou le ranger dans la bulle en bas à gauche. Un clic rejoint son pane.'
 
 export function AmbianceCompanionFields({ ambiance, onChange }: AmbianceCompanionFieldsProps) {
   const { companions } = ambiance
