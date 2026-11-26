@@ -5,6 +5,7 @@ import { byCategory, CATEGORY_LABELS, formatUsage, HOST_CATEGORIES, HOST_ROW_ID,
 import { ProcessCategory, type ProcessUsage } from '../bridge/activityMessages'
 import type { Session } from '../model/session'
 import { useActivityStore } from '../store/activityStore'
+import { usePageVisible } from './usePageVisible'
 import { ActivityRow } from './ActivityRow'
 import { Icon } from './Icon'
 import { IconName } from './iconName'
@@ -13,20 +14,27 @@ interface ActivityPanelProps {
   session: Session
 }
 
-function UsageLine({ label, value }: { label: string; value: string }) {
+function UsageLine({ label, value, detail = false }: { label: string; value: string; detail?: boolean }) {
   return (
-    <div className="flex items-baseline gap-[6px]">
+    <div className={`flex items-baseline gap-[6px] ${detail ? 'pl-[12px] text-[11px] text-tily-muted' : ''}`}>
       <span className="min-w-0 flex-1 truncate">{label}</span>
       <span className="shrink-0 text-tily-muted tabular-nums">{value}</span>
     </div>
   )
 }
 
-const COUNTED_CATEGORIES = [ProcessCategory.WebView, ProcessCategory.Other]
+const COUNTED_CATEGORIES = [ProcessCategory.WebView, ProcessCategory.BrowserPages, ProcessCategory.Other]
+
+const countedLabel = (label: string, count: number): string => (count > 1 ? `${label} (${count})` : label)
 
 function CategoryLines({ processes, categories }: { processes: ProcessUsage[]; categories: ProcessCategory[] }) {
-  return byCategory(processes, categories).map(({ category, usage }) => (
-    <UsageLine key={category} label={COUNTED_CATEGORIES.includes(category) ? `${CATEGORY_LABELS[category]} (${usage.count})` : CATEGORY_LABELS[category]} value={formatUsage(usage)} />
+  return byCategory(processes, categories).map(({ category, usage, names }) => (
+    <div key={category}>
+      <UsageLine label={COUNTED_CATEGORIES.includes(category) ? `${CATEGORY_LABELS[category]} (${usage.count})` : CATEGORY_LABELS[category]} value={formatUsage(usage)} />
+      {names.map(({ name, usage: nameUsage }) => (
+        <UsageLine key={name} detail label={countedLabel(name, nameUsage.count)} value={formatUsage(nameUsage)} />
+      ))}
+    </div>
   ))
 }
 
@@ -34,14 +42,16 @@ export function ActivityPanel({ session }: ActivityPanelProps) {
   const { expanded, open, panes, host } = useActivityStore(useShallow((state) => ({ expanded: state.expanded, open: state.open, panes: state.panes, host: state.host })))
   const toggleExpanded = useActivityStore((state) => state.toggleExpanded)
   const toggleOpen = useActivityStore((state) => state.toggleOpen)
+  const pageVisible = usePageVisible()
+  const measuring = expanded && pageVisible
 
   useEffect(() => {
-    if (!expanded) {
+    if (!measuring) {
       return
     }
     bridge.send({ type: 'activity.subscribe' })
     return () => bridge.send({ type: 'activity.unsubscribe' })
-  }, [expanded])
+  }, [measuring])
 
   const tabs = useMemo(() => tabUsages(session, panes), [session, panes])
   const total = useMemo(() => usageOf([...host, ...tabs.flatMap((tab) => tab.processes)]), [host, tabs])

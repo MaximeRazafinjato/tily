@@ -1,4 +1,6 @@
 using System.ComponentModel;
+using System.Runtime.InteropServices;
+using Microsoft.Web.WebView2.Core;
 using Tily.Core.Activity;
 using Tily.Core.Terminal;
 
@@ -11,9 +13,11 @@ public sealed class ActivityFeed : IDisposable
     private readonly TerminalManager _terminals;
     private readonly ProcessUsageSampler _sampler = new(new WindowsProcessProbe());
     private readonly HashSet<HostBridge> _subscribers = [];
+    private readonly Dictionary<HostBridge, CoreWebView2Environment> _environments = [];
     private readonly object _gate = new();
     private readonly Timer _timer;
     private bool _disposed;
+    private volatile IReadOnlyDictionary<int, string> _webViewRoles = new Dictionary<int, string>();
 
     public ActivityFeed(TerminalManager terminals)
     {
@@ -45,6 +49,11 @@ public sealed class ActivityFeed : IDisposable
                 _timer.Change(Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
             }
         }
+
+        if (_environments.Remove(window, out var environment))
+        {
+            environment.ProcessInfosChanged -= HandleProcessInfosChanged;
+        }
     }
 
     private void Subscribe(HostBridge window)
@@ -55,6 +64,25 @@ public sealed class ActivityFeed : IDisposable
             {
                 _timer.Change(TimeSpan.Zero, SampleInterval);
             }
+        }
+
+        if (window.WebViewEnvironment is { } environment && _environments.TryAdd(window, environment))
+        {
+            environment.ProcessInfosChanged += HandleProcessInfosChanged;
+            _ = RefreshWebViewRolesAsync(environment);
+        }
+    }
+
+    private void HandleProcessInfosChanged(CoreWebView2Environment sender, object args) => _ = RefreshWebViewRolesAsync(sender);
+
+    private async Task RefreshWebViewRolesAsync(CoreWebView2Environment environment)
+    {
+        try
+        {
+            _webViewRoles = await WebViewProcessRoles.ReadAsync(environment);
+        }
+        catch (Exception exception) when (exception is COMException or InvalidOperationException)
+        {
         }
     }
 
@@ -69,7 +97,7 @@ public sealed class ActivityFeed : IDisposable
 
             try
             {
-                var activity = _sampler.Sample(_terminals.ProcessIds(), Environment.ProcessId);
+                var activity = _sampler.Sample(_terminals.ProcessIds(), Environment.ProcessId, _webViewRoles);
                 var message = new { type = "activity.state", panes = activity.Panes, host = activity.Host };
                 foreach (var window in _subscribers)
                 {

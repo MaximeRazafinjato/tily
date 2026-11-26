@@ -22,13 +22,17 @@ export const CATEGORY_LABELS: Record<ProcessCategory, string> = {
   [ProcessCategory.Mcp]: 'Serveurs MCP',
   [ProcessCategory.Terminal]: 'Terminal',
   [ProcessCategory.App]: 'Application',
-  [ProcessCategory.WebView]: 'Navigateur intégré',
+  [ProcessCategory.WebView]: 'Moteur WebView2',
+  [ProcessCategory.Interface]: 'Interface',
+  [ProcessCategory.BrowserPages]: 'Pages des panes navigateur',
   [ProcessCategory.Other]: 'Autres',
 }
 export const PANE_CATEGORIES = [ProcessCategory.Claude, ProcessCategory.Mcp, ProcessCategory.Terminal]
-export const HOST_CATEGORIES = [ProcessCategory.App, ProcessCategory.WebView, ProcessCategory.Other]
+export const HOST_CATEGORIES = [ProcessCategory.App, ProcessCategory.Interface, ProcessCategory.BrowserPages, ProcessCategory.WebView, ProcessCategory.Other]
 
 const MEGABYTES_PER_GIGABYTE = 1024
+const MAX_PROCESS_NAMES = 5
+const EXECUTABLE_SUFFIX = /.exe$/i
 
 const displayedCategory = (category: ProcessCategory): ProcessCategory => (category === ProcessCategory.Commands ? ProcessCategory.Claude : category)
 
@@ -54,8 +58,29 @@ export const tabUsages = (session: Session, panes: PaneUsage[]): TabUsage[] => {
   )
 }
 
-export const byCategory = (processes: ProcessUsage[], categories: ProcessCategory[]): { category: ProcessCategory; usage: Usage }[] =>
+export interface NamedUsage {
+  name: string
+  usage: Usage
+}
+
+export interface CategoryUsage {
+  category: ProcessCategory
+  usage: Usage
+  names: NamedUsage[]
+}
+
+const byName = (processes: ProcessUsage[]): NamedUsage[] => {
+  const groups = new Map<string, ProcessUsage[]>()
+  for (const process of processes) {
+    const name = process.name.replace(EXECUTABLE_SUFFIX, '')
+    groups.set(name, [...(groups.get(name) ?? []), process])
+  }
+  const names = [...groups].map(([name, members]) => ({ name, usage: usageOf(members) })).sort((left, right) => right.usage.ram - left.usage.ram)
+  return names.length > 1 ? names.slice(0, MAX_PROCESS_NAMES) : []
+}
+
+export const byCategory = (processes: ProcessUsage[], categories: ProcessCategory[]): CategoryUsage[] =>
   categories.flatMap((category) => {
-    const usage = usageOf(processes.filter((process) => displayedCategory(process.category) === category))
-    return usage.count > 0 ? [{ category, usage }] : []
+    const members = processes.filter((process) => displayedCategory(process.category) === category)
+    return members.length > 0 ? [{ category, usage: usageOf(members), names: byName(members) }] : []
   })

@@ -35,7 +35,11 @@ public static class ProcessClassifier
         }
     }
 
-    public static IReadOnlyList<(ProcessEntryModel Process, int Depth, string Category)> ClassifyHost(IReadOnlyList<ProcessEntryModel> snapshot, int hostProcessId, IReadOnlySet<int> excludedProcessIds)
+    public static IReadOnlyList<(ProcessEntryModel Process, int Depth, string Category)> ClassifyHost(
+        IReadOnlyList<ProcessEntryModel> snapshot,
+        int hostProcessId,
+        IReadOnlySet<int> excludedProcessIds,
+        IReadOnlyDictionary<int, string>? webViewCategories = null)
     {
         var children = snapshot.Where(process => process.ParentId != process.Id).ToLookup(process => process.ParentId);
         var result = new List<(ProcessEntryModel, int, string)>();
@@ -55,13 +59,23 @@ public static class ProcessClassifier
                 return;
             }
 
-            var category = depth == 0 ? ProcessCategory.App : process.Name.Equals("msedgewebview2.exe", StringComparison.OrdinalIgnoreCase) ? ProcessCategory.WebView : ProcessCategory.Other;
+            var category = depth == 0 ? ProcessCategory.App : HostCategoryOf(process, webViewCategories);
             result.Add((process, depth, category));
             foreach (var child in children[process.Id])
             {
                 Visit(child, depth + 1);
             }
         }
+    }
+
+    private static string HostCategoryOf(ProcessEntryModel process, IReadOnlyDictionary<int, string>? webViewCategories)
+    {
+        if (!process.Name.Equals("msedgewebview2.exe", StringComparison.OrdinalIgnoreCase))
+        {
+            return ProcessCategory.Other;
+        }
+
+        return webViewCategories?.GetValueOrDefault(process.Id) ?? ProcessCategory.WebView;
     }
 
     private static string CategoryOf(string name, string inherited)

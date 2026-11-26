@@ -8,12 +8,14 @@ public static class ProcessCategory
     public const string Terminal = "terminal";
     public const string App = "app";
     public const string WebView = "webview";
+    public const string Interface = "interface";
+    public const string BrowserPages = "pages";
     public const string Other = "other";
 }
 
 public sealed record ProcessEntryModel(int Id, int ParentId, string Name);
 
-public sealed record ProcessCountersModel(TimeSpan CpuTime, long WorkingSetBytes);
+public sealed record ProcessCountersModel(TimeSpan CpuTime, long PrivateWorkingSetBytes);
 
 public sealed record ProcessUsageModel(int Id, string Name, int Depth, string Category, double Cpu, double Ram);
 

@@ -5,6 +5,8 @@ export enum ProcessCategory {
   Terminal = 'terminal',
   App = 'app',
   WebView = 'webview',
+  Interface = 'interface',
+  BrowserPages = 'pages',
   Other = 'other',
 }
 

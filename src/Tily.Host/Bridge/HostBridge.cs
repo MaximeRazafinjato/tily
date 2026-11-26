@@ -107,6 +107,8 @@ public sealed class HostBridge : IDisposable
 
     private SettingsModel Settings => _services.Settings;
 
+    public CoreWebView2Environment? WebViewEnvironment => _core?.Environment;
+
     public void Attach(CoreWebView2 core)
     {
         _core = core;
