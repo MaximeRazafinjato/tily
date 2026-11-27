@@ -130,7 +130,7 @@ export const WARDROBE: WardrobeCategory[] = [
       { id: CompanionSkin.Slime, name: 'Slime', description: 'Translucide, bulles qui remontent, flaque au sol.', tier: Rare },
       { id: CompanionSkin.Ghost, name: 'Fantôme', description: 'Flotte, bas en vagues, à moitié transparent.', tier: Rare },
       { id: CompanionSkin.Rainbow, name: 'Arc-en-ciel', description: 'Rayures pastel qui défilent.', tier: Rare },
-      { id: CompanionSkin.ArcadeGhost, name: 'Fantôme d’arcade', description: 'Jupe en dents de scie ; vire au bleu de peur de temps en temps.', tier: Rare },
+      { id: CompanionSkin.ArcadeGhost, name: 'Fantôme d’arcade', description: 'Jupe en dents de scie et grands yeux qui suivent le regard.', tier: Rare },
       { id: CompanionSkin.Voxel, name: 'Bloc voxel', description: 'Un cube de terre et d’herbe, à miner sans modération.', tier: Rare },
       { id: CompanionSkin.Synthwave, name: 'Synthwave', description: 'Soleil couchant à rayures et grille néon qui défile.', tier: Rare },
       { id: CompanionSkin.Galaxy, name: 'Galaxie', description: 'Nébuleuses et étoiles qui scintillent.', tier: Legendary },

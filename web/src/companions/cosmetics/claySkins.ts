@@ -3,11 +3,6 @@ import { clayLine, drawClayShape, hashUnit, INK, star, TAU, type Point } from '.
 import { fillBody, insideBody, plainPaint, strokeBody, type FaceState, type SkinPainting, type SkinStyle } from './skinPaint'
 
 const RAINBOW = ['#f07a70', '#ffb05a', '#ffd84a', '#7ad97a', '#5ab4ff', '#a98fc9']
-const SCARED_PERIOD_S = 9
-const SCARED_FROM_S = 6.5
-const SCARED_FLASH_S = 8.2
-
-const scared = (time: number): boolean => time % SCARED_PERIOD_S > SCARED_FROM_S
 
 const slime: SkinStyle = {
   paint: (context, { points, radius, time, hue, line }) => {
@@ -138,30 +133,7 @@ const rpgDrop: SkinStyle = {
   },
 }
 
-const arcadeEyes = (context: CanvasRenderingContext2D, { radius, time }: SkinPainting, { look }: FaceState): void => {
-  if (scared(time)) {
-    context.fillStyle = '#ffd7e8'
-    ;[-1, 1].forEach((side) => {
-      context.beginPath()
-      context.arc(side * radius * 0.28, -radius * 0.22, radius * 0.08, 0, TAU)
-      context.fill()
-    })
-    context.strokeStyle = '#ffd7e8'
-    context.lineWidth = radius * 0.06
-    context.lineCap = 'round'
-    context.beginPath()
-    for (let index = 0; index <= 8; index++) {
-      const x = -radius * 0.45 + index * radius * 0.1125
-      const y = radius * 0.18 + (index % 2 ? -1 : 1) * radius * 0.05
-      if (index) {
-        context.lineTo(x, y)
-      } else {
-        context.moveTo(x, y)
-      }
-    }
-    context.stroke()
-    return
-  }
+const arcadeEyes = (context: CanvasRenderingContext2D, { radius }: SkinPainting, { look }: FaceState): void => {
   ;[-1, 1].forEach((side) => {
     context.fillStyle = '#ffffff'
     context.strokeStyle = INK
@@ -178,9 +150,8 @@ const arcadeEyes = (context: CanvasRenderingContext2D, { radius, time }: SkinPai
 }
 
 const arcadeGhost: SkinStyle = {
-  paint: (context, { points, time, hue, line }) => {
-    const flash = scared(time) && time % SCARED_PERIOD_S > SCARED_FLASH_S && Math.floor(time * 8) % 2 === 1
-    fillBody(context, points, scared(time) ? (flash ? '#f4f4ff' : '#2b3cff') : `hsl(${hue}, 90%, 58%)`)
+  paint: (context, { points, hue, line }) => {
+    fillBody(context, points, `hsl(${hue}, 90%, 58%)`)
     strokeBody(context, points, INK, line)
   },
   outline: (points, radius, time) =>
