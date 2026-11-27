@@ -15,6 +15,7 @@ internal sealed class BrowserView : IDisposable
     private const double OffscreenLeft = -20000;
     private static readonly TimeSpan ErrorsDelay = TimeSpan.FromMilliseconds(250);
     private static readonly TimeSpan SettleTimeout = TimeSpan.FromSeconds(2);
+    private static readonly TimeSpan HiddenSuspendDelay = TimeSpan.FromSeconds(30);
     private static readonly BrowserViewportSizeModel DrivenSize = BrowserViewports.DesktopCapture;
     private static readonly string[] ConsoleEvents = [DevToolsConsole.ConsoleApiCalled, DevToolsConsole.ExceptionThrown, DevToolsConsole.EntryAdded];
 
@@ -29,6 +30,7 @@ internal sealed class BrowserView : IDisposable
     private bool _visible;
     private bool _capturing;
     private readonly DispatcherQueueTimer _errorsTimer;
+    private readonly DispatcherQueueTimer _hiddenTimer;
     private bool _focusPending;
     private bool _errorsScheduled;
     private int _lastErrors;
@@ -45,6 +47,10 @@ internal sealed class BrowserView : IDisposable
         _errorsTimer.Interval = ErrorsDelay;
         _errorsTimer.IsRepeating = false;
         _errorsTimer.Tick += (_, _) => PostErrorsNow();
+        _hiddenTimer = Control.DispatcherQueue.CreateTimer();
+        _hiddenTimer.Interval = HiddenSuspendDelay;
+        _hiddenTimer.IsRepeating = false;
+        _hiddenTimer.Tick += (_, _) => _ = SuspendHiddenAsync();
     }
 
     public string PaneId { get; }
@@ -183,6 +189,7 @@ internal sealed class BrowserView : IDisposable
         var core = Require();
         await _driving.WaitAsync();
         _capturing = true;
+        Wake();
         try
         {
             var offscreen = Control.Visibility != Visibility.Visible;
@@ -257,6 +264,15 @@ internal sealed class BrowserView : IDisposable
         Control.Width = Math.Max(0, width);
         Control.Height = Math.Max(0, _bounds.Height);
         Control.Visibility = _visible && _bounds.Width > 0 && _bounds.Height > 0 ? Visibility.Visible : Visibility.Collapsed;
+        if (Control.Visibility == Visibility.Visible)
+        {
+            Wake();
+        }
+        else if (!_hiddenTimer.IsRunning)
+        {
+            _hiddenTimer.Start();
+        }
+
         if (_focusPending && Control.Visibility == Visibility.Visible)
         {
             _focusPending = false;
@@ -383,16 +399,63 @@ internal sealed class BrowserView : IDisposable
         }
     }
 
+    private void Wake()
+    {
+        if (_core is not { } core)
+        {
+            return;
+        }
+
+        _hiddenTimer.Stop();
+        if (core.IsSuspended)
+        {
+            core.Resume();
+        }
+
+        if (core.MemoryUsageTargetLevel != CoreWebView2MemoryUsageTargetLevel.Normal)
+        {
+            core.MemoryUsageTargetLevel = CoreWebView2MemoryUsageTargetLevel.Normal;
+        }
+
+        if (Control.Visibility != Visibility.Visible)
+        {
+            _hiddenTimer.Start();
+        }
+    }
+
+    private async Task SuspendHiddenAsync()
+    {
+        if (_core is not { } core || _capturing || Control.Visibility == Visibility.Visible)
+        {
+            return;
+        }
+
+        core.MemoryUsageTargetLevel = CoreWebView2MemoryUsageTargetLevel.Low;
+        try
+        {
+            await core.TrySuspendAsync();
+        }
+        catch (Exception exception) when (exception is COMException or InvalidOperationException)
+        {
+        }
+    }
+
     private BrowserNavigationModel TimedOut(string error) => new(_core?.Source ?? string.Empty, _core?.DocumentTitle ?? string.Empty, false, null, error, Log.ErrorCount());
 
     private void PostState() => _callbacks.StateChanged(this);
 
-    private CoreWebView2 Require() => _core ?? throw new InvalidOperationException("Le navigateur de ce pane démarre encore : réessayez dans un instant.");
+    private CoreWebView2 Require()
+    {
+        var core = _core ?? throw new InvalidOperationException("Le navigateur de ce pane démarre encore : réessayez dans un instant.");
+        Wake();
+        return core;
+    }
 
     public void Dispose()
     {
         _navigations.Close();
         _errorsTimer.Stop();
+        _hiddenTimer.Stop();
         Control.Close();
     }
 }

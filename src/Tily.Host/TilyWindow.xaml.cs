@@ -18,7 +18,7 @@ public sealed partial class TilyWindow : Window
     private const int CursorGripHeight = 16;
     private readonly HostServices _services;
     private readonly WindowRole _role;
-    private readonly string _startUrl = ResolveStartUrl();
+    private static readonly string StartUrl = ResolveStartUrl();
     private bool _closeConfirmed;
 
     public TilyWindow(HostServices services, WindowRole role, DetachedPlacementModel? placement)
@@ -123,7 +123,7 @@ public sealed partial class TilyWindow : Window
         Directory.CreateDirectory(media.Folder);
         core.SetVirtualHostNameToFolderMapping(AmbianceMediaHost, media.Folder, CoreWebView2HostResourceAccessKind.Allow);
         Bridge.Attach(core);
-        core.Navigate(_startUrl);
+        core.Navigate(StartUrl);
         View.Focus(FocusState.Programmatic);
     }
 
@@ -174,9 +174,11 @@ public sealed partial class TilyWindow : Window
         return string.IsNullOrWhiteSpace(devServer) ? $"https://{VirtualHost}/index.html" : devServer;
     }
 
-    private void HandleNavigationStarting(CoreWebView2 sender, CoreWebView2NavigationStartingEventArgs args) => args.Cancel = !IsSameOrigin(args.Uri, _startUrl);
+    private void HandleNavigationStarting(CoreWebView2 sender, CoreWebView2NavigationStartingEventArgs args) => args.Cancel = !IsInterfaceUrl(args.Uri);
 
     private static void HandleNewWindowRequested(CoreWebView2 sender, CoreWebView2NewWindowRequestedEventArgs args) => args.Handled = true;
+
+    internal static bool IsInterfaceUrl(string candidate) => IsSameOrigin(candidate, StartUrl);
 
     private static bool IsSameOrigin(string candidate, string reference) =>
         Uri.TryCreate(candidate, UriKind.Absolute, out var candidateUri)

@@ -71,22 +71,22 @@ internal static class TilyBrowserTools
         [Description(ViewportDescription + " Par défaut : desktop.")] string? viewport = null,
         [Description("Donner le focus clavier au navigateur.")] bool focus = false,
         CancellationToken token = default) =>
-        TilyConnection.CallCheckedAsync(McpBrowser.Open, () => new { url = McpBrowser.Url(url), pane, placement = McpBrowser.Placement(placement), viewport = McpBrowser.Viewport(viewport), focus }, token);
+        TilyConnection.CallCheckedAsync(McpBrowser.Open, () => new JsonObject { ["url"] = McpBrowser.Url(url), ["pane"] = pane, ["placement"] = McpBrowser.Placement(placement), ["viewport"] = McpBrowser.Viewport(viewport), ["focus"] = focus }, token);
 
     private static Task<CallToolResult> NavigateAsync(
         [Description("Adresse à charger, par exemple localhost:5173/equipe.")] string url,
         [Description(PaneDescription)] string? pane = null,
         CancellationToken token = default) =>
-        TilyConnection.CallCheckedAsync(McpBrowser.Navigate, () => new { url = McpBrowser.Url(url) ?? throw new InvalidOperationException("Indiquez l’adresse à charger."), pane }, token);
+        TilyConnection.CallCheckedAsync(McpBrowser.Navigate, () => new JsonObject { ["url"] = McpBrowser.Url(url) ?? throw new InvalidOperationException("Indiquez l’adresse à charger."), ["pane"] = pane }, token);
 
     private static Task<CallToolResult> ReloadAsync([Description(PaneDescription)] string? pane = null, CancellationToken token = default) =>
-        TilyConnection.CallAsync(McpBrowser.Reload, new { pane }, token);
+        TilyConnection.CallAsync(McpBrowser.Reload, new JsonObject { ["pane"] = pane }, token);
 
     private static Task<CallToolResult> ResizeAsync(
         [Description(ViewportDescription)] string viewport,
         [Description(PaneDescription)] string? pane = null,
         CancellationToken token = default) =>
-        TilyConnection.CallCheckedAsync(McpBrowser.Resize, () => new { viewport = McpBrowser.Viewport(viewport) ?? throw new InvalidOperationException("Indiquez la largeur : desktop ou mobile."), pane }, token);
+        TilyConnection.CallCheckedAsync(McpBrowser.Resize, () => new JsonObject { ["viewport"] = McpBrowser.Viewport(viewport) ?? throw new InvalidOperationException("Indiquez la largeur : desktop ou mobile."), ["pane"] = pane }, token);
 
     private static Task<CallToolResult> ConsoleAsync(
         [Description(PaneDescription)] string? pane = null,
@@ -94,7 +94,7 @@ internal static class TilyBrowserTools
         [Description("Ne garder que les messages du chargement en cours.")] bool sinceLoad = false,
         [Description("Nombre maximal de messages rendus (les plus récents), de 1 à 500.")] int limit = McpBrowser.DefaultLimit,
         CancellationToken token = default) =>
-        TilyConnection.CallCheckedAsync(McpBrowser.Console, () => new { pane, level = McpBrowser.Level(level), sinceLoad, limit = McpBrowser.Limit(limit) }, token);
+        TilyConnection.CallCheckedAsync(McpBrowser.Console, () => new JsonObject { ["pane"] = pane, ["level"] = McpBrowser.Level(level), ["sinceLoad"] = sinceLoad, ["limit"] = McpBrowser.Limit(limit) }, token);
 
     private static Task<CallToolResult> NetworkAsync(
         [Description(PaneDescription)] string? pane = null,
@@ -102,7 +102,7 @@ internal static class TilyBrowserTools
         [Description("Ne garder que les requêtes du chargement en cours.")] bool sinceLoad = false,
         [Description("Nombre maximal de requêtes rendues (les plus récentes), de 1 à 500.")] int limit = McpBrowser.DefaultLimit,
         CancellationToken token = default) =>
-        TilyConnection.CallAsync(McpBrowser.Network, new { pane, failedOnly, sinceLoad, limit = McpBrowser.Limit(limit) }, token);
+        TilyConnection.CallAsync(McpBrowser.Network, new JsonObject { ["pane"] = pane, ["failedOnly"] = failedOnly, ["sinceLoad"] = sinceLoad, ["limit"] = McpBrowser.Limit(limit) }, token);
 
     private static async Task<CallToolResult> ScreenshotAsync(
         [Description(PaneDescription)] string? pane = null,
@@ -112,11 +112,11 @@ internal static class TilyBrowserTools
         CancellationToken token = default)
     {
         string? file;
-        object arguments;
+        JsonObject arguments;
         try
         {
             file = McpBrowser.ScreenshotPath(path, Environment.CurrentDirectory);
-            arguments = new { pane, viewport = McpBrowser.Viewport(viewport), fullPage };
+            arguments = new JsonObject { ["pane"] = pane, ["viewport"] = McpBrowser.Viewport(viewport), ["fullPage"] = fullPage };
         }
         catch (InvalidOperationException exception)
         {

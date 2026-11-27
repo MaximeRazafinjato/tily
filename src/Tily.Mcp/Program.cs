@@ -10,6 +10,9 @@ var options = new McpServerOptions
     ServerInstructions = inTily ? TilyTools.Instructions : null,
     ToolCollection = inTily ? TilyTools.Collection() : []
 };
+ReleaseToolCreationMemory();
 
 await using var server = McpServer.Create(new StdioServerTransport(TilyTools.ServerName), options);
 await server.RunAsync();
+
+static void ReleaseToolCreationMemory() => GC.Collect(GC.MaxGeneration, GCCollectionMode.Aggressive, true, true);

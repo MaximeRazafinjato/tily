@@ -204,6 +204,8 @@ export function SettingsDialog({ snapshot, pickedPath, imported, onClose, onSave
   const handleTestNotification = () => testNotification(AttentionKind.Waiting)
   const handleTestDoneNotification = () => testNotification(AttentionKind.Done)
   const handleAutoCheckChange = (autoCheck: boolean) => updateDraft({ updates: { autoCheck } })
+  const handleTransientBuildServersChange = (transientBuildServers: boolean) =>
+    setDraft((current) => (current ? { ...current, persistence: { ...current.persistence, transientBuildServers } } : current))
   const updateAppearance = useCallback((patch: Partial<AppearanceSettings>) => setDraft((current) => (current ? { ...current, appearance: { ...current.appearance, ...patch } } : current)), [])
   const handleFontSizeChange = (fontSize: number) => updateAppearance({ fontSize })
   const handleAmbianceChange = (patch: Partial<AmbianceSettings>) => setDraft((current) => (current ? { ...current, appearance: { ...current.appearance, ambiance: { ...current.appearance.ambiance, ...patch } } } : current))
@@ -220,7 +222,7 @@ export function SettingsDialog({ snapshot, pickedPath, imported, onClose, onSave
       case SettingsSection.Shells:
         return <ShellSettingsSection title={title} shellSettings={current.shellSettings} shells={settings.shells} editor={settings.editor} onShellsChange={handleShellsChange} onEditorChange={handleEditorChange} onPickShell={handlePickShell} onPickEditor={handlePickEditor} />
       case SettingsSection.Terminals:
-        return <TerminalSettingsSection title={title} fontSize={settings.appearance.fontSize} numberText={numberText} onFontSizeChange={handleFontSizeChange} onNumberChange={handleNumberChange} />
+        return <TerminalSettingsSection title={title} fontSize={settings.appearance.fontSize} numberText={numberText} transientBuildServers={settings.persistence.transientBuildServers} onFontSizeChange={handleFontSizeChange} onNumberChange={handleNumberChange} onTransientBuildServersChange={handleTransientBuildServersChange} />
       case SettingsSection.Appearance:
         return <AppearanceSettingsSection title={title} appearance={settings.appearance} onChange={updateAppearance} />
       case SettingsSection.Ambiance:

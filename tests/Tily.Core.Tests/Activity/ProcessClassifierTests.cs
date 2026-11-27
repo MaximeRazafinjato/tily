@@ -81,4 +81,15 @@ public sealed class ProcessClassifierTests
         Assert.Equal(ProcessCategory.WebView, processes.Single(entry => entry.Process.Id == 21).Category);
         Assert.Equal(ProcessCategory.Other, processes.Single(entry => entry.Process.Id == 30).Category);
     }
+
+    [Fact]
+    public void ClassifyHost_WhenWebViewRolesKnown_ThenSeparatesInterfaceFromEngine()
+    {
+        var roles = new Dictionary<int, string> { [21] = ProcessCategory.Interface };
+
+        var processes = ProcessClassifier.ClassifyHost(Snapshot, 1, new HashSet<int>(), roles);
+
+        Assert.Equal(ProcessCategory.Interface, processes.Single(entry => entry.Process.Id == 21).Category);
+        Assert.Equal(ProcessCategory.WebView, processes.Single(entry => entry.Process.Id == 20).Category);
+    }
 }

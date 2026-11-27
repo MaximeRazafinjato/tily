@@ -66,7 +66,7 @@ const DETACHED_STATUS = 'Fenêtre détachée : rien n’y est enregistré, les P
 export default function App() {
   const session = useSessionStore((state) => state.session)
   const connected = useHostStore((state) => state.connected)
-  const status = useHostStore((state) => state.status)
+  const waitingText = useHostStore((state) => (session && state.connected ? '' : state.status.text))
 
   useEffect(() => {
     const { load, setPanePath } = useSessionStore.getState()
@@ -315,7 +315,7 @@ export default function App() {
   }, [])
 
   if (!session || !connected) {
-    return <div className="flex h-full items-center justify-center text-tily-muted">{status.text}</div>
+    return <div className="flex h-full items-center justify-center text-tily-muted">{waitingText}</div>
   }
 
   return <AppShell session={session} />

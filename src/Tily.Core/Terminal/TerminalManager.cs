@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Text;
+using Tily.Core.Activity;
 using Tily.Core.Agents;
 using Tily.Core.Context;
 using Tily.Core.Shell;
@@ -10,6 +11,7 @@ public sealed class TerminalManager : IDisposable
 {
     private readonly ConcurrentDictionary<string, TerminalSession> _sessions = new();
     private ShellPathsModel _paths;
+    private IReadOnlyDictionary<string, string> _extraEnvironment = new Dictionary<string, string>();
 
     public TerminalManager(ShellPathsModel? paths = null)
     {
@@ -17,6 +19,8 @@ public sealed class TerminalManager : IDisposable
     }
 
     public void UpdatePaths(ShellPathsModel paths) => _paths = paths;
+
+    public void UpdateEnvironment(IReadOnlyDictionary<string, string> extraEnvironment) => _extraEnvironment = extraEnvironment;
 
     public event Action<string, ReadOnlyMemory<byte>>? OutputReceived;
     public event Action<string, string>? CurrentDirectoryChanged;
@@ -33,7 +37,8 @@ public sealed class TerminalManager : IDisposable
             CommandLine = ShellCatalog.CommandLine(profile),
             WorkingDirectory = directory,
             Columns = Math.Max(columns, 20),
-            Rows = Math.Max(rows, 5)
+            Rows = Math.Max(rows, 5),
+            ExtraEnvironment = _extraEnvironment
         });
         session.OutputReceived += data => OutputReceived?.Invoke(paneId, data);
         session.CurrentDirectoryChanged += path => CurrentDirectoryChanged?.Invoke(paneId, path);
@@ -83,6 +88,7 @@ public sealed class TerminalManager : IDisposable
     public IReadOnlyList<PaneActivityModel> Activity(IEnumerable<string> paneIds)
     {
         var activity = new List<PaneActivityModel>();
+        var processNames = ProcessNames.Snapshot();
         foreach (var paneId in paneIds)
         {
             if (!_sessions.TryGetValue(paneId, out var session))
@@ -90,7 +96,7 @@ public sealed class TerminalManager : IDisposable
                 continue;
             }
 
-            var processes = session.ActiveProcessNames();
+            var processes = session.ActiveProcessNames(processNames);
             if (processes.Count > 0)
             {
                 activity.Add(new PaneActivityModel(paneId, processes));
@@ -103,15 +109,18 @@ public sealed class TerminalManager : IDisposable
     public IReadOnlyDictionary<string, IReadOnlyList<int>> ProcessIds() =>
         _sessions.Values.ToDictionary(session => session.PaneId, session => session.LiveProcessIds());
 
-    public IReadOnlyList<PaneProbeModel> Probes() =>
-        _sessions.Values
-            .Where(session => !session.HasExited)
-            .Select(Probe)
-            .ToList();
-
-    private static PaneProbeModel Probe(TerminalSession session)
+    public IReadOnlyList<PaneProbeModel> Probes()
     {
-        var processes = session.ActiveProcesses();
+        var processNames = ProcessNames.Snapshot();
+        return _sessions.Values
+            .Where(session => !session.HasExited)
+            .Select(session => Probe(session, processNames))
+            .ToList();
+    }
+
+    private static PaneProbeModel Probe(TerminalSession session, IReadOnlyDictionary<int, string> processNames)
+    {
+        var processes = session.ActiveProcesses(processNames);
         return new PaneProbeModel(session.PaneId, session.StartedAtUtc, TerminalSession.NamesOf(processes), processes.Select(process => process.Id).ToList());
     }
 

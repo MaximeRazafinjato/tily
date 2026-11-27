@@ -16,7 +16,7 @@ public sealed class ProcessUsageSampler
         _previousSample = _clock();
     }
 
-    public ActivityModel Sample(IReadOnlyDictionary<string, IReadOnlyList<int>> paneProcessIds, int hostProcessId)
+    public ActivityModel Sample(IReadOnlyDictionary<string, IReadOnlyList<int>> paneProcessIds, int hostProcessId, IReadOnlyDictionary<int, string>? webViewCategories = null)
     {
         var now = _clock();
         var elapsedMilliseconds = Math.Max(1, (now - _previousSample).TotalMilliseconds);
@@ -29,7 +29,7 @@ public sealed class ProcessUsageSampler
             .Where(pane => pane.Processes.Count > 0)
             .ToList();
         var paneProcesses = paneProcessIds.Values.SelectMany(ids => ids).ToHashSet();
-        var host = Measure(ProcessClassifier.ClassifyHost(snapshot, hostProcessId, paneProcesses), elapsedMilliseconds, seen);
+        var host = Measure(ProcessClassifier.ClassifyHost(snapshot, hostProcessId, paneProcesses, webViewCategories), elapsedMilliseconds, seen);
 
         foreach (var processId in _previousCpu.Keys.Where(processId => !seen.Contains(processId)).ToList())
         {
@@ -55,7 +55,7 @@ public sealed class ProcessUsageSampler
                 ? (counters.CpuTime - previous).TotalMilliseconds / elapsedMilliseconds * 100 / Environment.ProcessorCount
                 : 0;
             _previousCpu[process.Id] = counters.CpuTime;
-            usages.Add(new ProcessUsageModel(process.Id, process.Name, depth, category, Math.Round(Math.Max(0, cpu), 1), Math.Round(counters.WorkingSetBytes / BytesPerMegabyte, 1)));
+            usages.Add(new ProcessUsageModel(process.Id, process.Name, depth, category, Math.Round(Math.Max(0, cpu), 1), Math.Round(counters.PrivateWorkingSetBytes / BytesPerMegabyte, 1)));
         }
 
         return usages;

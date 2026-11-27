@@ -33,6 +33,23 @@ public sealed class TerminalManagerTests
     }
 
     [Fact]
+    public async Task Start_WhenTransientBuildServers_ThenInjectsBuildServerVariables()
+    {
+        using var manager = new TerminalManager();
+        manager.UpdateEnvironment(BuildServerEnvironment.Of(true));
+        var directory = new TaskCompletionSource<string>();
+        var output = new StringBuilder();
+        manager.CurrentDirectoryChanged += (_, path) => directory.TrySetResult(path);
+        manager.OutputReceived += (_, data) => { lock (output) { output.Append(Encoding.UTF8.GetString(data.Span)); } };
+
+        var session = manager.Start("pane-build", ShellCatalog.DefaultShellId, Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), 100, 30);
+        await directory.Task.WaitAsync(Timeout);
+        session.Write(Encoding.UTF8.GetBytes("Write-Host ('BUILD|' + $env:MSBUILDDISABLENODEREUSE + '|' + $env:DOTNET_CLI_USE_MSBUILD_SERVER + '|' + $env:UseSharedCompilation + '|FIN')\r"));
+
+        await WaitForAsync(() => { lock (output) { return output.ToString().Contains("BUILD|1|0|false|FIN"); } });
+    }
+
+    [Fact]
     public async Task Stop_WhenChildProcessesRunning_ThenNoneSurvive()
     {
         using var manager = new TerminalManager();

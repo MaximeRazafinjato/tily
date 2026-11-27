@@ -30,6 +30,27 @@ public sealed class PersistenceSettingsRepositoryTests : IDisposable
     }
 
     [Fact]
+    public void Load_WhenTransientBuildServersAbsent_ThenKeepsThemPersistent()
+    {
+        var repository = new PersistenceSettingsRepository(_directory);
+        File.WriteAllText(repository.FilePath, """{ "textIntervalSeconds": 30, "linesPerPane": 10000, "maxTextMebibytes": 256 }""");
+
+        var settings = repository.Load();
+
+        Assert.False(settings.TransientBuildServers);
+    }
+
+    [Fact]
+    public void Save_WhenTransientBuildServers_ThenReloadsThem()
+    {
+        var repository = new PersistenceSettingsRepository(_directory);
+
+        repository.Save(PersistenceSettingsModel.Default with { TransientBuildServers = true });
+
+        Assert.True(repository.Load().TransientBuildServers);
+    }
+
+    [Fact]
     public void Load_WhenInvalidJson_ThenReturnsDefaults()
     {
         var repository = new PersistenceSettingsRepository(_directory);
