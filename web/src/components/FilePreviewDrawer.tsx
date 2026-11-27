@@ -19,7 +19,8 @@ const KIND_LABELS: Record<PreviewKind, string> = {
   [PreviewKind.Html]: 'HTML',
 }
 
-const PAGE_SANDBOX = 'allow-scripts allow-popups'
+const PAGE_SANDBOX = 'allow-scripts allow-popups allow-modals allow-forms'
+const PAGE_PERMISSIONS = 'clipboard-write'
 
 const TextEditor = lazy(() => import('./TextEditor').then((module) => ({ default: module.TextEditor })))
 
@@ -153,7 +154,7 @@ export function FilePreviewDrawer() {
           <TextEditor key={edit.generation} name={name} language={editorLanguage} />
         </Suspense>
       ) : page !== null ? (
-        <iframe src={page} title={`Rendu de ${name}`} sandbox={PAGE_SANDBOX} referrerPolicy="no-referrer" className="min-h-0 w-full flex-1 border-0 bg-tily-page" />
+        <iframe src={page} title={`Rendu de ${name}`} sandbox={PAGE_SANDBOX} allow={PAGE_PERMISSIONS} referrerPolicy="no-referrer" className="min-h-0 w-full flex-1 border-0 bg-tily-page" />
       ) : (
         <div ref={bodyRef} tabIndex={0} aria-label={`Contenu de ${name}`} className="min-h-0 flex-1 overflow-auto px-[24px] py-[18px] select-text" onClick={handleContentClick} onAuxClick={preventAuxiliaryOpen}>
           {!preview ? (
