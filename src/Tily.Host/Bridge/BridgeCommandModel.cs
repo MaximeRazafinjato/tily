@@ -2,6 +2,7 @@ using System.Text.Json;
 using Tily.Core.Appearance;
 using Tily.Core.Forge;
 using Tily.Core.Git;
+using Tily.Core.Settings;
 
 namespace Tily.Host.Bridge;
 
@@ -60,6 +61,7 @@ public sealed class BridgeCommandModel
     public MergeRequestInputModel? MergeRequest { get; init; }
     public MergeRequestInputModel? Original { get; init; }
     public CompanionOutfitModel? Outfit { get; init; }
+    public FeatureFlagsModel? Flags { get; init; }
     public int Cols { get; init; }
     public int Rows { get; init; }
     public int Line { get; init; }

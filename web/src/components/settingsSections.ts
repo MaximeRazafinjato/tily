@@ -9,6 +9,7 @@ export enum SettingsSection {
   Agents = 'agents',
   Updates = 'updates',
   ReleaseNotes = 'releaseNotes',
+  Admin = 'admin',
 }
 
 export const SETTINGS_SECTION_LABELS: Record<SettingsSection, string> = {
@@ -22,6 +23,9 @@ export const SETTINGS_SECTION_LABELS: Record<SettingsSection, string> = {
   [SettingsSection.Agents]: 'Agents et MCP',
   [SettingsSection.Updates]: 'Mises à jour',
   [SettingsSection.ReleaseNotes]: 'Notes de version',
+  [SettingsSection.Admin]: 'Admin',
 }
+
+export const PUBLIC_SETTINGS_SECTIONS = Object.values(SettingsSection).filter((section) => section !== SettingsSection.Admin)
 
 export const settingsTabId = (section: SettingsSection): string => `settings-tab-${section}`

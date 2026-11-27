@@ -1,6 +1,7 @@
 import type { FolderProject } from '../bridge/appearanceMessages'
 import { AgentState, type PaneAgent } from '../bridge/messages'
 import { hexToRgb } from '../ambiance/renderPacing'
+import { companionCosmeticsEnabled } from '../featureFlags/featureFlagActions'
 import { findPane, panesOf } from '../model/session'
 import { useAgentStore } from '../store/agentStore'
 import { projectKey, useAppearanceStore } from '../store/appearanceStore'
@@ -58,7 +59,7 @@ const hueOf = (paneId: string): number => {
 
 const dress = (blob: Blob, paneId: string): void => {
   const folder = folderOf(paneId)
-  blob.outfit = folder?.outfit ?? {}
+  blob.outfit = companionCosmeticsEnabled() ? (folder?.outfit ?? {}) : {}
   blob.project = folder ? (folder.project ?? folder.path) : null
   blob.children.forEach((child) => {
     child.outfit = blob.outfit
