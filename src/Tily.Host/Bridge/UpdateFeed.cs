@@ -28,6 +28,7 @@ public sealed class UpdateFeed : IDisposable
     private bool? _autoCheck;
     private string _status = Idle;
     private UpdateReleaseModel? _release;
+    private IReadOnlyList<ReleaseHistoryModel> _releasesSinceCurrent = [];
     private string? _error;
     private string? _installerPath;
     private string? _pendingInstaller;
@@ -106,7 +107,8 @@ public sealed class UpdateFeed : IDisposable
                     notes = _release.Notes,
                     url = _release.PageUrl.Length > 0 ? _release.PageUrl : UpdateSource.ReleasesPage,
                     publishedAt = _release.PublishedAt,
-                    size = _release.Installer.Size
+                    size = _release.Installer.Size,
+                    releases = _releasesSinceCurrent
                 },
                 received = _received,
                 total = _total,
@@ -139,11 +141,14 @@ public sealed class UpdateFeed : IDisposable
         PostState();
         try
         {
-            var release = await _client.LatestAsync(CancellationToken.None);
+            var latest = await _client.LatestAsync(CancellationToken.None);
+            var release = latest.IsNewerThan(_currentVersion) ? latest : null;
+            var releasesSinceCurrent = release is null ? [] : await ReleasesSinceCurrentAsync(release);
             lock (_gate)
             {
                 _checkedAt = DateTimeOffset.Now;
-                _release = release.IsNewerThan(_currentVersion) ? release : null;
+                _release = release;
+                _releasesSinceCurrent = releasesSinceCurrent;
                 _status = _release is null ? UpToDate : Available;
             }
         }
@@ -158,6 +163,33 @@ public sealed class UpdateFeed : IDisposable
         }
 
         PostState();
+    }
+
+    private async Task<IReadOnlyList<ReleaseHistoryModel>> ReleasesSinceCurrentAsync(UpdateReleaseModel release)
+    {
+        IReadOnlyList<ReleaseHistoryModel>? history;
+        lock (_gate)
+        {
+            history = _history;
+        }
+
+        if (history is null || history.All(entry => entry.Version != release.Version))
+        {
+            try
+            {
+                history = await _client.HistoryAsync(CancellationToken.None);
+                lock (_gate)
+                {
+                    _history = history;
+                }
+            }
+            catch (Exception exception) when (exception is UpdateException or HttpRequestException or IOException)
+            {
+                return [];
+            }
+        }
+
+        return ReleaseHistory.Since(history, _currentVersion, release.Version);
     }
 
     private async Task PostHistoryAsync()

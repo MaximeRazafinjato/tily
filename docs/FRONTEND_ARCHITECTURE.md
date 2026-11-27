@@ -297,7 +297,7 @@ Outils du serveur MCP calculés côté interface (section 11 de la spec), un mod
 
 ### `src/update/`
 
-`updateActions.ts` (section 13 de la spec) : aucune logique de version ni de téléchargement côté web. `installUpdate` envoie `update.install` ; une fois l'installeur prêt, il demande la fermeture de toute l'application à `closeGuard`, puis envoie `update.apply` ; `update.restart` déclenche `closeApplication`. `requestReleaseHistory` n'envoie `update.history` qu'une fois, à la première ouverture de la section « Notes de version » ; `ReleaseNoteList` affiche les notes de cette section comme celles de la fenêtre de mise à jour, et `ReleaseNote` rend le `code` et le **gras** des notes.
+`updateActions.ts` (section 13 de la spec) : aucune logique de version ni de téléchargement côté web. `installUpdate` envoie `update.install` ; une fois l'installeur prêt, il demande la fermeture de toute l'application à `closeGuard`, puis envoie `update.apply` ; `update.restart` déclenche `closeApplication`. `requestReleaseHistory` n'envoie `update.history` qu'une fois, à la première ouverture de la section « Notes de version » ; `ReleaseHistoryItem` affiche chaque version repliable, dans cette section comme dans la fenêtre de mise à jour (versions publiées depuis la version installée), seule la plus récente dépliée à l'ouverture (`useReleaseToggles`) ; `ReleaseNoteList` affiche les notes, et `ReleaseNote` rend le `code` et le **gras** des notes.
 
 ### `src/index.css`
 

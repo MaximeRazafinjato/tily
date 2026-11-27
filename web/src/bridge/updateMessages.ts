@@ -20,6 +20,7 @@ export interface UpdateRelease {
   url: string
   publishedAt?: string
   size: number
+  releases: ReleaseHistoryEntry[]
 }
 
 export interface UpdateInfo {

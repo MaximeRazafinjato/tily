@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { useUpdateStore } from '../store/updateStore'
 import { requestReleaseHistory, retryReleaseHistory } from '../update/updateActions'
 import { SettingsPanel } from './SettingsPanel'
 import { ReleaseHistoryItem } from './ReleaseHistoryItem'
 import { SETTINGS_HINT, SETTINGS_SECONDARY } from './settingsStyles'
 import { Spinner } from './Spinner'
+import { useReleaseToggles } from './useReleaseToggles'
 
 interface ReleaseNotesSettingsSectionProps {
   title: string
@@ -17,22 +18,11 @@ export function ReleaseNotesSettingsSection({ title }: ReleaseNotesSettingsSecti
   const loading = useUpdateStore((state) => state.historyLoading)
   const error = useUpdateStore((state) => state.historyError)
   const current = useUpdateStore((state) => state.info?.current)
-  const [toggled, setToggled] = useState<ReadonlySet<string>>(new Set())
+  const { isExpanded, toggle: handleToggle } = useReleaseToggles(history?.[0]?.version)
 
   useEffect(() => {
     requestReleaseHistory()
   }, [])
-
-  const latest = history?.[0]?.version
-  const isExpanded = (version: string): boolean => toggled.has(version) !== (version === latest)
-  const handleToggle = (version: string) =>
-    setToggled((previous) => {
-      const next = new Set(previous)
-      if (!next.delete(version)) {
-        next.add(version)
-      }
-      return next
-    })
 
   return (
     <SettingsPanel title={title} tip={SECTION_TIP} grid={false}>
