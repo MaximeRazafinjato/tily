@@ -334,7 +334,7 @@ const drawEyeLoupe = (context: CanvasRenderingContext2D, blob: Blob, radius: num
   context.strokeStyle = LENS_RIM
   context.lineWidth = outlineWidth(radius) * 0.5
   context.beginPath()
-  context.arc(lensX, lensY, lens - outlineWidth(radius) * 0.55, 0, Math.PI * 2)
+  context.arc(lensX, lensY, Math.max(0, lens - outlineWidth(radius) * 0.55), 0, Math.PI * 2)
   context.stroke()
   context.strokeStyle = INK
   drawHand(context, blob, radius, handleEndX, handleEndY)

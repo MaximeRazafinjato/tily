@@ -11,6 +11,7 @@ const HISTORY_LENGTH = 6
 const CLICK_DISTANCE = 3
 const THROW_LIMIT = 1400
 const POKE_S = 0.8
+const CONTEXT_BUTTON = 2
 const HOVER_CLASS = 'tily-companion-hover'
 const DRAG_CLASS = 'tily-companion-drag'
 const SNIPER_CLASS = 'tily-companion-sniper'
@@ -61,8 +62,14 @@ export const startCompanionPointer = (world: World): (() => void) => {
   style.textContent = CURSOR_STYLE
   document.head.append(style)
 
+  let contextPressCovered = false
+
   const handlePointerDown = (event: PointerEvent) => {
-    if (event.button !== 0 || overlayOpen()) {
+    const covered = overlayOpen()
+    if (event.button === CONTEXT_BUTTON) {
+      contextPressCovered = covered
+    }
+    if (event.button !== 0 || covered) {
       return
     }
     const onBasket = insideBasket(world, event.clientX, event.clientY)
@@ -157,7 +164,9 @@ export const startCompanionPointer = (world: World): (() => void) => {
   }
 
   const handleContextMenu = (event: MouseEvent) => {
-    if (overlayOpen()) {
+    const covered = contextPressCovered || overlayOpen()
+    contextPressCovered = false
+    if (covered) {
       return
     }
     if (insideBasket(world, event.clientX, event.clientY)) {
