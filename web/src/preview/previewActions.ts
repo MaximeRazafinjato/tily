@@ -106,10 +106,44 @@ export const receivePreviewRequest = (message: HostMessageOf<'preview.requested'
   }
 }
 
-export const startDeferredPreviews = (): (() => void) =>
+const switchPreview = (fromTabId: string | null, toTabId: string): void => {
+  const wasOpen = usePreviewStore.getState().path !== null
+  if (fromTabId !== null) {
+    usePreviewStore.getState().park(fromTabId)
+  }
+  const restored = usePreviewStore.getState().restore(toTabId)
+  if (restored !== null) {
+    bridge.send({ type: 'preview.open', path: restored })
+  } else if (wasOpen) {
+    bridge.send({ type: 'preview.close' })
+  }
+}
+
+const forgetClosedTabs = (session: Session | null): void => {
+  const { parked, forget } = usePreviewStore.getState()
+  const parkedTabIds = Object.keys(parked)
+  if (parkedTabIds.length === 0) {
+    return
+  }
+  const liveTabIds = new Set(session?.workspaces.flatMap((workspace) => workspace.tabs.map((tab) => tab.id)) ?? [])
+  const closedTabIds = parkedTabIds.filter((tabId) => !liveTabIds.has(tabId))
+  if (closedTabIds.length > 0) {
+    forget(closedTabIds)
+  }
+}
+
+export const startTabPreviews = (): (() => void) =>
   useSessionStore.subscribe((state, previous) => {
     const tabId = displayedTabId(state.session)
-    if (tabId === null || tabId === displayedTabId(previous.session)) {
+    const previousTabId = displayedTabId(previous.session)
+    const switched = tabId !== null && tabId !== previousTabId
+    if (switched) {
+      switchPreview(previousTabId, tabId)
+    }
+    if (state.session !== previous.session) {
+      forgetClosedTabs(state.session)
+    }
+    if (!switched) {
       return
     }
     const path = usePreviewStore.getState().takeDeferred(tabId)

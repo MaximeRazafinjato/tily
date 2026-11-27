@@ -31,7 +31,7 @@ import { receiveMergeRequestComparison, receiveMergeRequestCreated, receiveMerge
 import { startExternalDrops } from './terminal/externalDrop'
 import { receiveCreated, receiveDeleted, receiveGitMarks, receiveListing, receiveRenamed } from './explorer/fileExplorerActions'
 import { receiveProjectFiles } from './explorer/projectFileActions'
-import { receivePreview, receivePreviewRequest, startDeferredPreviews } from './preview/previewActions'
+import { receivePreview, receivePreviewRequest, startTabPreviews } from './preview/previewActions'
 import { receivePreviewSaved, receivePreviewSaveFailed } from './preview/previewEdit'
 import { receiveGitConflict } from './git/gitConflictActions'
 import { receiveGitAutoFetchEnded, receiveGitAutoFetchStarted, receiveGitChanged, receiveGitDetails, receiveGitDiff, receiveGitDone, receiveGitFailed, receiveGitHistory, receiveGitPushRejected, receiveGitState } from './git/gitReceivers'
@@ -75,7 +75,7 @@ export default function App() {
     const stopNotifier = startAttentionNotifier()
     const stopExternalDrops = startExternalDrops()
     const stopStatusLog = startStatusLog()
-    const stopDeferredPreviews = startDeferredPreviews()
+    const stopTabPreviews = startTabPreviews()
     const stopBrowserLayer = startBrowserLayer()
     const stopAppearanceProjects = startAppearanceProjects()
     const stopAmbiance = startAmbiance()
@@ -278,7 +278,7 @@ export default function App() {
       stopNotifier()
       stopExternalDrops()
       stopStatusLog()
-      stopDeferredPreviews()
+      stopTabPreviews()
       stopBrowserLayer()
       stopAppearanceProjects()
       stopAmbiance()
