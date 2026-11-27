@@ -366,9 +366,9 @@ html[data-git-dragging] * {
   }
 }
 
-.tily-wardrobe-tile {
+.tily-wardrobe-tile-enter {
   animation: tily-wardrobe-pop 0.3s cubic-bezier(0.2, 0.9, 0.3, 1.25) both;
-  animation-delay: calc(var(--tily-wardrobe-index) * 21ms + var(--tily-wardrobe-delay));
+  animation-delay: calc(var(--tily-wardrobe-index) * 21ms + 415ms);
 }
 
 @keyframes tily-wardrobe-pop {
@@ -399,7 +399,7 @@ html[data-git-dragging] * {
 
 @media (prefers-reduced-motion: reduce) {
   .tily-wardrobe,
-  .tily-wardrobe-tile,
+  .tily-wardrobe-tile-enter,
   .tily-wardrobe-tile[data-tier='legendary'] > span:first-child::after {
     animation: none;
   }

@@ -27,8 +27,12 @@ export interface EffectState {
   nextAt: number
   startedAt: number
   fromX: number
+  fromY: number
   toX: number
+  toY: number
+  toPerch: Element | null
   moved: boolean
+  dashed: boolean
   spawn: number
   side: number
 }
@@ -68,8 +72,12 @@ export const createEffectState = (): EffectState => ({
   nextAt: 0,
   startedAt: -Infinity,
   fromX: 0,
+  fromY: 0,
   toX: 0,
+  toY: 0,
+  toPerch: null,
   moved: false,
+  dashed: false,
   spawn: 0,
   side: 1,
 })

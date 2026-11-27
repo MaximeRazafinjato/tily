@@ -1,5 +1,5 @@
 import type { CompanionOutfit } from '../../bridge/appearanceMessages'
-import { clamp, jump, randomBetween, type Blob, type World } from '../blobModel'
+import { BlobMood, clamp, GRAVITY, jump, pick, randomBetween, type Blob, type World } from '../blobModel'
 import { CompanionAnimation } from './cosmeticCatalog'
 import { drawClayShape, easeInOutCubic, hashUnit, INK, ring, smoothstep, star, TAU } from './clayShapes'
 import type { FigurePose } from './cosmeticState'
@@ -8,9 +8,15 @@ import { drawTinted } from './offscreenFigure'
 
 const STOP_MOTION_FPS = 7
 const TELEPORT_S = 0.7
+const TELEPORT_REACH = 8
+const TELEPORT_MIN = 3
+const TELEPORT_ATTEMPTS = 8
 const SPIN_S = 0.75
 const SPRING_PERIOD_S = 1
 const NINJA_SPEED = 220
+const NINJA_DASH = 380
+const NINJA_HOP = 150
+const WALK_HOP_MAX = 300
 const NINJA_LAGS = [3, 6, 9, 12]
 const NINJA_TINT = '#3a3360'
 
@@ -37,20 +43,48 @@ export const springOf = (blob: Blob, radius: number): { length: number; height: 
   return { length: radius * (0.6 + 0.08 * flight), height: flight * radius * 1.05, squash: 0 }
 }
 
-const STARTERS: Partial<Record<CompanionAnimation, (world: World, blob: Blob, frozen: boolean) => void>> = {
+const dash = (world: World, blob: Blob): void => {
+  const effect = blob.effect
+  if (blob.vy === 0) {
+    effect.dashed = false
+  }
+  const hopping = !blob.perch && blob.vy < 0 && blob.vy > -WALK_HOP_MAX && Math.abs(blob.vx) > 0 && Math.abs(blob.vx) < NINJA_SPEED
+  if (effect.dashed || !hopping || blob.mood !== BlobMood.Working || blob === world.dragged) {
+    return
+  }
+  const airTime = (2 * NINJA_HOP) / GRAVITY
+  blob.vx = Math.sign(blob.targetX - blob.x || blob.vx) * Math.min(NINJA_DASH, Math.abs(blob.targetX - blob.x) / airTime)
+  blob.vy = -NINJA_HOP
+  effect.dashed = true
+}
+
+const teleportSpot =(world: World, blob: Blob): { x: number; y: number; perch: Element | null } | null => {
+  const reach = blob.radius * TELEPORT_REACH
+  const spots = world.perches.flatMap((perch) => {
+    const min = Math.max(perch.x1 + blob.radius, blob.x - reach)
+    const max = Math.min(perch.x2 - blob.radius, blob.x + reach)
+    return max > min ? [{ perch, min, max }] : []
+  })
+  for (let attempt = 0; attempt < TELEPORT_ATTEMPTS && spots.length; attempt++) {
+    const { perch, min, max } = pick(spots)
+    const x = randomBetween(min, max)
+    if (Math.hypot(x - blob.x, perch.y - blob.y) >= blob.radius * TELEPORT_MIN) {
+      return { x, y: perch.y, perch: perch.element }
+    }
+  }
+  return null
+}
+
+const STARTERS:Partial<Record<CompanionAnimation, (world: World, blob: Blob, frozen: boolean) => void>> = {
   [CompanionAnimation.Teleport]: (world, blob, frozen) => {
-    const perch = world.perches.find((candidate) => candidate.element === blob.perch)
-    if (!perch || teleportPhase(blob) !== null) {
+    if (teleportPhase(blob) !== null) {
       return
     }
-    const min = perch.x1 + blob.radius
-    const max = perch.x2 - blob.radius
-    if (max - min < blob.radius * 2) {
-      return
+    blob.effect.nextAt = blob.clock + randomBetween(5, 9)
+    const spot = frozen ? { x: blob.x, y: blob.y, perch: blob.perch } : teleportSpot(world, blob)
+    if (spot) {
+      Object.assign(blob.effect, { startedAt: blob.clock, fromX: blob.x, fromY: blob.y, toX: spot.x, toY: spot.y, toPerch: spot.perch, moved: false })
     }
-    const target = randomBetween(min, max)
-    const far = Math.abs(target - blob.x) < (max - min) * 0.25 ? (target < blob.x ? max : min) : target
-    Object.assign(blob.effect, { startedAt: blob.clock, fromX: blob.x, toX: frozen ? blob.x : far, moved: false, nextAt: blob.clock + randomBetween(5, 9) })
   },
   [CompanionAnimation.Spin]: (world, blob, frozen) => {
     if (!frozen) {
@@ -73,10 +107,12 @@ export const updateAnimation = (world: World, blob: Blob, animation: string | un
   if (animation === CompanionAnimation.Teleport && phase !== null) {
     blob.vx = 0
     if (phase >= 0.5 && !effect.moved && !frozen) {
-      blob.x = effect.toX
-      blob.targetX = effect.toX
+      Object.assign(blob, { x: effect.toX, y: effect.toY, targetX: effect.toX, vy: 0, perch: effect.toPerch })
       effect.moved = true
     }
+  }
+  if (animation === CompanionAnimation.Ninja) {
+    dash(world, blob)
   }
   const start = STARTERS[animation as CompanionAnimation]
   if (start && blob.perch && blob !== world.dragged && blob.clock >= effect.nextAt) {
@@ -91,7 +127,7 @@ export const animationPose = (blob: Blob, outfit: CompanionOutfit, radius: numbe
     case CompanionAnimation.StopMotion:
       return { ...pose, dx: effect.heldX - blob.x, dy: effect.heldY - blob.y, time: effect.heldTime, rotation: (hashUnit(effect.frame, 1, 7) - 0.5) * 0.1 }
     case CompanionAnimation.Ninja:
-      return { ...pose, rotation: Math.sign(blob.vx) * clamp(Math.abs(blob.vx) / 700, 0, 0.35) }
+      return blob.vy === 0 ? pose : { ...pose, rotation: Math.sign(blob.vx) * clamp(Math.abs(blob.vx) / 700, 0, 0.35) }
     case CompanionAnimation.Teleport: {
       const phase = teleportPhase(blob)
       if (phase === null) {
@@ -153,16 +189,19 @@ const BEHIND: Partial<Record<CompanionAnimation, (context: CanvasRenderingContex
       return
     }
     const glow = Math.sin(phase * Math.PI)
-    ;[blob.effect.fromX, blob.effect.toX].forEach((x) => {
+    ;[
+      [blob.effect.fromX, blob.effect.fromY],
+      [blob.effect.toX, blob.effect.toY],
+    ].forEach(([x, y]) => {
       context.save()
       context.globalAlpha = glow * 0.5
       context.fillStyle = `hsl(${blob.hue}, 100%, 80%)`
       context.beginPath()
-      context.roundRect(x - radius * 0.2, blob.y - radius * 3.4, radius * 0.4, radius * 3.4, radius * 0.2)
+      context.roundRect(x - radius * 0.2, y - radius * 3.4, radius * 0.4, radius * 3.4, radius * 0.2)
       context.fill()
       context.restore()
       for (let index = 0; index < 4; index++) {
-        drawClayShape(context, star(0, 0, 1, 0.4), x + Math.sin(index * 2.3 + blob.clock * 6) * radius * 0.6, blob.y - radius * (0.3 + ((blob.clock * 1.2 + index * 0.25) % 1) * 2.8), radius * 0.16 * glow, 0, '#fff3a0', glow, 1)
+        drawClayShape(context, star(0, 0, 1, 0.4), x + Math.sin(index * 2.3 + blob.clock * 6) * radius * 0.6, y - radius * (0.3 + ((blob.clock * 1.2 + index * 0.25) % 1) * 2.8), radius * 0.16 * glow, 0, '#fff3a0', glow, 1)
       }
     })
   },

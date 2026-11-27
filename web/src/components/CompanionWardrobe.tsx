@@ -13,9 +13,7 @@ const PANEL_HEIGHT = 380
 const EDGE_PX = 8
 const GAP_PX = 18
 const GROWN_RADIUS = 1.8
-const OPEN_DELAY_MS = 415
-const SWITCH_DELAY_MS = 0
-const LAYER_ABOVE_COMPANIONS = 2147482001
+const LAYER_ABOVE_COMPANIONS = 26
 
 const placementOf = ({ anchor }: WardrobeTarget): { left: number; top: number; from: number } => {
   const reach = anchor.radius * GROWN_RADIUS * 1.3 + GAP_PX
@@ -38,6 +36,7 @@ export function CompanionWardrobe() {
   const outfit = useAppearanceStore((store) => (target ? Object.values(store.projects).find((folder) => (folder.project ?? folder.path) === target.project)?.outfit : undefined))
   const panelRef = useRef<HTMLElement>(null)
   const [firstSlot] = useState(slot)
+  const [switched, setSwitched] = useState(false)
 
   useLayoutEffect(() => {
     panelRef.current?.focus({ preventScroll: true })
@@ -69,7 +68,9 @@ export function CompanionWardrobe() {
   }
   const category = WARDROBE.find((candidate) => candidate.slot === slot) ?? WARDROBE[0]
   const { left, top, from } = placementOf(target)
-  const delay = category.slot === firstSlot ? OPEN_DELAY_MS : SWITCH_DELAY_MS
+  if (!switched && slot !== firstSlot) {
+    setSwitched(true)
+  }
   const handleWear = (id: string) => wearCosmetic(category.slot, id)
   const handleRemove = () => removeCosmetic(category.slot)
 
@@ -116,7 +117,7 @@ export function CompanionWardrobe() {
           <p className="mt-[2px] mb-[9px] truncate text-[11.5px] text-tily-muted">{category.description}</p>
           <div key={category.slot} className="grid grid-cols-5 gap-[6px]" onPointerLeave={handleStopTrying}>
             {category.items.map((item, index) => (
-              <CompanionWardrobeTile key={item.id} slot={category.slot} item={item} index={index} delay={delay} hue={target.hue} seed={target.paneId} worn={outfit?.[category.slot] === item.id} onWear={handleWear} onTry={handleTry} />
+              <CompanionWardrobeTile key={item.id} slot={category.slot} item={item} index={index} entering={!switched} hue={target.hue} seed={target.paneId} worn={outfit?.[category.slot] === item.id} onWear={handleWear} onTry={handleTry} />
             ))}
           </div>
         </div>

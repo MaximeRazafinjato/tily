@@ -16,6 +16,8 @@ const RADIUS: Record<CosmeticSlot, number> = {
   [CosmeticSlot.Animation]: 11,
 }
 const MOVING = new Set([CosmeticSlot.Trail, CosmeticSlot.Animation])
+const TURN_DISTANCE = 10
+const TURN_PAUSE_S = 0.4
 const WARMUP_STEPS = 45
 const WARMUP_STEP_S = 1 / 30
 
@@ -64,6 +66,9 @@ const simulate = (preview: Preview, dt: number): void => {
   if (!preview.moving) {
     blob.x = world.width / 2
     blob.vx = 0
+  } else if (Math.abs(blob.targetX - blob.x) < TURN_DISTANCE) {
+    blob.targetX = blob.x < world.width / 2 ? world.width - blob.radius : blob.radius
+    blob.hopTimer = Math.min(blob.hopTimer, TURN_PAUSE_S)
   }
   updateBlob(world, blob, dt)
   updateCosmetics(world, dt)
