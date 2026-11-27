@@ -267,7 +267,7 @@ Compagnons d'agents (section 3 de la spec, « Ambiance »), sans React. `startCo
 États des agents (section 11 de la spec). L'hôte lit les états écrits par les hooks Claude Code ; le web les reçoit dans `agent.states` et les présente.
 
 - `longestWaitingFirst` (`agentSummary.ts`) classe les attentes de la plus ancienne à la plus récente : même ordre dans la palette, les cartes d'attention et le passage au pane en attente suivant.
-- `attentionNotifier.ts` envoie `attention.raise` une seule fois par état-message, pour une attente nouvelle et non acquittée, et pour un passage à « Terminé », sauf un agent interrompu. L'hôte décide de la notification selon l'activation de la fenêtre et les réglages.
+- `attentionNotifier.ts` envoie `attention.raise` une seule fois par état-message, pour une attente nouvelle et non acquittée, et pour un passage à « Terminé », sauf un agent interrompu. Un pane qui apparaît dans `agentStore` (lancement, onglet reçu d’une autre fenêtre) n’apporte que son état de départ : seule une transition observée ensuite dans la fenêtre est signalée. L'hôte décide de la notification selon l'activation de la fenêtre et les réglages.
 - Rejoindre un pane acquitte l'état de son agent. Aucune prise de focus ni changement de workspace automatique : la saisie n'est jamais interrompue.
 
 ### `src/mcp/`
