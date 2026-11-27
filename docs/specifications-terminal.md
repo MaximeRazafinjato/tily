@@ -521,7 +521,7 @@ Les notifications d’attention, dans Tily comme dans Windows, et de fin, dans W
 
 Leader puis A, Ctrl + Maj + A ou « Rejoindre l’agent en attente suivant » dans la palette rejoint le pane en attente qui suit le pane actif dans l’ordre de la palette, de l’attente la plus ancienne à la plus récente (ordre du panneau à égalité), tous workspaces confondus et en boucle ; répété, il passe d’une attente à l’autre. Sans agent en attente, la barre de statut l’indique.
 
-Les états, cartes d’attention, notifications et entrées « Rejoindre » d’un pane d’une fenêtre détachée (section 5) restent dans cette fenêtre, que ramène une notification cliquée ; la fenêtre principale ne les voit pas.
+Les états, cartes d’attention, notifications et entrées « Rejoindre » d’un pane d’une fenêtre détachée (section 5) restent dans cette fenêtre, que ramène une notification cliquée ; la fenêtre principale ne les voit pas. Un pane déplacé vers une autre fenêtre y arrive avec son état sans le notifier ni rejouer son alerte d’ambiance : seul un changement d’état survenu ensuite est signalé.
 
 Claude Code est suivi par ses hooks, que Tily installe depuis les Paramètres (section « Agents et MCP »). Tant que l’état d’un agent ne peut pas être établi, afficher « État inconnu » plutôt que d’inférer une activité depuis le seul processus.
 
