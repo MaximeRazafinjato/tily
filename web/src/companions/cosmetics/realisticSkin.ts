@@ -46,8 +46,8 @@ const quadraticAt = (start: number[], control: number[], end: number[], step: nu
   (1 - step) ** 2 * start[1] + 2 * (1 - step) * step * control[1] + step ** 2 * end[1],
 ]
 
-const paintSkin = (context: CanvasRenderingContext2D, { points, radius, time }: SkinPainting): void => {
-  fillBody(context, points, radialFill(context, -radius * 0.35, -radius * 0.45, radius * 0.05, radius * 1.15, [[0, '#f6d3bf'], [0.45, '#dfa58c'], [0.8, '#b97360'], [1, '#7c4236']]))
+const paintSkin = (context: CanvasRenderingContext2D, { points, radius, time, hue }: SkinPainting): void => {
+  fillBody(context, points, radialFill(context, -radius * 0.35, -radius * 0.45, radius * 0.05, radius * 1.15, [[0, `hsl(${hue}, 60%, 87%)`], [0.45, `hsl(${hue}, 48%, 71%)`], [0.8, `hsl(${hue}, 40%, 52%)`], [1, `hsl(${hue}, 45%, 30%)`]]))
   insideBody(context, points, () => {
     cover(context, radius, radialFill(context, 0, radius * 0.35, radius * 0.1, radius * 0.9, [[0, 'rgba(210, 80, 80, 0.22)'], [1, 'rgba(210, 80, 80, 0)']]))
     const pores = poresOf(context)
@@ -68,8 +68,8 @@ const paintSkin = (context: CanvasRenderingContext2D, { points, radius, time }: 
       context.stroke()
     })
     const shade = context.createLinearGradient(0, radius * 0.3, 0, radius)
-    shade.addColorStop(0, 'rgba(70, 25, 20, 0)')
-    shade.addColorStop(1, 'rgba(70, 25, 20, 0.5)')
+    shade.addColorStop(0, `hsla(${hue}, 50%, 15%, 0)`)
+    shade.addColorStop(1, `hsla(${hue}, 50%, 15%, 0.5)`)
     context.fillStyle = shade
     context.fillRect(-radius * 2, radius * 0.3, radius * 4, radius)
     const breath = Math.sin(time * 1.3) * 0.015
@@ -99,7 +99,7 @@ const paintSkin = (context: CanvasRenderingContext2D, { points, radius, time }: 
       context.stroke()
     }
   })
-  strokeBody(context, points, 'rgba(95, 45, 35, 0.55)', Math.max(1, radius * 0.025))
+  strokeBody(context, points, `hsla(${hue}, 45%, 22%, 0.55)`, Math.max(1, radius * 0.025))
 }
 
 const drawRealEye = (context: CanvasRenderingContext2D, x: number, y: number, radius: number, time: number, hue: number, face: FaceState, side: number): void => {
@@ -160,7 +160,7 @@ const drawRealEye = (context: CanvasRenderingContext2D, x: number, y: number, ra
   const start = [x - width, y]
   const control = [x, mix(y - height * 1.6, y + height * 1.3, face.blink)]
   const end = [x + width, y]
-  context.fillStyle = radialFill(context, x, y - height * 1.5, 0, width * 1.4, [[0, '#e8b39b'], [1, '#c98670']])
+  context.fillStyle = radialFill(context, x, y - height * 1.5, 0, width * 1.4, [[0, `hsl(${hue}, 50%, 76%)`], [1, `hsl(${hue}, 42%, 62%)`]])
   context.beginPath()
   context.moveTo(x - width * 1.2, y - height * 2.2)
   context.lineTo(x + width * 1.2, y - height * 2.2)
