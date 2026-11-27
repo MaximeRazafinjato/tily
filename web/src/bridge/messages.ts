@@ -212,9 +212,14 @@ export interface ShinyEncounter {
   subagent: string | null
 }
 
+export interface FeatureFlags {
+  companionCosmetics: boolean
+}
+
 export type HostToWebMessage =
   | { type: 'appearance.changed'; fontSize: number }
-  | { type: 'app.hello'; version: string; name: string; channel: ReleaseChannel; window: WindowInfo; session: Session | null; shells: ShellProfile[]; home: string; text: Record<string, string>; persistence: PersistenceSettings; appearance: AppearanceSettings; theme: AppearanceCatalog; shortcuts: ShortcutSettings; statusLog: StatusLogEntry[]; recovery?: string }
+  | { type: 'featureFlags.changed'; flags: FeatureFlags }
+  | { type: 'app.hello'; version: string; name: string; channel: ReleaseChannel; window: WindowInfo; session: Session | null; shells: ShellProfile[]; home: string; text: Record<string, string>; persistence: PersistenceSettings; appearance: AppearanceSettings; theme: AppearanceCatalog; shortcuts: ShortcutSettings; featureFlags: FeatureFlags; statusLog: StatusLogEntry[]; recovery?: string }
   | { type: 'app.closing'; activity: PaneActivity[]; detached: string[] }
   | { type: 'session.saved' }
   | { type: 'session.saveFailed'; message: string }
@@ -261,6 +266,7 @@ export type WebToHostMessage =
   | { type: 'text.save'; text: Record<string, string>; keep: string[] }
   | { type: 'settings.get' }
   | { type: 'settings.save'; settings: Settings }
+  | { type: 'featureFlags.save'; flags: FeatureFlags }
   | { type: 'appearance.fontSize'; fontSize: number }
   | { type: 'settings.export' }
   | { type: 'settings.import' }

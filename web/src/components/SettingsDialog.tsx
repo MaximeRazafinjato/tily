@@ -7,6 +7,8 @@ import { revealInExplorer } from '../explorer/fileExplorerActions'
 import { sameFolder } from '../worktree/worktreePaths'
 import { useHostStore } from '../store/hostStore'
 import { useUiStore } from '../store/uiStore'
+import { adminCodeTyped, countsForAdminCode, withTypedKey, type TypedKey } from './adminCode'
+import { AdminSettingsSection } from './AdminSettingsSection'
 import { AmbianceSettingsSection } from './AmbianceSettingsSection'
 import { AppearanceSettingsSection } from './AppearanceSettingsSection'
 import { AgentSettingsSection } from './AgentSettingsSection'
@@ -18,7 +20,7 @@ import { NUMBER_FIELDS, numberFieldId, numberTextOf, valueWithin, type NumberFie
 import { ProjectSettingsSection } from './ProjectSettingsSection'
 import { ReleaseNotesSettingsSection } from './ReleaseNotesSettingsSection'
 import { SettingsNav } from './SettingsNav'
-import { SETTINGS_SECTION_LABELS, SettingsSection, settingsTabId } from './settingsSections'
+import { PUBLIC_SETTINGS_SECTIONS, SETTINGS_SECTION_LABELS, SettingsSection, settingsTabId } from './settingsSections'
 import { SETTINGS_HINT, SETTINGS_ICON_BUTTON, SETTINGS_PRIMARY, SETTINGS_SECONDARY } from './settingsStyles'
 import { ShellSettingsSection } from './ShellSettingsSection'
 import { ShortcutSettingsSection } from './ShortcutSettingsSection'
@@ -55,6 +57,7 @@ const IMPORT = 'Importer des préférences JSON'
 const EXPORT = 'Exporter la configuration enregistrée'
 const REVEAL_FILES = 'Ouvrir le dossier des réglages'
 const NOTICE = 'rounded border bg-tily-paper px-3 py-2 text-[12px]'
+const ADMIN_SECTIONS = [...PUBLIC_SETTINGS_SECTIONS, SettingsSection.Admin]
 
 const comparable = (settings: Settings): Settings => ({ ...settings, shells: Object.fromEntries(Object.entries(settings.shells).filter(([, path]) => path.trim().length > 0)) })
 
@@ -71,6 +74,7 @@ export function SettingsDialog({ snapshot, pickedPath, imported, onClose, onSave
   const [openedSection] = useState(() => useUiStore.getState().settingsSection)
   const [section, setSection] = useState(openedSection)
   const [focusRequest, setFocusRequest] = useState<FocusRequest | null>(null)
+  const [adminUnlocked, setAdminUnlocked] = useState(false)
   if (snapshot !== seenSnapshot) {
     setSeenSnapshot(snapshot)
     setDraft(snapshot ? structuredClone(snapshot.settings) : null)
@@ -98,6 +102,29 @@ export function SettingsDialog({ snapshot, pickedPath, imported, onClose, onSave
     document.addEventListener('keydown', handleDocumentKeyDown)
     return () => document.removeEventListener('keydown', handleDocumentKeyDown)
   }, [onClose])
+
+  useEffect(() => {
+    let typed: TypedKey[] = []
+    const handleAdminCodeKeyDown = (event: globalThis.KeyboardEvent) => {
+      if (!countsForAdminCode(event)) {
+        return
+      }
+      typed = withTypedKey(typed, event.key, event.timeStamp)
+      if (adminCodeTyped(typed)) {
+        typed = []
+        setAdminUnlocked(true)
+        setSection(SettingsSection.Admin)
+      }
+    }
+    document.addEventListener('keydown', handleAdminCodeKeyDown)
+    return () => document.removeEventListener('keydown', handleAdminCodeKeyDown)
+  }, [])
+
+  useEffect(() => {
+    if (adminUnlocked) {
+      document.getElementById(settingsTabId(SettingsSection.Admin))?.focus()
+    }
+  }, [adminUnlocked])
 
   const loaded = draft !== null
   useEffect(() => {
@@ -267,6 +294,8 @@ export function SettingsDialog({ snapshot, pickedPath, imported, onClose, onSave
         return <UpdateSettingsSection title={title} autoCheck={settings.updates.autoCheck} onAutoCheckChange={handleAutoCheckChange} />
       case SettingsSection.ReleaseNotes:
         return <ReleaseNotesSettingsSection title={title} />
+      case SettingsSection.Admin:
+        return <AdminSettingsSection title={title} />
     }
   }
 
@@ -299,7 +328,7 @@ export function SettingsDialog({ snapshot, pickedPath, imported, onClose, onSave
           {version && <span className="text-[13px] text-tily-muted">{`· Tily ${version}`}</span>}
         </div>
         <div className="flex min-h-0 flex-1">
-          <SettingsNav section={section} panelId={PANEL_ID} onSelect={setSection} />
+          <SettingsNav sections={adminUnlocked ? ADMIN_SECTIONS : PUBLIC_SETTINGS_SECTIONS} section={section} panelId={PANEL_ID} onSelect={setSection} />
           <div key={section} id={PANEL_ID} role="tabpanel" aria-labelledby={settingsTabId(section)} className="flex min-w-0 flex-1 flex-col gap-4 overflow-y-auto px-5 py-4">
             {draft && snapshot ? renderBody(draft, snapshot) : <p className={SETTINGS_HINT}>Chargement des réglages…</p>}
           </div>

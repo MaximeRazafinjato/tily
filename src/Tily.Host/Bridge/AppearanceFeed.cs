@@ -9,6 +9,7 @@ namespace Tily.Host.Bridge;
 public sealed class AppearanceFeed
 {
     private readonly Func<SettingsModel> _settings;
+    private readonly Func<FeatureFlagsModel> _featureFlags;
     private readonly SettingsService _settingsService;
     private readonly Action<object> _post;
     private readonly Action<WindowColorsModel> _applyWindow;
@@ -18,10 +19,11 @@ public sealed class AppearanceFeed
     private AppearanceStateModel? _state;
     private string? _postedProjects;
 
-    public AppearanceFeed(Func<SettingsModel> settings, SettingsService settingsService, Action<object> post, Action<WindowColorsModel> applyWindow, Action<Exception> onError, string dataDirectory)
+    public AppearanceFeed(Func<SettingsModel> settings, Func<FeatureFlagsModel> featureFlags, SettingsService settingsService, Action<object> post, Action<WindowColorsModel> applyWindow, Action<Exception> onError, string dataDirectory)
     {
         _media = new AmbianceMedia(dataDirectory);
         _settings = settings;
+        _featureFlags = featureFlags;
         _settingsService = settingsService;
         _post = post;
         _applyWindow = applyWindow;
@@ -107,6 +109,11 @@ public sealed class AppearanceFeed
 
     private void SaveProjectOutfit(string project, CompanionOutfitModel? outfit)
     {
+        if (!_featureFlags().CompanionCosmetics)
+        {
+            throw new InvalidOperationException("Les cosmétiques des compagnons sont désactivés.");
+        }
+
         var settings = _settings();
         settings.Appearance = _settingsService.SaveAppearance(settings.Appearance.WithProjectOutfit(project, outfit));
         RefreshProjects();

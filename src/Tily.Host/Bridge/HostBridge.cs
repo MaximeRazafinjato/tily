@@ -28,7 +28,7 @@ public sealed class HostBridge : IDisposable
     private const string AttentionDone = "done";
     private const string MainWindowId = "main";
     private const string MainWindowOnly = "Les paramètres et les mises à jour se gèrent dans la fenêtre principale de Tily.";
-    private static readonly HashSet<string> MainWindowCommands = ["settings.save", "settings.export", "settings.import", "appearance.fontSize", "appearance.ambianceEnabled", "appearance.projectColor", "appearance.importMedia", "agents.installHooks", "agents.removeHooks", "mcp.install", "mcp.remove"];
+    private static readonly HashSet<string> MainWindowCommands = ["settings.save", "settings.export", "settings.import", "appearance.fontSize", "appearance.ambianceEnabled", "appearance.projectColor", "appearance.importMedia", "agents.installHooks", "agents.removeHooks", "mcp.install", "mcp.remove", "featureFlags.save"];
     private static readonly TimeSpan WriteDrainTimeout = TimeSpan.FromSeconds(10);
     internal static readonly JsonSerializerOptions JsonOptions = new(SessionRepository.JsonOptions) { WriteIndented = false };
 
@@ -84,7 +84,7 @@ public sealed class HostBridge : IDisposable
         _worktrees = new WorktreeFeed(Post, () => Settings, RememberWorktreeFolder, _git.RefreshSoon, PostError, dataDirectory);
         _clones = new CloneFeed(Post, () => Settings, PostError);
         _browsers = new BrowserFeed(browserLayer, () => _core?.Environment, Post, focusInterface, () => ShortcutRules.InterceptedChords(Settings.Shortcuts));
-        _appearance = new AppearanceFeed(() => Settings, services.SettingsService, Post, colors => _dispatcher.TryEnqueue(() => ApplyWindowColors(applyWindowColors, colors)), PostError, dataDirectory);
+        _appearance = new AppearanceFeed(() => Settings, () => services.FeatureFlags, services.SettingsService, Post, colors => _dispatcher.TryEnqueue(() => ApplyWindowColors(applyWindowColors, colors)), PostError, dataDirectory);
         ApplyWindowColors(applyWindowColors, _appearance.Start());
         _browsers.UpdateShortcuts();
         _appearance.Refresh();
@@ -283,6 +283,9 @@ public sealed class HostBridge : IDisposable
                 break;
             case "appearance.ambianceEnabled":
                 SaveAmbianceEnabled(command);
+                break;
+            case "featureFlags.save":
+                _services.SaveFeatureFlags(command.Flags ?? throw new InvalidOperationException("Feature flags manquants."));
                 break;
             case var type when type.StartsWith("appearance.", StringComparison.Ordinal):
                 _appearance.Handle(command);
@@ -644,6 +647,7 @@ public sealed class HostBridge : IDisposable
             appearance = Settings.Appearance,
             theme = _appearance.Hello(),
             shortcuts = Settings.Shortcuts,
+            featureFlags = _services.FeatureFlags,
             statusLog = _statusLog.Entries(),
             recovery = recovery.Length > 0 ? recovery : null
         });

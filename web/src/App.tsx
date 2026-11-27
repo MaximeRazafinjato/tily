@@ -6,6 +6,7 @@ import { announceShinyCompanions } from './companions/shinyAnnouncement'
 import { AMBIANCE_MEDIA_FIELD, AMBIANCE_MEDIA_PICK_FIELD, importAmbianceMedia, receiveAmbiance, startAmbiance } from './ambiance/ambianceActions'
 import { receiveAppearance, receiveAppearanceCatalog, receiveProjects, startAppearanceProjects } from './appearance/appearanceActions'
 import { bridge } from './bridge/bridge'
+import { receiveFeatureFlags } from './featureFlags/featureFlagActions'
 import { receiveBrowserFailure, receiveBrowserFocused, receiveBrowserState, receiveNewBrowserPane } from './browser/browserActions'
 import { receiveBrowserKey } from './browser/browserKeys'
 import { disposeMissingBrowsers, startBrowserLayer } from './browser/browserLayer'
@@ -90,6 +91,7 @@ export default function App() {
         setHello(message.version, message.name, message.shells, message.home, message.persistence)
         receiveAppearanceCatalog(message.theme)
         useShortcutStore.getState().setShortcuts(message.shortcuts)
+        receiveFeatureFlags(message.featureFlags)
         useStatusLogStore.getState().load(message.statusLog)
         terminalRegistry.configure(message.persistence.linesPerPane)
         terminalRegistry.setFontSize(message.appearance.fontSize)
@@ -111,6 +113,7 @@ export default function App() {
           }
         })
       }),
+      bridge.on('featureFlags.changed', (message) => receiveFeatureFlags(message.flags)),
       bridge.on('appearance.changed', (message) => {
         terminalRegistry.setFontSize(message.fontSize)
         setStatus(`Taille du texte des terminaux : ${message.fontSize} px`)

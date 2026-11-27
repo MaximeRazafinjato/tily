@@ -2,6 +2,7 @@ import type { AmbianceSettings } from '../bridge/appearanceMessages'
 import { shouldRender } from '../ambiance/renderPacing'
 import { useAgentStore } from '../store/agentStore'
 import { useAppearanceStore } from '../store/appearanceStore'
+import { useFeatureFlagStore } from '../store/featureFlagStore'
 import { useSessionStore } from '../store/sessionStore'
 import { BlobMood, createWorld, resize, type World } from './blobModel'
 import { updateBlob, updateParticles } from './blobPhysics'
@@ -197,6 +198,7 @@ const mountLayer = (size: number, speed: number, gore: boolean): { world: World;
     useAgentStore.subscribe((state, previous) => state.agents !== previous.agents && markSyncPending()),
     useSessionStore.subscribe((state, previous) => state.session !== previous.session && markSyncPending()),
     useAppearanceStore.subscribe((state, previous) => (state.projects !== previous.projects || state.ambiance !== previous.ambiance) && markSyncPending()),
+    useFeatureFlagStore.subscribe((state, previous) => state.flags !== previous.flags && markSyncPending()),
   ]
   const stopPointer = startCompanionPointer(world)
   const stopWardrobe = linkWardrobe(world)

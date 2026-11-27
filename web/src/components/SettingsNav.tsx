@@ -2,29 +2,29 @@ import type { KeyboardEvent } from 'react'
 import { SETTINGS_SECTION_LABELS, SettingsSection, settingsTabId } from './settingsSections'
 
 interface SettingsNavProps {
+  sections: SettingsSection[]
   section: SettingsSection
   panelId: string
   onSelect: (section: SettingsSection) => void
 }
 
-const SECTIONS = Object.values(SettingsSection)
 const STEPS: Record<string, number> = { ArrowDown: 1, ArrowUp: -1 }
 
-export function SettingsNav({ section, panelId, onSelect }: SettingsNavProps) {
+export function SettingsNav({ sections, section, panelId, onSelect }: SettingsNavProps) {
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     const step = STEPS[event.key]
     if (!step) {
       return
     }
     event.preventDefault()
-    const next = SECTIONS[(SECTIONS.indexOf(section) + step + SECTIONS.length) % SECTIONS.length]
+    const next = sections[(sections.indexOf(section) + step + sections.length) % sections.length]
     onSelect(next)
     document.getElementById(settingsTabId(next))?.focus()
   }
 
   return (
     <div role="tablist" aria-orientation="vertical" aria-label="Sections des paramètres" className="flex w-[170px] shrink-0 flex-col gap-0.5 overflow-y-auto border-r border-tily-line p-2" onKeyDown={handleKeyDown}>
-      {SECTIONS.map((candidate) => {
+      {sections.map((candidate) => {
         const selected = candidate === section
         const handleClick = () => onSelect(candidate)
         return (

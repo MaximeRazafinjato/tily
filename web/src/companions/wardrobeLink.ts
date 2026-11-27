@@ -1,3 +1,4 @@
+import { companionCosmeticsEnabled } from '../featureFlags/featureFlagActions'
 import { useWardrobeStore } from '../store/wardrobeStore'
 import type { Blob, World } from './blobModel'
 import { bumpFocus, closeFocus, focusedBlob, focusHomeX, openFocus } from './wardrobeFocus'
@@ -6,7 +7,7 @@ const rootOf = (blob: Blob): Blob => blob.parent ?? blob
 
 export const openWardrobeFor = (world: World, blob: Blob): void => {
   const owner = rootOf(blob)
-  if (!owner.project) {
+  if (!owner.project || !companionCosmeticsEnabled()) {
     return
   }
   useWardrobeStore.getState().open({

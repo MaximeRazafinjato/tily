@@ -22,6 +22,7 @@ public sealed class HostServices : IDisposable
     private IReadOnlyList<PaneAgentModel> _agentStates = [];
     private DragGhostWindow? _ghost;
     private HostBridge? _dragTarget;
+    private readonly FeatureFlagsRepository _featureFlagsRepository;
 
     public HostServices(DispatcherQueue dispatcher, string dataDirectory)
     {
@@ -29,6 +30,8 @@ public sealed class HostServices : IDisposable
         DataDirectory = dataDirectory;
         SettingsService = new SettingsService(dataDirectory);
         Settings = SettingsService.Load();
+        _featureFlagsRepository = new FeatureFlagsRepository(dataDirectory);
+        FeatureFlags = _featureFlagsRepository.Load();
         Terminals = new TerminalManager();
         Panes = new PaneRouter(Terminals);
         Agents = new AgentStateFeed(dataDirectory, Terminals, PublishAgents, CompanionsShown, PublishShinyEncounters);
@@ -46,6 +49,8 @@ public sealed class HostServices : IDisposable
     public SettingsService SettingsService { get; }
 
     public SettingsModel Settings { get; private set; }
+
+    public FeatureFlagsModel FeatureFlags { get; private set; }
 
     public ShellPathsModel ShellPaths { get; private set; } = ShellPathsModel.Empty;
 
@@ -105,6 +110,13 @@ public sealed class HostServices : IDisposable
         {
             window.ApplySettings();
         }
+    }
+
+    public void SaveFeatureFlags(FeatureFlagsModel flags)
+    {
+        _featureFlagsRepository.Save(flags);
+        FeatureFlags = flags;
+        Broadcast(new { type = "featureFlags.changed", flags });
     }
 
     public void Broadcast(object message)
