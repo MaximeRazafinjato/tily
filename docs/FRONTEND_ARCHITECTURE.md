@@ -171,6 +171,7 @@ Vue Fichiers et sélecteur de fichiers du projet (section 3 de la spec), sans Re
 
 Aperçu et édition des fichiers, dans un tiroir posé sur la zone des terminaux avec la vue Fichiers (section 3 de la spec).
 
+- Un aperçu par onglet : au changement d'onglet affiché (`startTabPreviews`), celui de l'onglet quitté, brouillon compris, passe dans `previewStore.parked`, puis celui de l'onglet affiché en revient et l'hôte le relit (`preview.open`), sinon `preview.close`. Une entrée disparaît avec son onglet ; un enregistrement terminé après le départ de l'onglet met à jour son entrée.
 - `receivePreview` n'accepte que le fichier affiché. Les liens ne naviguent jamais : une ancre défile localement, tout autre lien part à l'hôte (`preview.follow`).
 - `preview.requested` (page HTML ouverte par Claude Code dans un pane) s'affiche si l'onglet de ce pane est affiché, sans prendre le focus ; sinon elle attend (`previewStore.deferred`, une par onglet) que l'onglet soit affiché. Aucun changement d'onglet automatique.
 - `renderPreview.ts` assainit le Markdown rendu par DOMPurify et réécrit les images relatives vers l'adresse servie par l'hôte. Une page HTML tourne dans une iframe `sandbox="allow-scripts allow-popups"` : origine opaque, ses scripts n'ont aucun accès à Tily.

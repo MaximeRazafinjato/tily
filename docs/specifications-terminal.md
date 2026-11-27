@@ -99,7 +99,7 @@ Aperçu des fichiers Markdown et texte : dans l’arbre, un simple clic ou Entr�
 
 L’icône « Source » de l’en-tête d’un aperçu Markdown affiche son texte brut, coloré, au lieu du rendu, et un second clic revient au rendu ; le choix tient tant que le même fichier reste ouvert, même quand il est rechargé après une modification.
 
-Aperçu limité aux 2 premiers Mo du fichier, avec un avertissement ; fichier binaire refusé avec un message ; Échap ferme l’aperçu et rend le focus à l’arbre.
+Aperçu limité aux 2 premiers Mo du fichier, avec un avertissement ; fichier binaire refusé avec un message ; Échap ferme l’aperçu et rend le focus à l’arbre. Chaque onglet a son propre aperçu : changer d’onglet, dans le même workspace ou dans un autre, masque celui de l’onglet quitté, modifications non enregistrées comprises et sans confirmation, et rouvre celui de l’onglet affiché, relu depuis le disque ; il n’est pas conservé à la fermeture de Tily ni quand l’onglet change de fenêtre.
 
 Les images courantes (`.png`, `.jpg`, `.gif`, `.webp`, `.svg`, `.bmp`, `.ico`, `.avif`) s’ouvrent aussi dans l’aperçu par un simple clic ou Entrée, ajustées à la place disponible, avec leurs dimensions en pixels à côté du badge « Image » ; un clic sur l’image bascule entre la taille ajustée et la taille réelle, avec défilement ; elles sont servies par l’hôte comme les images d’un Markdown et rechargées quand le fichier change. « Ouvrir dans l’éditeur » reste disponible.
 
