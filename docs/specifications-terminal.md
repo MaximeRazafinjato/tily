@@ -182,6 +182,8 @@ Au clavier, dans le panneau des workspaces, ↑ / ↓ / Début / Fin passent d�
 
 Un workspace replié affiche en gris, à droite de son nom, son nombre d’onglets ; le chevron le dit aussi aux lecteurs d’écran (« Afficher les 3 onglets de gd »).
 
+Sur la ligne d’un workspace, un bouton « + » affiché au survol, à gauche de la croix, ouvre un onglet dans ce workspace comme le « + » de la barre d’onglets : clic gauche pour Windows PowerShell, clic droit, Maj + F10 ou la touche de menu contextuel pour le menu des shells et « Navigateur ». Le workspace devient le workspace actif et le nouvel onglet reprend le dossier de son pane actif.
+
 Un workspace créé depuis le sélecteur de projets porte automatiquement le nom du dossier choisi. Un workspace créé sans projet s’appelle « Workspace N » (N étant le nouveau nombre de workspaces) et son nom s’édite aussitôt ; un nom saisi n’est jamais écrasé. Son premier onglet, Windows PowerShell, s’ouvre dans le dossier utilisateur. Un clic sur un workspace rejoint son dernier onglet et son dernier pane actifs. Replier une branche ne change pas la sélection.
 
 Fermer le dernier onglet ou le dernier pane d’un workspace ferme ce workspace et arrête ses processus. S’il ne reste aucun workspace, afficher un état vide avec un message accueillant et une action pour en créer un. « Fermer le workspace » ne demande une confirmation que si des programmes y tournent ; la confirmation arrête alors tous ses processus et supprime le workspace.
