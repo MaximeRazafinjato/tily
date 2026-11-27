@@ -1,6 +1,7 @@
 import { useEffect, useMemo } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 import { bridge } from '../bridge/bridge'
+import { BrowserPlacement, openBrowser } from '../browser/browserActions'
 import { PickTarget, type AttentionKind, type NotificationSettings, type Settings } from '../bridge/messages'
 import { activePane, activeTab, activeWorkspace, DEFAULT_SHELL, EXPLORER_DEFAULT, EXPLORER_MAX, EXPLORER_MIN, findWorkspace, RightPanelView, SIDEBAR_DEFAULT, SIDEBAR_MAX, SIDEBAR_MIN, type Session, type SplitAxis, type SplitPath, type Workspace } from '../model/session'
 import { toggleFavoriteCommand, type PaletteItem } from '../palette/paletteItems'
@@ -156,10 +157,15 @@ const handleNewWorkspace = (): void => {
 
 const handleOpenProjects = (): void => runCommand(Command.Projects)
 
-const handleNewTabIn = (workspaceId: string): void => {
+const handleNewTabIn = (workspaceId: string, shellId: string): void => {
   const { selectWorkspace, newTab } = useSessionStore.getState()
   selectWorkspace(workspaceId)
-  newTab(DEFAULT_SHELL)
+  newTab(shellId)
+}
+
+const handleNewBrowserIn = (workspaceId: string): void => {
+  useSessionStore.getState().selectWorkspace(workspaceId)
+  openBrowser(BrowserPlacement.Tab)
 }
 
 const togglePanelFromTabBar = (view: RightPanelView): void => togglePanelView(view, true)
@@ -208,6 +214,7 @@ const panelActions: WorkspacePanelActions = {
   closeWorkspace: closeWorkspaceKeepingText,
   openNotes: openWorkspaceNotes,
   newTabIn: handleNewTabIn,
+  newBrowserIn: handleNewBrowserIn,
   collapseOthers: (workspaceId) => useSessionStore.getState().collapseOtherWorkspaces(workspaceId),
   moveWorkspace: (workspaceId, offset) => useSessionStore.getState().moveWorkspace(workspaceId, offset),
   moveWorkspaceBefore: (workspaceId, beforeWorkspaceId) => useSessionStore.getState().moveWorkspaceBefore(workspaceId, beforeWorkspaceId),

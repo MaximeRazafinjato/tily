@@ -14,6 +14,7 @@ import { WorkspaceStatus } from './WorkspaceStatus'
 import { CommandNoticeIcon } from './CommandNoticeIcon'
 import { useCommandStore } from '../store/commandStore'
 import { workspaceCommandNotice } from '../terminal/commandNotices'
+import { WorkspaceNewTabButton } from './WorkspaceNewTabButton'
 import { WorkspaceTabRow } from './WorkspaceTabRow'
 import { COLLAPSE_KEY, EXPAND_KEY, isMenuKey, menuRequestFor, MOVE_KEYS, PANEL_CLOSE_BUTTON, PANEL_DROP_LINE, PANEL_NOTE_BUTTON, type PanelMenuRequest, type WorkspacePanelActions } from './workspacePanel'
 
@@ -155,6 +156,7 @@ export const WorkspaceItem = memo(function WorkspaceItem({ workspace, workspaceN
         )}
         {!expanded && commandNotice && <CommandNoticeIcon notice={commandNotice} />}
         <WorkspaceStatus counts={workspaceStateCounts(workspace, agents)} onJoin={handleJoin} />
+        <WorkspaceNewTabButton workspaceId={id} name={name} actions={actions} />
         <span className="relative flex shrink-0">
           <button type="button" className={`peer ${PANEL_CLOSE_BUTTON}`} data-tip="Fermer le workspace" aria-label={`Fermer le workspace ${name}`} onClick={handleClose}>
             <Icon name={IconName.Close} size={10} />

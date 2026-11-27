@@ -12,7 +12,8 @@ export interface WorkspacePanelActions {
   cancelRenameWorkspace: () => void
   closeWorkspace: (workspaceId: string) => void
   openNotes: (workspaceId: string) => void
-  newTabIn: (workspaceId: string) => void
+  newTabIn: (workspaceId: string, shellId: string) => void
+  newBrowserIn: (workspaceId: string) => void
   collapseOthers: (workspaceId: string) => void
   moveWorkspace: (workspaceId: string, offset: number) => void
   moveWorkspaceBefore: (workspaceId: string, beforeWorkspaceId?: string) => void
