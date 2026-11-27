@@ -14,7 +14,10 @@ const POKE_S = 0.8
 const HOVER_CLASS = 'tily-companion-hover'
 const DRAG_CLASS = 'tily-companion-drag'
 const SNIPER_CLASS = 'tily-companion-sniper'
+const OVERLAY_SELECTOR = '[role="dialog"], [role="alertdialog"], [role="menu"]'
 const CURSOR_STYLE = `html.${HOVER_CLASS}, html.${HOVER_CLASS} * { cursor: grab !important } html.${DRAG_CLASS}, html.${DRAG_CLASS} * { cursor: grabbing !important } html.${SNIPER_CLASS}, html.${SNIPER_CLASS} * { cursor: none !important }`
+
+export const overlayOpen = (): boolean => document.querySelector(OVERLAY_SELECTOR) !== null
 
 const blobAt = (world: World, x: number, y: number): Blob | undefined =>
   [...world.blobs].reverse().find((blob) => !blob.leaving && !blob.stored && blob.exploded === 0 && Math.hypot(x - blob.x, y - (blob.y - blob.radius)) < blob.radius * 1.05)
@@ -59,7 +62,7 @@ export const startCompanionPointer = (world: World): (() => void) => {
   document.head.append(style)
 
   const handlePointerDown = (event: PointerEvent) => {
-    if (event.button !== 0) {
+    if (event.button !== 0 || overlayOpen()) {
       return
     }
     const onBasket = insideBasket(world, event.clientX, event.clientY)
@@ -117,11 +120,12 @@ export const startCompanionPointer = (world: World): (() => void) => {
     if (world.dragged) {
       registerShake(world, world.dragged, performance.now())
     }
-    world.hovered = world.dragged ? null : (blobAt(world, pointer.x, pointer.y) ?? null)
+    const covered = overlayOpen()
+    world.hovered = world.dragged || covered ? null : (blobAt(world, pointer.x, pointer.y) ?? null)
     if (world.hovered && event.buttons === 0 && !world.sniper && previous && last) {
       petBlob(world, world.hovered, Math.hypot(last.x - previous.x, last.y - previous.y))
     }
-    const hovering = !world.dragged && !world.ball?.held && (world.hovered !== null || insideBasket(world, pointer.x, pointer.y) || ballAt(world, pointer.x, pointer.y))
+    const hovering = !covered && !world.dragged && !world.ball?.held && (world.hovered !== null || insideBasket(world, pointer.x, pointer.y) || ballAt(world, pointer.x, pointer.y))
     document.documentElement.classList.toggle(HOVER_CLASS, hovering && !world.sniper)
     document.documentElement.classList.toggle(SNIPER_CLASS, world.sniper)
   }
@@ -153,6 +157,9 @@ export const startCompanionPointer = (world: World): (() => void) => {
   }
 
   const handleContextMenu = (event: MouseEvent) => {
+    if (overlayOpen()) {
+      return
+    }
     if (insideBasket(world, event.clientX, event.clientY)) {
       event.preventDefault()
       event.stopPropagation()

@@ -368,7 +368,7 @@ export function AppShell({ session }: AppShellProps) {
   }
 
   return (
-    <div className="relative isolate flex h-full flex-col">
+    <div data-companion-host="" className="relative isolate flex h-full flex-col">
       <AmbientBackground />
       <Header
         workspaceName={workspace?.name ?? null}
