@@ -1,5 +1,5 @@
 import { openColorDialog } from '../appearance/appearanceActions'
-import { isManuallyNamed, type Session } from '../model/session'
+import { DEFAULT_SHELL, isManuallyNamed, type Session } from '../model/session'
 import { useSessionStore } from '../store/sessionStore'
 import { isDetachedWindow } from '../store/windowStore'
 import { attachWorkspace, detachWorkspace } from '../window/windowTransfer'
@@ -44,7 +44,7 @@ const itemsFor = ({ workspaceId, tabId }: PanelMenuRequest, place: MenuPlace, ma
       ]
     : [
         { id: 'rename-workspace', label: 'Renommer', detail: <MenuShortcut keys="F2" />, run: () => actions.startRenameWorkspace(workspaceId) },
-        { id: 'new-tab', label: 'Nouvel onglet PowerShell', run: () => actions.newTabIn(workspaceId) },
+        { id: 'new-tab', label: 'Nouvel onglet PowerShell', run: () => actions.newTabIn(workspaceId, DEFAULT_SHELL) },
         { id: 'open-notes', label: 'Notes du workspace', run: () => actions.openNotes(workspaceId) },
         { id: 'workspace-color', label: 'Couleur…', run: () => openColorDialog({ workspaceId }) },
         ...moveItems(place, (offset) => actions.moveWorkspace(workspaceId, offset)),
