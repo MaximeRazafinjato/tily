@@ -3,8 +3,10 @@ import { UpdateStatus, type UpdateInfo, type UpdateRelease } from '../bridge/upd
 import { cancelUpdateDownload, closeUpdateDialog, downloadPercent, formatDate, formatMebibytes, installUpdate, openReleasePage } from '../update/updateActions'
 import { keepTabInside } from './focusTrap'
 import { InfoTip } from './InfoTip'
+import { ReleaseHistoryItem } from './ReleaseHistoryItem'
 import { ReleaseNoteList } from './ReleaseNoteList'
 import { SETTINGS_BUTTON, SETTINGS_HINT, SETTINGS_SECONDARY } from './settingsStyles'
+import { useReleaseToggles } from './useReleaseToggles'
 
 interface UpdateDialogProps {
   info: UpdateInfo
@@ -24,6 +26,7 @@ export function UpdateDialog({ info, release }: UpdateDialogProps) {
   const primaryRef = useRef<HTMLButtonElement>(null)
   const downloading = info.status === UpdateStatus.Downloading
   const percent = downloadPercent(info)
+  const { isExpanded, toggle } = useReleaseToggles(release.releases[0]?.version)
 
   useEffect(() => {
     primaryRef.current?.focus()
@@ -69,7 +72,13 @@ export function UpdateDialog({ info, release }: UpdateDialogProps) {
           <span className={SETTINGS_HINT}>{release.publishedAt ? `Publiée le ${formatDate(release.publishedAt)} · version actuelle ${info.current}` : `Version actuelle ${info.current}`}</span>
         </div>
         <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-4 py-4">
-          {release.notes.length > 0 ? (
+          {release.releases.length > 0 ? (
+            <ul className="flex flex-col gap-3">
+              {release.releases.map((entry) => (
+                <ReleaseHistoryItem key={entry.version} entry={entry} installed={false} expanded={isExpanded(entry.version)} onToggle={toggle} />
+              ))}
+            </ul>
+          ) : release.notes.length > 0 ? (
             <ReleaseNoteList notes={release.notes} />
           ) : (
             <p className={SETTINGS_HINT}>Aucune note de version : consultez la release sur GitHub.</p>
