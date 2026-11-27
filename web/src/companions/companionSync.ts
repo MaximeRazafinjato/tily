@@ -1,3 +1,4 @@
+import type { FolderProject } from '../bridge/appearanceMessages'
 import { AgentState, type PaneAgent } from '../bridge/messages'
 import { hexToRgb } from '../ambiance/renderPacing'
 import { findPane, panesOf } from '../model/session'
@@ -45,10 +46,24 @@ const nameOf = (paneId: string, agents: Record<string, PaneAgent>): string => {
   return agentPanes.length > 1 ? `#${agentPanes.findIndex((pane) => pane.id === paneId) + 1} ${tab.name}` : tab.name
 }
 
-const hueOf = (paneId: string): number => {
+const folderOf = (paneId: string): FolderProject | undefined => {
   const path = pathOf(paneId)
-  const color = path ? useAppearanceStore.getState().projects[projectKey(path)]?.color : undefined
+  return path ? useAppearanceStore.getState().projects[projectKey(path)] : undefined
+}
+
+const hueOf = (paneId: string): number => {
+  const color = folderOf(paneId)?.color
   return color ? hueOfHex(color) : hashOf(paneId) % 360
+}
+
+const dress = (blob: Blob, paneId: string): void => {
+  const folder = folderOf(paneId)
+  blob.outfit = folder?.outfit ?? {}
+  blob.project = folder ? (folder.project ?? folder.path) : null
+  blob.children.forEach((child) => {
+    child.outfit = blob.outfit
+    child.project = blob.project
+  })
 }
 
 const moodOf = (agent: PaneAgent): BlobMood => (agent.state === AgentState.Done && agent.interrupted ? BlobMood.Idle : MOODS[agent.state])
@@ -92,6 +107,7 @@ export const syncCompanions = (world: World): void => {
       blob.mood = mood === BlobMood.Done ? BlobMood.Idle : mood
     }
     blob.hue = hueOf(agent.paneId)
+    dress(blob, agent.paneId)
     blob.name = nameOf(agent.paneId, agents)
     blob.tool = toolLabel(agent.tool)
     blob.contextScale = contextScaleOf(agent.contextTokens)

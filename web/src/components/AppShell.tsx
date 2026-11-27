@@ -45,6 +45,7 @@ import { DeleteConfirmDialog } from './DeleteConfirmDialog'
 import { EmptyState } from './EmptyState'
 import { GitConfirmDialog } from './GitConfirmDialog'
 import { GitContextMenu } from './GitContextMenu'
+import { LazyCompanionWardrobe } from './LazyCompanionWardrobe'
 import { LazyFilePreview } from './LazyFilePreview'
 import { UnsavedPreviewDialog } from './UnsavedPreviewDialog'
 import { GitConflictDrawer } from './GitConflictDrawer'
@@ -374,7 +375,7 @@ export function AppShell({ session }: AppShellProps) {
   }
 
   return (
-    <div className="relative isolate flex h-full flex-col">
+    <div data-companion-host="" className="relative isolate flex h-full flex-col">
       <AmbientBackground />
       <Header
         workspaceName={workspace?.name ?? null}
@@ -430,6 +431,7 @@ export function AppShell({ session }: AppShellProps) {
       {closeConfirmation && <CloseConfirmDialog confirmation={closeConfirmation} onConfirm={confirmClose} onCancel={handleCancelClose} />}
       <PasteConfirmDialog />
       <ColorDialog />
+      <LazyCompanionWardrobe />
       {unsavedPreview && <UnsavedPreviewDialog />}
       <McpConsentDialog />
       <PaneDropIndicator />

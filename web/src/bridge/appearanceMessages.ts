@@ -21,11 +21,20 @@ export interface AppearanceState {
   defaultColor: string
 }
 
+export interface CompanionOutfit {
+  hat?: string
+  face?: string
+  skin?: string
+  trail?: string
+  animation?: string
+}
+
 export interface FolderProject {
   path: string
   project?: string
   projectName?: string
   color?: string
+  outfit?: CompanionOutfit
 }
 
 export interface AppearanceCatalog {
@@ -150,5 +159,6 @@ export type AppearanceHostMessage =
 export type AppearanceWebMessage =
   | { type: 'appearance.projects'; paths: string[] }
   | { type: 'appearance.projectColor'; project: string; color?: string }
+  | { type: 'appearance.projectOutfit'; project: string; outfit: CompanionOutfit }
   | { type: 'appearance.ambianceEnabled'; enabled: boolean }
   | { type: 'appearance.importMedia'; path: string }

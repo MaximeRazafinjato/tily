@@ -1,6 +1,6 @@
 import type { Session } from '../model/session'
 import type { ActivityHostMessage, ActivityWebMessage } from './activityMessages'
-import type { AmbianceSettings, AppearanceCatalog, AppearanceHostMessage, AppearanceWebMessage } from './appearanceMessages'
+import type { AmbianceSettings, AppearanceCatalog, CompanionOutfit, AppearanceHostMessage, AppearanceWebMessage } from './appearanceMessages'
 import type { BrowserHostMessage, BrowserWebMessage } from './browserMessages'
 import type { CloneHostMessage, CloneWebMessage } from './cloneMessages'
 import type { ForgeHostMessage, ForgeWebMessage } from './forgeMessages'
@@ -66,6 +66,7 @@ export interface AppearanceSettings {
   fontSize: number
   accent?: string
   projectColors: Record<string, string>
+  projectOutfits: Record<string, CompanionOutfit>
   ambiance: AmbianceSettings
 }
 

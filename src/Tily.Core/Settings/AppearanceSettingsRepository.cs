@@ -14,6 +14,7 @@ public sealed record AppearanceSettingsModel(int FontSize = AppearanceSettingsMo
 
     public string? Accent { get; init; }
     public Dictionary<string, string> ProjectColors { get; init; } = new(StringComparer.OrdinalIgnoreCase);
+    public Dictionary<string, CompanionOutfitModel> ProjectOutfits { get; init; } = new(StringComparer.OrdinalIgnoreCase);
     public AmbianceSettingsModel Ambiance { get; init; } = AmbianceSettingsModel.Default;
 
     public AppearanceSettingsModel Normalized() => this with
@@ -24,7 +25,13 @@ public sealed record AppearanceSettingsModel(int FontSize = AppearanceSettingsMo
         ProjectColors = (ProjectColors ?? [])
             .Where(pair => !string.IsNullOrWhiteSpace(pair.Key) && HexColor.Normalize(pair.Value) is not null)
             .GroupBy(pair => pair.Key.Trim(), StringComparer.OrdinalIgnoreCase)
-            .ToDictionary(group => group.Key, group => HexColor.Normalize(group.Last().Value)!, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(group => group.Key, group => HexColor.Normalize(group.Last().Value)!, StringComparer.OrdinalIgnoreCase),
+        ProjectOutfits = (ProjectOutfits ?? [])
+            .Where(pair => !string.IsNullOrWhiteSpace(pair.Key) && pair.Value is not null)
+            .Select(pair => (Project: pair.Key.Trim(), Outfit: pair.Value.Normalized()))
+            .Where(pair => !pair.Outfit.IsEmpty)
+            .GroupBy(pair => pair.Project, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(group => group.Key, group => group.Last().Outfit, StringComparer.OrdinalIgnoreCase)
     };
 
     public AppearanceSettingsModel WithProjectColor(string project, string? color)
@@ -42,13 +49,30 @@ public sealed record AppearanceSettingsModel(int FontSize = AppearanceSettingsMo
         return this with { ProjectColors = colors };
     }
 
+    public AppearanceSettingsModel WithProjectOutfit(string project, CompanionOutfitModel? outfit)
+    {
+        var outfits = new Dictionary<string, CompanionOutfitModel>(ProjectOutfits, StringComparer.OrdinalIgnoreCase);
+        if (outfit?.Normalized() is { IsEmpty: false } normalized)
+        {
+            outfits[project.Trim()] = normalized;
+        }
+        else
+        {
+            outfits.Remove(project.Trim());
+        }
+
+        return this with { ProjectOutfits = outfits };
+    }
+
     public bool Equals(AppearanceSettingsModel? other) =>
         other is not null
         && FontSize == other.FontSize
         && Accent == other.Accent
         && Ambiance == other.Ambiance
         && ProjectColors.Count == other.ProjectColors.Count
-        && ProjectColors.All(pair => other.ProjectColors.TryGetValue(pair.Key, out var color) && color == pair.Value);
+        && ProjectColors.All(pair => other.ProjectColors.TryGetValue(pair.Key, out var color) && color == pair.Value)
+        && ProjectOutfits.Count == other.ProjectOutfits.Count
+        && ProjectOutfits.All(pair => other.ProjectOutfits.TryGetValue(pair.Key, out var outfit) && outfit == pair.Value);
 
     public override int GetHashCode() => HashCode.Combine(FontSize, Accent, ProjectColors.Count);
 }

@@ -54,6 +54,9 @@ public sealed class AppearanceFeed
             case "appearance.projectColor":
                 SaveProjectColor(command.Project ?? throw new InvalidOperationException("Projet manquant."), command.Color);
                 break;
+            case "appearance.projectOutfit":
+                SaveProjectOutfit(command.Project ?? throw new InvalidOperationException("Projet manquant."), command.Outfit);
+                break;
             default:
                 throw new InvalidOperationException($"Commande inconnue : {command.Type}");
         }
@@ -99,6 +102,13 @@ public sealed class AppearanceFeed
     {
         var settings = _settings();
         settings.Appearance = _settingsService.SaveAppearance(settings.Appearance.WithProjectColor(project, color));
+        RefreshProjects();
+    }
+
+    private void SaveProjectOutfit(string project, CompanionOutfitModel? outfit)
+    {
+        var settings = _settings();
+        settings.Appearance = _settingsService.SaveAppearance(settings.Appearance.WithProjectOutfit(project, outfit));
         RefreshProjects();
     }
 }

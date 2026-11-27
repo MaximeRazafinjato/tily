@@ -42,6 +42,30 @@ public sealed class AccentResolverTests : IDisposable
     }
 
     [Fact]
+    public void ProjectsOf_WhenProjectHasOutfit_ThenFolderGetsIt()
+    {
+        var folder = Directory.CreateDirectory(Path.Combine(Projects, "tily", "web")).FullName;
+        var outfit = new CompanionOutfitModel(Hat: "viking", Animation: "disco");
+        var settings = new SettingsModel { ProjectsRoot = Projects, Appearance = AppearanceSettingsModel.Default.WithProjectOutfit(Path.Combine(Projects, "tily"), outfit) };
+
+        var projects = AccentResolver.ProjectsOf(settings, [folder]);
+
+        Assert.Equal([new FolderProjectModel(folder, Path.Combine(Projects, "tily"), null, outfit)], projects);
+    }
+
+    [Fact]
+    public void ProjectsOf_WhenFolderOutsideProjectsHasOutfit_ThenKeyedByFolder()
+    {
+        var folder = Directory.CreateDirectory(Path.Combine(_root, "Bureau à part")).FullName;
+        var outfit = new CompanionOutfitModel(Skin: "slime");
+        var settings = new SettingsModel { ProjectsRoot = Projects, Appearance = AppearanceSettingsModel.Default.WithProjectOutfit(folder, outfit) };
+
+        var projects = AccentResolver.ProjectsOf(settings, [folder]);
+
+        Assert.Equal([new FolderProjectModel(folder, null, null, outfit)], projects);
+    }
+
+    [Fact]
     public void ProjectOf_WhenSubfolderOfProject_ThenFirstLevelFolder()
     {
         var nested = Directory.CreateDirectory(Path.Combine(Projects, "tily", "web", "src")).FullName;

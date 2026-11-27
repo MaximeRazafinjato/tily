@@ -1,7 +1,8 @@
 import { bridge } from '../bridge/bridge'
-import type { AppearanceCatalog, AppearanceState, FolderProject } from '../bridge/appearanceMessages'
+import type { AppearanceCatalog, AppearanceState, CompanionOutfit, FolderProject } from '../bridge/appearanceMessages'
 import { focusActivePane } from '../explorer/fileExplorerActions'
-import { activePane, activeTab, type Session, type Workspace } from '../model/session'
+import { activePane, activeTab, findPane, type Session, type Workspace } from '../model/session'
+import { useAgentStore } from '../store/agentStore'
 import { useAppearanceStore, type ColorTarget } from '../store/appearanceStore'
 import { useSessionStore } from '../store/sessionStore'
 
@@ -12,7 +13,10 @@ const projectColorTimers = new Map<string, ReturnType<typeof setTimeout>>()
 
 export const workspacePath = (workspace: Workspace): string => activePane(activeTab(workspace)).path
 
-const followedPaths = (session: Session | null): string[] => [...new Set((session?.workspaces ?? []).map(workspacePath))].sort()
+const agentPaths = (session: Session | null): string[] =>
+  session ? Object.keys(useAgentStore.getState().agents).flatMap((paneId) => findPane(session, paneId)?.path ?? []) : []
+
+const followedPaths = (session: Session | null): string[] => [...new Set([...(session?.workspaces ?? []).map(workspacePath), ...agentPaths(session)])].sort()
 
 export const receiveAppearance = (state: AppearanceState): void => {
   const root = document.documentElement.style
@@ -30,14 +34,16 @@ export const receiveProjects = (projects: FolderProject[]): void => useAppearanc
 
 export const startAppearanceProjects = (): (() => void) => {
   let sent: string | null = null
-  return useSessionStore.subscribe((state) => {
-    const paths = followedPaths(state.session)
+  const follow = (): void => {
+    const paths = followedPaths(useSessionStore.getState().session)
     const key = paths.join('\n')
     if (key !== sent) {
       sent = key
       bridge.send({ type: 'appearance.projects', paths })
     }
-  })
+  }
+  const unsubscribes = [useSessionStore.subscribe(follow), useAgentStore.subscribe((state, previous) => state.agents !== previous.agents && follow())]
+  return () => unsubscribes.forEach((unsubscribe) => unsubscribe())
 }
 
 export const setWorkspaceColor = (workspaceId: string, color: string | undefined): void => useSessionStore.getState().setWorkspaceColor(workspaceId, color)
@@ -70,4 +76,15 @@ export const openTabColor = (tabId: string): void => {
 export const closeColorDialog = (): void => {
   useAppearanceStore.getState().closeColorDialog()
   focusActivePane()
+}
+
+const keyOf = (folder: FolderProject): string => folder.project ?? folder.path
+
+export const projectOutfit = (project: string): CompanionOutfit => Object.values(useAppearanceStore.getState().projects).find((folder) => keyOf(folder) === project)?.outfit ?? {}
+
+export const setProjectOutfit = (project: string, outfit: CompanionOutfit): void => {
+  useAppearanceStore.setState((store) => ({
+    projects: Object.fromEntries(Object.entries(store.projects).map(([key, folder]) => [key, keyOf(folder) === project ? { ...folder, outfit } : folder])),
+  }))
+  bridge.send({ type: 'appearance.projectOutfit', project, outfit })
 }
