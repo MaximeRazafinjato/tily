@@ -43,15 +43,14 @@ export function ActivityPanel({ session }: ActivityPanelProps) {
   const toggleExpanded = useActivityStore((state) => state.toggleExpanded)
   const toggleOpen = useActivityStore((state) => state.toggleOpen)
   const pageVisible = usePageVisible()
-  const measuring = expanded && pageVisible
 
   useEffect(() => {
-    if (!measuring) {
+    if (!pageVisible) {
       return
     }
     bridge.send({ type: 'activity.subscribe' })
     return () => bridge.send({ type: 'activity.unsubscribe' })
-  }, [measuring])
+  }, [pageVisible])
 
   const tabs = useMemo(() => tabUsages(session, panes), [session, panes])
   const total = useMemo(() => usageOf([...host, ...tabs.flatMap((tab) => tab.processes)]), [host, tabs])
@@ -62,7 +61,7 @@ export function ActivityPanel({ session }: ActivityPanelProps) {
       <button type="button" aria-expanded={expanded} className="flex h-[32px] w-full cursor-pointer items-center gap-[6px] px-[4px] text-[11px] font-semibold tracking-[0.06em] text-tily-muted uppercase hover:text-tily-ink" onClick={toggleExpanded}>
         <Icon name={IconName.Chevron} size={10} className={`transition-transform duration-[120ms] ease-out ${expanded ? 'rotate-90' : ''}`} />
         <span>Activité</span>
-        {expanded && total.count > 0 && <span className="flex-1 text-right font-normal tracking-normal normal-case tabular-nums">{formatUsage(total)}</span>}
+        {total.count > 0 && <span className="flex-1 text-right font-normal tracking-normal normal-case tabular-nums">{formatUsage(total)}</span>}
       </button>
       {expanded && (
         <div className="max-h-[40vh] overflow-auto">
